@@ -13,6 +13,7 @@
 <img src="https://img.shields.io/badge/RHEL-9-orange?style=flat-square&logo=redhat&logoColor=white" alt="RHEL 9"/>
 <img src="https://img.shields.io/badge/RHEL-8-orange?style=flat-square&logo=redhat&logoColor=white" alt="RHEL 8"/>
 <img src="https://img.shields.io/badge/RHEL-10-orange?style=flat-square&logo=redhat&logoColor=white" alt="RHEL 10"/>
+<img src="https://img.shields.io/badge/Windows_Server-2016-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2016"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -213,7 +214,9 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 | STIG | RHEL 8 | 369 | 22 | 320 | 27 |
 | CIS | RHEL 10 Server | 302 | 75 | 227 | 0 |
 | CIS | RHEL 10 Workstation | 297 | 74 | 223 | 0 |
-| **Total** | | **1473** | **204** | **1226** | **43** |
+| CIS | WS 2016 DC | 311 | 77 | 234 | 0 |
+| CIS | WS 2016 MS | 323 | 80 | 243 | 0 |
+| **Total** | | **2107** | **361** | **1703** | **43** |
 
 </details>
 
@@ -281,6 +284,35 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 ---
 
+### 🪟 Windows Server 2016
+
+#### CIS Benchmarks
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Level 1 DC](ms/ws-2016/cis/ms-ws-2016-cis-level1-dc-v4.0.0.yaml) | 🟢 Baseline | Domain Controller | 256 | Baseline security for domain controllers | ✅ Verified |
+| [Level 1 MS](ms/ws-2016/cis/ms-ws-2016-cis-level1-ms-v4.0.0.yaml) | 🟢 Baseline | Member Server | 264 | Baseline security for member servers | ✅ Verified |
+| [Level 2 DC](ms/ws-2016/cis/ms-ws-2016-cis-level2-dc-v4.0.0.yaml) | 🟡 Enhanced | Domain Controller | 55 | Enhanced security for domain controllers | ✅ Verified |
+| [Level 2 MS](ms/ws-2016/cis/ms-ws-2016-cis-level2-ms-v4.0.0.yaml) | 🟡 Enhanced | Member Server | 59 | Enhanced security for member servers | ✅ Verified |
+
+#### DISA STIG
+
+> ⚠️ **Not Available** - DISA STIG for Windows Server 2016 is no longer available from official sources (likely retired). Consider using Windows Server 2019 or 2022 STIGs.
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Framework | Product | Total Rules | High | Medium | Low |
+|-----------|---------|-------------|------|--------|-----|
+| CIS | WS 2016 DC | 311 | 77 | 234 | 0 |
+| CIS | WS 2016 MS | 323 | 80 | 243 | 0 |
+| STIG | WS 2016 | - | - | - | - |
+| **Total** | | **634** | **157** | **477** | **0** |
+
+</details>
+
+---
+
 ## 🏛️ Supported Frameworks
 
 <table>
@@ -291,7 +323,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Framework | Status | Products |
 |-----------|--------|----------|
-| **CIS Benchmarks** | ✅ Active | RHEL 8, RHEL 9, RHEL 10 |
+| **CIS Benchmarks** | ✅ Active | RHEL 8, RHEL 9, RHEL 10, Windows Server 2016 |
 | **DISA STIG** | ✅ Active | RHEL 8, RHEL 9 |
 
 </td>
@@ -594,28 +626,30 @@ generate_ansible_playbook(
 
 | Product | CIS L1 | CIS L2 | STIG CAT I | STIG CAT II | STIG CAT III | **Total** |
 |---------|--------|--------|------------|-------------|--------------|-----------|
+| WS 2016 DC | 256 | 55 | - | - | - | **311** |
+| WS 2016 MS | 264 | 59 | - | - | - | **323** |
 | RHEL 10 Server | 225 | 77 | - | - | - | **302** |
 | RHEL 10 Workstation | 219 | 78 | - | - | - | **297** |
 | RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | **485** |
 | RHEL 9 Workstation | 6 | 3 | - | - | - | **9** |
 | RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | **376** |
 | RHEL 8 Workstation | 2 | 2 | - | - | - | **4** |
-| **Total** | **488** | **166** | **42** | **734** | **43** | **1473** |
+| **Total** | **1008** | **280** | **42** | **734** | **43** | **2107** |
 
 ### Severity Distribution
 
 ```
-High (Critical):   204 rules (13.9%) █████████████░░░░░░░░░░░░░░░
-Medium:           1226 rules (83.2%) ████████████████████████████
-Low:                43 rules (2.9%)  ███░░░░░░░░░░░░░░░░░░░░░░░░░
+High (Critical):   361 rules (17.1%) █████████████████░░░░░░░░░░░
+Medium:           1703 rules (80.8%) ████████████████████████████
+Low:                43 rules (2.0%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ### Automation Coverage
 
 ```
-Fully Automated:  1396 rules (94.8%) ████████████████████████████
-Partially Auto:     66 rules (4.5%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
-Manual:             11 rules (0.7%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Fully Automated:  2000 rules (94.9%) ████████████████████████████
+Partially Auto:    95 rules (4.5%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
+Manual:            12 rules (0.6%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ---
@@ -626,6 +660,7 @@ Manual:             11 rules (0.7%)  ░░░░░░░░░░░░░░�
 
 | Framework | Source | Version | Date |
 |-----------|--------|---------|------|
+| **CIS** | [CIS Windows Server 2016 Benchmark](https://www.cisecurity.org/benchmark/microsoft_windows_server) | v4.0.0 | 2024 |
 | **CIS** | [CIS RHEL 10 Benchmark](https://www.cisecurity.org/benchmark/red_hat_linux) | v1.0.1 | September 2025 |
 | **CIS** | [CIS RHEL 9 Benchmark](https://www.cisecurity.org/benchmark/red_hat_linux) | v2.0.0 | June 2024 |
 | **STIG** | [DISA STIG RHEL 9](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9) | V2R7 | May 2025 |
