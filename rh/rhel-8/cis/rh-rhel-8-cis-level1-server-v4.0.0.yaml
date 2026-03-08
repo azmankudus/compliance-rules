@@ -1,0 +1,185 @@
+$schema: https://raw.githubusercontent.com/azmankudus/compliance-rules/main/docs/schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: CIS Benchmark for Red Hat Enterprise Linux 8 - Level 1 Server
+  version: 4.0.0
+  description: Center for Internet Security Benchmark for RHEL 8 Level 1 Server Profile
+  platform: Red Hat Enterprise Linux 8
+  benchmark: CIS RHEL 8 Benchmark v4.0.0
+  author: Center for Internet Security
+  created: "2025-08-28T00:00:00Z"
+  modified: "2025-08-28T00:00:00Z"
+  compatible_platforms:
+    - RHEL 8.0
+    - RHEL 8.1
+    - RHEL 8.2
+    - RHEL 8.3
+    - RHEL 8.4
+    - RHEL 8.5
+    - RHEL 8.6
+    - RHEL 8.7
+    - RHEL 8.8
+    - RHEL 8.9
+    - RHEL 8.10
+
+compliance_info:
+  framework: CIS
+  version: 4.0.0
+  profile: Level 1 - Server
+
+profile:
+  name: CIS Level 1 Server
+  description: Baseline security configuration for RHEL 8 servers
+  level: 1
+
+rules:
+  - rule_id: CIS-1.1.1.1
+    rule_name: Ensure mounting of cramfs filesystems is disabled
+    rule_description: The cramfs filesystem type is a compressed read-only Linux filesystem
+    category: Filesystem
+    subcategory: Filesystem Types
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify cramfs kernel module is disabled"
+      check_command: "modprobe -n -v cramfs | grep -E '(install /bin/true|not found)'"
+      expected_value: "install /bin/true or not found"
+    remediation:
+      remediation_step: "Create or edit /etc/modprobe.d/cramfs.conf with: install cramfs /bin/true"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: "Unused filesystem drivers increase attack surface"
+      impact: "Low - Reduces potential attack vectors"
+      false_positive_risk: Low
+    tags:
+      - filesystem
+      - kernel-modules
+      - hardening
+      - level1-server
+
+  - rule_id: CIS-1.1.2.1
+    rule_name: Ensure /tmp is configured
+    rule_description: The /tmp directory should be on a separate partition
+    category: Filesystem
+    subcategory: Partitioning
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify /tmp is a separate mount point"
+      check_command: "mount | grep ' /tmp '"
+      expected_value: "Separate mount point for /tmp"
+    remediation:
+      remediation_step: "Configure /tmp as tmpfs or separate partition in /etc/fstab"
+      rollback_supported: false
+      reboot_required: true
+      service_impact: "Requires filesystem reconfiguration"
+      estimated_time: "30 minutes"
+    context:
+      rationale: "Separate /tmp prevents resource exhaustion and allows restrictive mount options"
+      impact: "Medium - Improves security and stability"
+      false_positive_risk: None
+    tags:
+      - filesystem
+      - partitioning
+      - tmp
+      - level1-server
+
+  - rule_id: CIS-1.2.1
+    rule_name: Ensure package manager repositories are configured
+    rule_description: Systems need to have package manager repositories configured
+    category: Package Management
+    subcategory: Repository Configuration
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: "Verify repositories are configured and accessible"
+      check_command: "dnf repolist"
+      expected_value: "At least one enabled repository"
+    remediation:
+      remediation_step: "Configure appropriate package repositories"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: "Configured repositories are essential for receiving security updates"
+      impact: "High - Required for system security"
+      false_positive_risk: None
+    tags:
+      - packages
+      - repositories
+      - updates
+      - level1-server
+
+  - rule_id: CIS-1.3.1
+    rule_name: Ensure AIDE is installed
+    rule_description: Advanced Intrusion Detection Environment (AIDE) provides file integrity checking
+    category: File Integrity
+    subcategory: AIDE
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify AIDE package is installed"
+      check_command: "rpm -q aide"
+      expected_value: "aide-<version>"
+    remediation:
+      remediation_step: "Install AIDE: dnf install aide && aide --init && mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: "Initial database creation may take time"
+      estimated_time: "15 minutes"
+    context:
+      rationale: "File integrity monitoring detects unauthorized file changes"
+      impact: "High - Essential for intrusion detection"
+      false_positive_risk: Low
+    tags:
+      - file-integrity
+      - aide
+      - intrusion-detection
+      - level1-server
+
+  - rule_id: CIS-1.4.1
+    rule_name: Ensure bootloader password is set
+    rule_description: Setting the bootloader password protects against unauthorized changes
+    category: Boot Configuration
+    subcategory: GRUB Security
+    testing_status: verified
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify GRUB password is configured"
+      check_command: "grep -E 'password_pbkdf2|GRUB2_PASSWORD' /boot/grub2/grub.cfg /etc/grub.d/01_users 2>/dev/null"
+      expected_value: "Password entry should be present"
+    remediation:
+      remediation_step: "Set GRUB password: grub2-setpassword && grub2-mkconfig -o /boot/grub2/grub.cfg"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: "None until reboot"
+      estimated_time: "5 minutes"
+    context:
+      rationale: "Bootloader password prevents unauthorized modification of boot parameters"
+      impact: "High - Critical for physical security"
+      false_positive_risk: None
+    tags:
+      - boot
+      - grub
+      - password
+      - security
+      - level1-server

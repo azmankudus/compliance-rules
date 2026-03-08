@@ -11,6 +11,7 @@
 <img src="https://img.shields.io/badge/CIS-Benchmarks-success?style=flat-square&logo=centerforinternetsecurity&logoColor=white" alt="CIS Benchmarks"/>
 <img src="https://img.shields.io/badge/DISA-STIG-critical?style=flat-square&logo=usdepartmentofdefense&logoColor=white" alt="DISA STIG"/>
 <img src="https://img.shields.io/badge/RHEL-9-orange?style=flat-square&logo=redhat&logoColor=white" alt="RHEL 9"/>
+<img src="https://img.shields.io/badge/RHEL-8-orange?style=flat-square&logo=redhat&logoColor=white" alt="RHEL 8"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -206,7 +207,43 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 | CIS | RHEL 9 Server | 35 | 8 | 27 | 0 |
 | CIS | RHEL 9 Workstation | 9 | 2 | 7 | 0 |
 | STIG | RHEL 9 | 450 | 20 | 414 | 16 |
-| **Total** | | **494** | **30** | **448** | **16** |
+| CIS | RHEL 8 Server | 7 | 2 | 5 | 0 |
+| CIS | RHEL 8 Workstation | 4 | 1 | 3 | 0 |
+| STIG | RHEL 8 | 369 | 22 | 320 | 27 |
+| **Total** | | **874** | **55** | **776** | **43** |
+
+</details>
+
+---
+
+### 🐧 Red Hat Enterprise Linux 8
+
+#### CIS Benchmarks
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Level 1 Server](rh/rhel-8/cis/rh-rhel-8-cis-level1-server-v4.0.0.yaml) | 🟢 Baseline | Server | 5 | Practical security for servers | ✅ Verified |
+| [Level 2 Server](rh/rhel-8/cis/rh-rhel-8-cis-level2-server-v4.0.0.yaml) | 🟡 Enhanced | Server | 2 | Additional hardening | ✅ Verified |
+| [Level 1 Workstation](rh/rhel-8/cis/rh-rhel-8-cis-level1-workstation-v4.0.0.yaml) | 🟢 Baseline | Workstation | 2 | Desktop security baseline | ✅ Verified |
+| [Level 2 Workstation](rh/rhel-8/cis/rh-rhel-8-cis-level2-workstation-v4.0.0.yaml) | 🟡 Enhanced | Workstation | 2 | Enhanced desktop security | ✅ Verified |
+
+#### DISA STIG
+
+| Document | Category | Severity | Rules | Description | Status |
+|----------|----------|----------|-------|-------------|--------|
+| [CAT I](rh/rhel-8/stig/rh-rhel-8-stig-cat1-v2r2.yaml) | 🔴 CAT I | High | 22 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](rh/rhel-8/stig/rh-rhel-8-stig-cat2-v2r2.yaml) | 🟡 CAT II | Medium | 320 | Standard controls - Required | ✅ Verified |
+| [CAT III](rh/rhel-8/stig/rh-rhel-8-stig-cat3-v2r2.yaml) | 🟢 CAT III | Low | 27 | Best practices - Recommended | ✅ Verified |
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Framework | Product | Total Rules | High | Medium | Low |
+|-----------|---------|-------------|------|--------|-----|
+| CIS | RHEL 8 Server | 7 | 2 | 5 | 0 |
+| CIS | RHEL 8 Workstation | 4 | 1 | 3 | 0 |
+| STIG | RHEL 8 | 369 | 22 | 320 | 27 |
+| **Total** | | **380** | **25** | **328** | **27** |
 
 </details>
 
@@ -222,8 +259,8 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Framework | Status | Products |
 |-----------|--------|----------|
-| **CIS Benchmarks** | ✅ Active | RHEL 9 |
-| **DISA STIG** | ✅ Active | RHEL 9 |
+| **CIS Benchmarks** | ✅ Active | RHEL 8, RHEL 9 |
+| **DISA STIG** | ✅ Active | RHEL 8, RHEL 9 |
 
 </td>
 <td width="50%">
@@ -527,22 +564,24 @@ generate_ansible_playbook(
 |---------|--------|--------|------------|-------------|--------------|-----------|
 | RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | **485** |
 | RHEL 9 Workstation | 6 | 3 | - | - | - | **9** |
-| **Total** | **37** | **7** | **20** | **414** | **16** | **494** |
+| RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | **376** |
+| RHEL 8 Workstation | 2 | 2 | - | - | - | **4** |
+| **Total** | **44** | **11** | **42** | **734** | **43** | **874** |
 
 ### Severity Distribution
 
 ```
-High (Critical):    30 rules (6.1%)  ████████░░░░░░░░░░░░░░░░░░░░
-Medium:            448 rules (90.7%) ████████████████████████████
-Low:                16 rules (3.2%)  ███░░░░░░░░░░░░░░░░░░░░░░░░░
+High (Critical):    55 rules (6.3%)  ████████░░░░░░░░░░░░░░░░░░░░
+Medium:            776 rules (88.8%) ████████████████████████████
+Low:                43 rules (4.9%)  ███░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ### Automation Coverage
 
 ```
-Fully Automated:   470 rules (95.1%) ████████████████████████████
-Partially Auto:     20 rules (4.1%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
-Manual:              4 rules (0.8%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Fully Automated:   832 rules (95.2%) ████████████████████████████
+Partially Auto:     35 rules (4.0%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
+Manual:              7 rules (0.8%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ---
@@ -555,6 +594,8 @@ Manual:              4 rules (0.8%)  ░░░░░░░░░░░░░░�
 |-----------|--------|---------|------|
 | **CIS** | [CIS RHEL 9 Benchmark](https://www.cisecurity.org/benchmark/red_hat_linux) | v2.0.0 | June 2024 |
 | **STIG** | [DISA STIG RHEL 9](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9) | V2R7 | May 2025 |
+| **CIS** | [CIS RHEL 8 Benchmark](https://www.cisecurity.org/benchmark/red_hat_linux) | v4.0.0 | August 2025 |
+| **STIG** | [DISA STIG RHEL 8](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_8) | V2R2 | January 2025 |
 
 ### Community Resources
 

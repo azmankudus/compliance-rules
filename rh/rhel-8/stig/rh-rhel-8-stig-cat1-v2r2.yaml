@@ -1,0 +1,1110 @@
+$schema: https://raw.githubusercontent.com/azmankudus/compliance-rules/main/docs/schema.json
+schema_version: 1.0.0
+metadata:
+  name: DISA STIG for Red Hat Enterprise Linux 8 - CAT_I
+  version: V2R2
+  description: Security Technical Implementation Guide for RHEL 8 - CAT_I Rules
+  platform: Red Hat Enterprise Linux 8
+  benchmark: DISA STIG RHEL 8 V2R2
+  author: DISA
+  created: '2025-05-14T00:00:00Z'
+  modified: '2025-05-14T00:00:00Z'
+  compatible_platforms:
+  - RHEL 8.0
+  - RHEL 8.1
+  - RHEL 8.2
+  - RHEL 8.3
+  - RHEL 8.4
+  - RHEL 8.5
+  - RHEL 8.6
+  - RHEL 8.7
+  - RHEL 8.8
+  - RHEL 8.9
+  - RHEL 8.10
+compliance_info:
+  framework: STIG
+  version: V2R2
+  category: CAT_I
+profile:
+  name: STIG CAT_I
+  description: DISA STIG CAT_I - 22 rules
+  level: 1
+rules:
+- rule_id: RHEL-08-040190
+  legacy_ids:
+  - V-230533
+  - SV-230533r1017295_rule
+  rule_name: The Trivial File Transfer Protocol (TFTP) server package must not be installed if not required for RHEL 8 operational support.
+  rule_description: If TFTP is required for operational support (such as the transmission of router configurations) its use must be documented with the Information System Security Officer (ISSO), restricted to only authorized personnel, and have access control rules established.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify a TFTP server has not been installed on the system with the following command:
+
+
+      $ sudo yum list installed tftp-server
+
+
+      tftp-server.x86_64   5.2-24.el8
+
+
+      If TFTP is installed and the requirement for TFTP is not documented with the ISSO, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Remove the TFTP package from the system with the following command:
+
+
+      $ sudo yum remove tftp-server'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If TFTP is required for operational support (such as the transmission of router configurations) its use must be documented with the Information System Security Officer (ISSO), restricted to only autho
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010460
+  legacy_ids:
+  - V-230283
+  - SV-230283r1017094_rule
+  rule_name: There must be no shosts.equiv files on the RHEL 8 operating system.
+  rule_description: The "shosts.equiv" files are used to configure host-based authentication for the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the system, as it does not require interactive identification and authentication of a connection request, or for the use of two-factor authentication.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify there are no "shosts.equiv" files on RHEL 8 with the following command:
+
+
+      $ sudo find / -name shosts.equiv
+
+
+      If a "shosts.equiv" file is found, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Remove any found "shosts.equiv" files from the system.
+
+
+      $ sudo rm /etc/ssh/shosts.equiv'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: The "shosts.equiv" files are used to configure host-based authentication for the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the system, as it doe
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010470
+  legacy_ids:
+  - V-230284
+  - SV-230284r1017095_rule
+  rule_name: There must be no .shosts files on the RHEL 8 operating system.
+  rule_description: The ".shosts" files are used to configure host-based authentication for individual users or the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the system, as it does not require interactive identification and authentication of a connection request, or for the use of two-factor authentication.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify there are no ".shosts" files on RHEL 8 with the following command:
+
+
+      $ sudo find / -name ''*.shosts''
+
+
+      If any ".shosts" files are found, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Remove any found ".shosts" files from the system.
+
+
+      $ sudo rm /[path]/[to]/[file]/.shosts'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: The ".shosts" files are used to configure host-based authentication for individual users or the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the sy
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010000
+  legacy_ids:
+  - V-230221
+  - SV-230221r1017040_rule
+  rule_name: RHEL 8 must be a vendor-supported release.
+  rule_description: 'An operating system release is considered "supported" if the vendor continues to provide security patches for the product. With an unsupported release, it will not be possible to resolve security issues discovered in the system software.
+
+
+    Red Hat offers the Extended Update Support (EUS) add-on to a Red Hat Enterprise Linux subscription, for a fee, for those customers who wish to standardize on a specific minor release for an extended period. The RHEL 8 minor releases eligible for EUS are 8.1, 8.2, 8.4, 8.6, and 8.8. Each RHEL 8 EUS stream is available for 24 months from the availability of the minor release. RHEL 8.10 will be the final minor release overall. For more details on the Red Hat Enterprise Linux Life Cycle  visit https://access.redhat.com/support/policy/updates/errata/.
+
+    Note: The life-cycle time spans and dates are subject to adjustment.'
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the version of the operating system is vendor supported.
+
+
+      Note: The lifecycle time spans and dates are subject to adjustment.
+
+
+      Check the version of the operating system with the following command:
+
+
+      $ sudo cat /etc/redhat-release
+
+
+      Red Hat Enterprise Linux Server release 8.6 (Ootpa)
+
+
+      Current End of Extended Update Support for RHEL 8.1 is 30 November 2021.
+
+
+      Current End of Extended Update Support for RHEL 8.2 is 30 April 2022.
+
+
+      Current End of Extended Update Support for RHEL 8.4 is 31 May 2023.
+
+
+      Current End of Maintenance Support for RHEL 8.5 is 31 May 2022.
+
+
+      Current End of Extended Update Support for RHEL 8.6 is 31 May 2024.
+
+
+      Current End of Maintenance Support for RHEL 8.7 is 31 May 2023.
+
+
+      Current End of Extended Update Support for RHEL 8.8 is 31 May 2025.
+
+
+      Current End of Maintenance Support for RHEL 8.9 is 31 May 2024.
+
+
+      Current End of Maintenance Support for RHEL 8.10 is 31 May 2029.
+
+
+      If the release is not supported by the vendor, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: Upgrade to a supported version of RHEL 8.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: An operating system release is considered "supported" if the vendor continues to provide security patches for the product. With an unsupported release, it will not be possible to resolve security issu
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010020
+  legacy_ids:
+  - V-230223
+  - SV-230223r1069327_rule
+  rule_name: 'RHEL 8 must implement NIST FIPS-validated cryptography for the following: To provision digital signatures, to generate cryptographic hashes, and to protect data requiring data-at-rest protections in accordance with applicable federal laws, Executive Orders, directives, policies, regulations, and standards.'
+  rule_description: "Use of weak or untested encryption algorithms undermines the purposes of using encryption to protect data. The operating system must implement cryptographic modules adhering to the higher standards approved by the federal government since this provides assurance they have been tested and validated.\n\nRHEL 8 utilizes GRUB 2 as the default bootloader. Note that GRUB 2 command-line parameters are defined in the \"kernelopts\" variable of the /boot/grub2/grubenv file for all kernel boot entries. The command \"fips-mode-setup\" modifies the \"kernelopts\" variable, which in turn updates all kernel boot entries. \n\nThe fips=1 kernel option needs to be added to the kernel command line during system installation so that key generation is done with FIPS-approved algorithms and continuous monitoring tests in place. Users must also ensure the system has plenty of entropy during the installation process by moving the mouse around, or if no mouse is available, ensuring that many\
+    \ keystrokes are typed. The recommended amount of keystrokes is 256 and more. Less than 256 keystrokes may generate a nonunique key.\n\nSatisfies: SRG-OS-000033-GPOS-00014, SRG-OS-000125-GPOS-00065, SRG-OS-000396-GPOS-00176, SRG-OS-000423-GPOS-00187, SRG-OS-000478-GPOS-00223"
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system implements DOD-approved encryption to protect the confidentiality of remote access sessions.
+
+
+      Show the configured systemwide cryptographic policy by running the following command:
+
+
+      $ sudo update-crypto-policies --show
+
+      FIPS
+
+
+      If the main policy name is not "FIPS", this is a finding.
+
+
+      If the AD-SUPPORT subpolicy module is included (e.g., "FIPS:AD-SUPPORT"), and Active Directory support is not documented as an operational requirement with the information system security officer (ISSO), this is a finding.
+
+
+      If the NO-ENFORCE-EMS subpolicy module is included (e.g., "FIPS:NO-ENFORCE-EMS"), and not enforcing EMS is not documented as an operational requirement with the ISSO, this is a finding.
+
+
+      If any other subpolicy module is included, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: "Configure the operating system to implement DOD-approved encryption by following the steps below:\n\nTo enable strict FIPS compliance, the fips=1 kernel option needs to be added to the kernel boot parameters during system installation so key generation is done with FIPS-approved algorithms and continuous monitoring tests in place.\n\nEnable FIPS mode after installation (not strict FIPS-compliant) with the following command:\n\n     $ sudo fips-mode-setup --enable\n\nReboot the system for the changes to take effect."
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: Use of weak or untested encryption algorithms undermines the purposes of using encryption to protect data. The operating system must implement cryptographic modules adhering to the higher standards ap
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000068
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010030
+  legacy_ids:
+  - V-230224
+  - SV-230224r1044787_rule
+  rule_name: All RHEL 8 local disk partitions must implement cryptographic mechanisms to prevent unauthorized disclosure or modification of all information that requires at rest protection.
+  rule_description: 'RHEL 8 systems handling data requiring "data at rest" protections must employ cryptographic mechanisms to prevent unauthorized disclosure and modification of the information at rest.
+
+
+    Selection of a cryptographic mechanism is based on the need to protect the integrity of organizational information. The strength of the mechanism is commensurate with the security category and/or classification of the information. Organizations have the flexibility to either encrypt all information on storage devices (i.e., full disk encryption) or encrypt specific data structures (e.g., files, records, or fields).
+
+
+    Satisfies: SRG-OS-000185-GPOS-00079, SRG-OS-000404-GPOS-00183, SRG-OS-000405-GPOS-00184'
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Verify RHEL 8 prevents unauthorized disclosure or modification of all information requiring at-rest protection by using disk encryption. \n\nIf there is a documented and approved reason for not having data-at-rest encryption at the operating system level, such as encryption provided by a hypervisor or a disk storage array in a virtualized environment, this requirement is not applicable.\n\nVerify all system partitions are encrypted with the following command:\n\n     $ sudo blkid\n\n     /dev/mapper/rhel-root:  UUID=\"67b7d7fe-de60-6fd0-befb-e6748cf97743\" TYPE=\"crypto_LUKS\"\n\nEvery persistent disk partition present must be of type \"crypto_LUKS\". If any partitions other than the boot partition or pseudo file systems (such as /proc or /sys) are not type \"crypto_LUKS\", ask the administrator to indicate how the partitions are encrypted. \n\nIf there is no evidence that these partitions are encrypted, this is a finding."
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: "Configure RHEL 8 to prevent unauthorized modification of all information at rest by using disk encryption. \n\nEncrypting a partition in an already installed system is more difficult, because existing partitions will need to be resized and changed. To encrypt an entire partition, dedicate a partition for encryption in the partition layout."
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: 'RHEL 8 systems handling data requiring "data at rest" protections must employ cryptographic mechanisms to prevent unauthorized disclosure and modification of the information at rest.
+
+
+      Selection of a c'
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-001199
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010140
+  legacy_ids:
+  - V-230234
+  - SV-230234r1017053_rule
+  rule_name: RHEL 8 operating systems booted with United Extensible Firmware Interface (UEFI) must require authentication upon booting into single-user mode and maintenance.
+  rule_description: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files on the system. GRUB 2 is the default boot loader for RHEL 8 and is designed to require a password to boot into single-user mode or make modifications to the boot menu.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'For systems that use BIOS, this is Not Applicable.
+
+
+      Check to see if an encrypted grub superusers password is set. On systems that use UEFI, use the following command:
+
+
+      $ sudo grep -iw grub2_password /boot/efi/EFI/redhat/user.cfg
+
+
+      GRUB2_PASSWORD=grub.pbkdf2.sha512.[password_hash]
+
+
+      If the grub superusers password does not begin with "grub.pbkdf2.sha512", this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the system to require a grub bootloader password for the grub superusers account with the grub2-setpassword command, which creates/overwrites the /boot/efi/EFI/redhat/user.cfg file.
+
+
+      Generate an encrypted grub2 password for the grub superusers account with the following command:
+
+
+      $ sudo grub2-setpassword
+
+      Enter password:
+
+      Confirm password:'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files o
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000213
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010150
+  legacy_ids:
+  - V-230235
+  - SV-230235r1017054_rule
+  rule_name: RHEL 8 operating systems booted with a BIOS must require authentication upon booting into single-user and maintenance modes.
+  rule_description: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files on the system. GRUB 2 is the default boot loader for RHEL 8 and is designed to require a password to boot into single-user mode or make modifications to the boot menu.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'For systems that use UEFI, this is Not Applicable.
+
+
+      Check to see if an encrypted grub superusers password is set. On systems that use a BIOS, use the following command:
+
+
+      $ sudo grep -iw grub2_password /boot/grub2/user.cfg
+
+
+      GRUB2_PASSWORD=grub.pbkdf2.sha512.[password_hash]
+
+
+      If the grub superusers password does not begin with "grub.pbkdf2.sha512", this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the system to require a grub bootloader password for the grub superusers account with the grub2-setpassword command, which creates/overwrites the /boot/grub2/user.cfg file.
+
+
+      Generate an encrypted grub2 password for the grub superusers account with the following command:
+
+
+      $ sudo grub2-setpassword
+
+      Enter password:
+
+      Confirm password:'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files o
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000213
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010370
+  legacy_ids:
+  - V-230264
+  - SV-230264r1017377_rule
+  rule_name: RHEL 8 must prevent the installation of software, patches, service packs, device drivers, or operating system components from a repository without verification they have been digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization.
+  rule_description: 'Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been provided by a trusted vendor.
+
+
+    Accordingly, patches, service packs, device drivers, or operating system components must be signed with a certificate recognized and approved by the organization.
+
+
+    Verifying the authenticity of the software prior to installation validates the integrity of the patch or upgrade received from a vendor. This verifies the software has not been tampered with and that it has been provided by a trusted vendor. Self-signed certificates are disallowed by this requirement. The operating system should not have to verify the software again. This requirement does not mandate DoD certificates for this purpose; however, the certificate used to verify the software must be from an approved CA.'
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Verify the operating system prevents the installation of patches, service packs, device drivers, or operating system components from a repository without verification that they have been digitally signed using a certificate that is recognized and approved by the organization.\n\nCheck that YUM verifies the signature of packages from a repository prior to install with the following command:\n\n     $ sudo grep -E '^\\[.*\\]|gpgcheck' /etc/yum.repos.d/*.repo\n\n     /etc/yum.repos.d/appstream.repo:[appstream]\n     /etc/yum.repos.d/appstream.repo:gpgcheck=1\n     /etc/yum.repos.d/baseos.repo:[baseos]\n     /etc/yum.repos.d/baseos.repo:gpgcheck=1\n\nIf \"gpgcheck\" is not set to \"1\", or if options are missing or commented out, ask the System Administrator how the certificates for patches and other operating system components are verified.\n\nIf there is no process to validate certificates that is approved by the organization, this is a finding."
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: "Configure the operating system to verify the signature of packages from a repository prior to install by setting the following option in the \"/etc/yum.repos.d/[your_repo_name].repo\" file:\n\n     gpgcheck=1"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been p
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-001749
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010371
+  legacy_ids:
+  - V-230265
+  - SV-230265r1017378_rule
+  rule_name: RHEL 8 must prevent the installation of software, patches, service packs, device drivers, or operating system components of local packages without verification they have been digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization.
+  rule_description: 'Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been provided by a trusted vendor.
+
+
+    Accordingly, patches, service packs, device drivers, or operating system components must be signed with a certificate recognized and approved by the organization.
+
+
+    Verifying the authenticity of the software prior to installation validates the integrity of the patch or upgrade received from a vendor. This verifies the software has not been tampered with and that it has been provided by a trusted vendor. Self-signed certificates are disallowed by this requirement. The operating system should not have to verify the software again. This requirement does not mandate DoD certificates for this purpose; however, the certificate used to verify the software must be from an approved CA.'
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system prevents the installation of patches, service packs, device drivers, or operating system components from a repository without verification that they have been digitally signed using a certificate that is recognized and approved by the organization.
+
+
+      Check if YUM is configured to perform a signature check on local packages with the following command:
+
+
+      $ sudo grep -i localpkg_gpgcheck /etc/dnf/dnf.conf
+
+
+      localpkg_gpgcheck =True
+
+
+      If "localpkg_gpgcheck" is not set to either "1", "True", or "yes", commented out, or is missing from "/etc/dnf/dnf.conf", this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the operating system to remove all software components after updated versions have been installed.
+
+
+      Set the "localpkg_gpgcheck" option to "True" in the "/etc/dnf/dnf.conf" file:
+
+
+      localpkg_gpgcheck=True'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been p
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-001749
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010820
+  legacy_ids:
+  - V-230329
+  - SV-230329r1017140_rule
+  rule_name: Unattended or automatic logon via the RHEL 8 graphical user interface must not be allowed.
+  rule_description: Failure to restrict system access to authenticated users negatively impacts operating system security.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system does not allow an unattended or automatic logon to the system via a graphical user interface.
+
+
+      Note: This requirement assumes the use of the RHEL 8 default graphical user interface, Gnome Shell. If the system does not have any graphical user interface installed, this requirement is Not Applicable.
+
+
+      Check for the value of the "AutomaticLoginEnable" in the "/etc/gdm/custom.conf" file with the following command:
+
+
+      $ sudo grep -i automaticloginenable /etc/gdm/custom.conf
+
+
+      AutomaticLoginEnable=false
+
+
+      If the value of "AutomaticLoginEnable" is not set to "false", this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the operating system to not allow an unattended or automatic logon to the system via a graphical user interface.
+
+
+      Add or edit the line for the "AutomaticLoginEnable" parameter in the [daemon] section of the "/etc/gdm/custom.conf" file to "false":
+
+
+      [daemon]
+
+      AutomaticLoginEnable=false'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: Failure to restrict system access to authenticated users negatively impacts operating system security.
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-020330
+  legacy_ids:
+  - V-230380
+  - SV-230380r1069308_rule
+  rule_name: RHEL 8 must not allow accounts configured with blank or null passwords.
+  rule_description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'To verify that null passwords cannot be used, run the following command:
+
+
+      $ sudo /usr/sbin/sshd -dd 2>&1 | awk ''/filename/ {print $4}'' | tr -d ''\r'' | tr ''\n'' '' '' | xargs sudo grep -iH ''^\s*permitemptypasswords''
+
+
+      /etc/ssh/sshd_config:PermitEmptyPasswords no
+
+
+      If "PermitEmptyPasswords" is set to "yes", this is a finding.
+
+
+      If conflicting results are returned, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Edit the following line in "etc/ssh/sshd_config" to prevent logons with empty passwords.
+
+
+      PermitEmptyPasswords no
+
+
+      The SSH daemon must be restarted for the changes to take effect. To restart the SSH daemon, run the following command:
+
+
+      $ sudo systemctl restart sshd.service'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-040000
+  legacy_ids:
+  - V-230487
+  - SV-230487r1017271_rule
+  rule_name: RHEL 8 must not have the telnet-server package installed.
+  rule_description: 'It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked and therefore may remain unsecured. They increase the risk to the platform by providing additional attack vectors.
+
+
+    Operating systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+
+    Examples of non-essential capabilities include, but are not limited to, games, software packages, tools, and demonstration software not related to requirements or providing a wide array of functionality not required for every mission, but which cannot be disabled.
+
+
+    Verify the operating system is configured to disable non-essential capabilities. The most secure way of ensuring a non-essential capability is disabled is to not have the capability installed.
+
+
+    The telnet service provides an unencrypted remote access service that does not provide for the confidentiality and integrity of user passwords or the remote session.
+
+
+    If a privileged user were to log on using this service, the privileged user password could be compromised.'
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check to see if the telnet-server package is installed with the following command:
+
+
+      $ sudo yum list installed telnet-server
+
+
+      If the telnet-server package is installed, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the operating system to disable non-essential capabilities by removing the telnet-server package from the system with the following command:
+
+
+      $ sudo yum remove telnet-server'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked a
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000381
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-040010
+  legacy_ids:
+  - V-230492
+  - SV-230492r1017275_rule
+  rule_name: RHEL 8 must not have the rsh-server package installed.
+  rule_description: 'It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked and therefore may remain unsecured. They increase the risk to the platform by providing additional attack vectors.
+
+
+    Operating systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+
+    The rsh-server service provides an unencrypted remote access service that does not provide for the confidentiality and integrity of user passwords or the remote session and has very weak authentication.
+
+
+    If a privileged user were to log on using this service, the privileged user password could be compromised.
+
+
+    Satisfies: SRG-OS-000095-GPOS-00049, SRG-OS-000074-GPOS-00042'
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check to see if the rsh-server package is installed with the following command:
+
+
+      $ sudo yum list installed rsh-server
+
+
+      If the rsh-server package is installed, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the operating system to disable non-essential capabilities by removing the rsh-server package from the system with the following command:
+
+
+      $ sudo yum remove rsh-server'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked a
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000381
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-040200
+  legacy_ids:
+  - V-230534
+  - SV-230534r1017296_rule
+  rule_name: The root account must be the only account having unrestricted access to the RHEL 8 system.
+  rule_description: If an account other than root also has a User Identifier (UID) of "0", it has root authority, giving that account unrestricted access to the entire operating system. Multiple accounts with a UID of "0" afford an opportunity for potential intruders to guess a password for a privileged account.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the system for duplicate UID "0" assignments with the following command:
+
+
+      $ sudo awk -F: ''$3 == 0 {print $1}'' /etc/passwd
+
+
+      If any accounts other than root have a UID of "0", this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: "Change the UID of any account on the system, other than root, that has a UID of \"0\". \n\nIf the account is associated with system commands or applications, the UID should be changed to one greater than \"0\" but less than \"1000\". Otherwise, assign a UID of greater than \"1000\" that has not already been assigned."
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If an account other than root also has a User Identifier (UID) of "0", it has root authority, giving that account unrestricted access to the entire operating system. Multiple accounts with a UID of "0
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-040170
+  legacy_ids:
+  - V-230529
+  - SV-230529r1017289_rule
+  rule_name: The x86 Ctrl-Alt-Delete key sequence must be disabled on RHEL 8.
+  rule_description: A locally logged-on user, who presses Ctrl-Alt-Delete when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk of short-term loss of availability of systems due to unintentional reboot. In a graphical user environment, risk of unintentional reboot from the Ctrl-Alt-Delete sequence is reduced because the user will be prompted before any action is taken.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify RHEL 8 is not configured to reboot the system when Ctrl-Alt-Delete is pressed with the following command:
+
+
+      $ sudo systemctl status ctrl-alt-del.target
+
+
+      ctrl-alt-del.target
+
+      Loaded: masked (Reason: Unit ctrl-alt-del.target is masked.)
+
+      Active: inactive (dead)
+
+
+      If the "ctrl-alt-del.target" is loaded and not masked, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the system to disable the Ctrl-Alt-Delete sequence for the command line with the following commands:
+
+
+      $ sudo systemctl disable ctrl-alt-del.target
+
+
+      $ sudo systemctl mask ctrl-alt-del.target
+
+
+      Created symlink /etc/systemd/system/ctrl-alt-del.target -> /dev/null
+
+
+      Reload the daemon for this change to take effect.
+
+
+      $ sudo systemctl daemon-reload'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: A locally logged-on user, who presses Ctrl-Alt-Delete when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the ri
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-040171
+  legacy_ids:
+  - V-230530
+  - SV-230530r1069317_rule
+  rule_name: The x86 Ctrl-Alt-Delete key sequence in RHEL 8 must be disabled if a graphical user interface is installed.
+  rule_description: A locally logged-on user, who presses Ctrl-Alt-Delete, when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk of short-term loss of availability of systems due to unintentional reboot. In a graphical user environment, risk of unintentional reboot from the Ctrl-Alt-Delete sequence is reduced because the user will be prompted before any action is taken.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify RHEL 8 is not configured to reboot the system when Ctrl-Alt-Delete is pressed when using a graphical user interface with the following command:
+
+
+      This requirement assumes the use of the RHEL 8 default graphical user interface, Gnome Shell. If the system does not have any graphical user interface installed, this requirement is Not Applicable.
+
+
+      $ sudo grep -r logout /etc/dconf/db/local.d/*
+
+
+      /etc/dconf/db/local.d/00-disable-CAD:logout=''''
+
+
+      If the "logout" key is bound to an action, is commented out, or is missing, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the system to disable the Ctrl-Alt-Delete sequence when using a graphical user interface by creating or editing the /etc/dconf/db/local.d/00-disable-CAD file.
+
+
+      Add the setting to disable the Ctrl-Alt-Delete sequence for a graphical user interface:
+
+
+      [org/gnome/settings-daemon/plugins/media-keys]
+
+      logout=''''
+
+
+      Note: The value above is set to two single quotations.
+
+
+      Then update the dconf settings:
+
+
+      $ sudo dconf update'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: A locally logged-on user, who presses Ctrl-Alt-Delete, when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the r
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-040172
+  legacy_ids:
+  - V-230531
+  - SV-230531r1017292_rule
+  rule_name: The systemd Ctrl-Alt-Delete burst key sequence in RHEL 8 must be disabled.
+  rule_description: A locally logged-on user who presses Ctrl-Alt-Delete when at the console can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk of short-term loss of availability of systems due to unintentional reboot. In a graphical user environment, risk of unintentional reboot from the Ctrl-Alt-Delete sequence is reduced because the user will be prompted before any action is taken.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify RHEL 8 is not configured to reboot the system when Ctrl-Alt-Delete is pressed seven times within two seconds with the following command:
+
+
+      $ sudo grep -i ctrl /etc/systemd/system.conf
+
+
+      CtrlAltDelBurstAction=none
+
+
+      If the "CtrlAltDelBurstAction" is not set to "none", commented out, or is missing, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure the system to disable the CtrlAltDelBurstAction by added or modifying the following line in the "/etc/systemd/system.conf" configuration file:
+
+
+      CtrlAltDelBurstAction=none
+
+
+      Reload the daemon for this change to take effect.
+
+
+      $ sudo systemctl daemon-reload'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: A locally logged-on user who presses Ctrl-Alt-Delete when at the console can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-020332
+  legacy_ids:
+  - V-244541
+  - SV-244541r1017347_rule
+  rule_name: RHEL 8 must not allow blank or null passwords in the password-auth file.
+  rule_description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'To verify that null passwords cannot be used, run the following command:
+
+
+      $ sudo grep -i nullok /etc/pam.d/password-auth
+
+
+      If output is produced, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Remove any instances of the "nullok" option in the "/etc/pam.d/password-auth" file to prevent logons with empty passwords.
+
+
+      Note: Manual changes to the listed file may be overwritten by the "authselect" program.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-040360
+  legacy_ids:
+  - V-230558
+  - SV-230558r1017320_rule
+  rule_name: A File Transfer Protocol (FTP) server package must not be installed unless mission essential on RHEL 8.
+  rule_description: The FTP service provides an unencrypted remote access that does not provide for the confidentiality and integrity of user passwords or the remote session. If a privileged user were to log on using this service, the privileged user password could be compromised. SSH or other encrypted file transfer methods must be used in place of this service.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify an FTP server has not been installed on the system with the following commands:
+
+
+      $ sudo yum list installed *ftpd*
+
+
+      vsftpd.x86_64                                                     3.0.3-28.el8                                                  appstream
+
+
+      If an FTP server is installed and is not documented with the Information System Security Officer (ISSO) as an operational requirement, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Document the FTP server package with the ISSO as an operational requirement or remove it from the system with the following command:
+
+
+      $ sudo yum remove vsftpd'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: The FTP service provides an unencrypted remote access that does not provide for the confidentiality and integrity of user passwords or the remote session. If a privileged user were to log on using thi
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-010121
+  legacy_ids:
+  - V-251706
+  - SV-251706r1017359_rule
+  rule_name: The RHEL 8 operating system must not have accounts configured with blank or null passwords.
+  rule_description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the "/etc/shadow" file for blank passwords with the following command:
+
+
+      $ sudo awk -F: ''!$2 {print $1}'' /etc/shadow
+
+
+      If the command returns any results, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure all accounts on the system to have a password or lock the account with the following commands:
+
+
+      Perform a password reset:
+
+      $ sudo passwd [username]
+
+      Lock an account:
+
+      $ sudo passwd -l [username]'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8
+- rule_id: RHEL-08-020331
+  legacy_ids:
+  - V-268322
+  - SV-268322r1017568_rule
+  rule_name: RHEL 8 must not allow blank or null passwords in the system-auth file.
+  rule_description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  category: System Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'To verify that null passwords cannot be used, run the following command:
+
+
+      $ sudo grep -i nullok /etc/pam.d/system-auth
+
+
+      If output is produced, this is a finding.'
+    check_command: ''
+    expected_value: ''
+  remediation:
+    remediation_step: 'Remove any instances of the "nullok" option in the "/etc/pam.d/system-auth" file to prevent logons with empty passwords.
+
+
+      Note: Manual changes to the listed file may be overwritten by the "authselect" program.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: ''
+    estimated_time: ''
+  context:
+    rationale: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+    impact: ''
+    false_positive_risk: None
+    references:
+    - type: CCI
+      reference: CCI-000366
+  tags:
+  - stig
+  - rhel8

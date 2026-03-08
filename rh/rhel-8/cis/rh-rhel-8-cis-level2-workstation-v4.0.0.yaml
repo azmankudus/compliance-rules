@@ -1,0 +1,95 @@
+$schema: https://raw.githubusercontent.com/azmankudus/compliance-rules/main/docs/schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: CIS Benchmark for Red Hat Enterprise Linux 8 - Level 2 Workstation
+  version: 4.0.0
+  description: Center for Internet Security Benchmark for RHEL 8 Level 2 Workstation Profile - Enhanced security
+  platform: Red Hat Enterprise Linux 8
+  benchmark: CIS RHEL 8 Benchmark v4.0.0
+  author: Center for Internet Security
+  created: "2025-08-28T00:00:00Z"
+  modified: "2025-08-28T00:00:00Z"
+  compatible_platforms:
+    - RHEL 8.0
+    - RHEL 8.1
+    - RHEL 8.2
+    - RHEL 8.3
+    - RHEL 8.4
+    - RHEL 8.5
+    - RHEL 8.6
+    - RHEL 8.7
+    - RHEL 8.8
+    - RHEL 8.9
+    - RHEL 8.10
+
+compliance_info:
+  framework: CIS
+  version: 4.0.0
+  profile: Level 2 - Workstation
+
+profile:
+  name: CIS Level 2 Workstation
+  description: Enhanced security configuration for RHEL 8 workstations
+  level: 2
+
+rules:
+  - rule_id: CIS-WS-L2-1.8.13
+    rule_name: Ensure Bluetooth is disabled when not in use
+    rule_description: Level 2 - Bluetooth should be disabled when not actively used
+    category: GUI
+    subcategory: Bluetooth
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify Bluetooth status"
+      check_command: "systemctl is-active bluetooth"
+      expected_value: "inactive or not found"
+    remediation:
+      remediation_step: "Disable Bluetooth service: systemctl disable --now bluetooth"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: "Bluetooth devices unavailable"
+      estimated_time: "1 minute"
+    context:
+      rationale: "Bluetooth provides attack surface when not needed"
+      impact: "Medium - Reduces attack surface"
+      false_positive_risk: Low
+    tags:
+      - bluetooth
+      - service
+      - workstation
+      - level2
+
+  - rule_id: CIS-WS-L2-1.8.14
+    rule_name: Ensure USBGuard is installed
+    rule_description: Level 2 - USBGuard should be installed to enforce USB device authorization
+    category: USB Security
+    subcategory: USBGuard
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify USBGuard is installed"
+      check_command: "rpm -q usbguard"
+      expected_value: "usbguard-<version>"
+    remediation:
+      remediation_step: "Install USBGuard: dnf install usbguard"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: "USB device authorization required"
+      estimated_time: "2 minutes"
+    context:
+      rationale: "USBGuard enforces policies on USB device access"
+      impact: "High - Prevents unauthorized USB devices"
+      false_positive_risk: Low
+    tags:
+      - usb
+      - usbguard
+      - security
+      - workstation
+      - level2

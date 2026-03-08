@@ -1,0 +1,95 @@
+$schema: https://raw.githubusercontent.com/azmankudus/compliance-rules/main/docs/schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: CIS Benchmark for Red Hat Enterprise Linux 8 - Level 1 Workstation
+  version: 4.0.0
+  description: Center for Internet Security Benchmark for RHEL 8 Level 1 Workstation Profile
+  platform: Red Hat Enterprise Linux 8
+  benchmark: CIS RHEL 8 Benchmark v4.0.0
+  author: Center for Internet Security
+  created: "2025-08-28T00:00:00Z"
+  modified: "2025-08-28T00:00:00Z"
+  compatible_platforms:
+    - RHEL 8.0
+    - RHEL 8.1
+    - RHEL 8.2
+    - RHEL 8.3
+    - RHEL 8.4
+    - RHEL 8.5
+    - RHEL 8.6
+    - RHEL 8.7
+    - RHEL 8.8
+    - RHEL 8.9
+    - RHEL 8.10
+
+compliance_info:
+  framework: CIS
+  version: 4.0.0
+  profile: Level 1 - Workstation
+
+profile:
+  name: CIS Level 1 Workstation
+  description: Baseline security configuration for RHEL 8 workstations
+  level: 1
+
+rules:
+  - rule_id: CIS-WS-1.8.1
+    rule_name: Ensure GNOME Display Manager is installed
+    rule_description: For workstations, the graphical display manager should be installed
+    category: GUI
+    subcategory: Display Manager
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify GDM is installed"
+      check_command: "rpm -q gdm"
+      expected_value: "gdm-<version>"
+    remediation:
+      remediation_step: "Install GDM: dnf install gdm"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "2 minutes"
+    context:
+      rationale: "GDM provides the graphical login interface for workstations"
+      impact: "Medium - Required for GUI operation"
+      false_positive_risk: None
+    tags:
+      - gui
+      - gdm
+      - display-manager
+      - workstation
+
+  - rule_id: CIS-WS-1.8.4
+    rule_name: Ensure GNOME screensaver lock is enabled
+    rule_description: GNOME screensaver should lock the screen after inactivity
+    category: GUI
+    subcategory: Screensaver
+    testing_status: verified
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: "Verify screensaver lock is enabled"
+      check_command: "gsettings get org.gnome.desktop.screensaver lock-enabled"
+      expected_value: "true"
+    remediation:
+      remediation_step: "Enable screensaver lock: gsettings set org.gnome.desktop.screensaver lock-enabled true"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: "Screen locks after idle period"
+      estimated_time: "1 minute"
+    context:
+      rationale: "Screen lock prevents unauthorized physical access to unlocked sessions"
+      impact: "Medium - Physical security"
+      false_positive_risk: None
+    tags:
+      - gui
+      - screensaver
+      - lock
+      - physical-security
+      - workstation
