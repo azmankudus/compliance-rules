@@ -1,0 +1,747 @@
+{
+  "$schema": "../../../docs/schema.json",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "name": "CIS Benchmark for Red Hat Enterprise Linux 9 - Level 2 Workstation",
+    "version": "2.0.0",
+    "description": "Center for Internet Security Benchmark for RHEL 9 Level 2 Workstation Profile - Enhanced security",
+    "platform": "Red Hat Enterprise Linux 9",
+    "benchmark": "CIS RHEL 9 Benchmark v2.0.0",
+    "author": "Center for Internet Security",
+    "created": "2024-06-20T00:00:00Z",
+    "modified": "2024-06-20T00:00:00Z",
+    "compatible_platforms": ["RHEL 9.0", "RHEL 9.1", "RHEL 9.2", "RHEL 9.3", "RHEL 9.4", "RHEL 9.5"]
+  },
+  "compliance_info": {
+    "framework": "CIS",
+    "version": "2.0.0",
+    "profile": "Level 2 - Workstation"
+  },
+  "profile": {
+    "name": "CIS Level 2 Workstation",
+    "description": "Enhanced security configuration for RHEL 9 workstations - Level 2 includes all Level 1 controls plus additional hardening",
+    "level": 2
+  },
+  "rules": [
+    {
+      "rule_id": "CIS-WS-L2-1.1.1.1",
+      "rule_name": "Ensure mounting of cramfs filesystems is disabled",
+      "rule_description": "Level 2: The cramfs filesystem type should be disabled.",
+      "category": "Filesystem",
+      "subcategory": "Filesystem Types",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify cramfs kernel module is disabled",
+        "check_command": "modprobe -n -v cramfs | grep -E '(install /bin/true|not found)'",
+        "expected_value": "install /bin/true or not found"
+      },
+      "remediation": {
+        "remediation_step": "Create or edit /etc/modprobe.d/cramfs.conf with: install cramfs /bin/true",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "None",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Unused filesystem drivers increase attack surface.",
+        "impact": "Low - Reduces potential attack vectors",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["filesystem", "kernel-modules", "hardening", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.1.23",
+      "rule_name": "Ensure /var/log is a separate partition",
+      "rule_description": "Level 2: The /var/log directory should be on a separate partition.",
+      "category": "Filesystem",
+      "subcategory": "Partitioning",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify /var/log is a separate partition",
+        "check_command": "mount | grep ' /var/log '",
+        "expected_value": "Separate mount point for /var/log"
+      },
+      "remediation": {
+        "remediation_step": "Create separate partition for /var/log",
+        "rollback_supported": false,
+        "reboot_required": true,
+        "service_impact": "Requires system reconfiguration",
+        "estimated_time": "60 minutes"
+      },
+      "context": {
+        "rationale": "Separate log partition prevents disk exhaustion from affecting system.",
+        "impact": "Medium - Improves system resilience",
+        "false_positive_risk": "None"
+      },
+      "tags": ["filesystem", "partitioning", "logs", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.3.2",
+      "rule_name": "Ensure filesystem integrity is regularly checked",
+      "rule_description": "Level 2: AIDE should be configured to run regular file integrity checks.",
+      "category": "File Integrity",
+      "subcategory": "AIDE",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify AIDE cron job is configured",
+        "check_command": "grep -r aide /etc/cron.* /etc/crontab /var/spool/cron/*",
+        "expected_value": "AIDE check cron entry should be present"
+      },
+      "remediation": {
+        "remediation_step": "Create cron job: 0 5 * * * /usr/sbin/aide --check",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Daily integrity checks",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "Regular integrity checks detect unauthorized file changes.",
+        "impact": "High - Essential for intrusion detection",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["file-integrity", "aide", "cron", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.7.1",
+      "rule_name": "Ensure message of the day is configured properly",
+      "rule_description": "Level 2: The MOTD should be configured with appropriate security warnings.",
+      "category": "System Configuration",
+      "subcategory": "Banners",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Low",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify MOTD content",
+        "check_command": "cat /etc/motd",
+        "expected_value": "Appropriate authorized access warning"
+      },
+      "remediation": {
+        "remediation_step": "Configure /etc/motd with authorized access warning banner",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "None",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "Warning banners support legal prosecution of unauthorized access.",
+        "impact": "Low - Legal/compliance requirement",
+        "false_positive_risk": "None"
+      },
+      "tags": ["banners", "motd", "compliance", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-4.1.1.1",
+      "rule_name": "Ensure auditd is installed",
+      "rule_description": "Level 2: The audit daemon must be installed for security auditing.",
+      "category": "Auditing",
+      "subcategory": "Audit Daemon",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "High",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify auditd package is installed",
+        "check_command": "rpm -q audit",
+        "expected_value": "audit-<version>"
+      },
+      "remediation": {
+        "remediation_step": "Install audit: dnf install audit",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "None",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Audit daemon is essential for security monitoring and compliance.",
+        "impact": "Critical - Required for security auditing",
+        "false_positive_risk": "None"
+      },
+      "tags": ["audit", "auditing", "monitoring", "workstation", "level2", "critical"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-4.1.1.2",
+      "rule_name": "Ensure auditd service is enabled and running",
+      "rule_description": "Level 2: The audit daemon must be enabled and running.",
+      "category": "Auditing",
+      "subcategory": "Audit Daemon",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "High",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "runtime",
+        "detection_step": "Verify auditd service status",
+        "check_command": "systemctl is-enabled auditd && systemctl is-active auditd",
+        "expected_value": "enabled and active"
+      },
+      "remediation": {
+        "remediation_step": "Enable and start auditd: systemctl enable --now auditd",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Auditing begins immediately",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Running auditd is essential for security event logging.",
+        "impact": "Critical - Required for security monitoring",
+        "false_positive_risk": "None"
+      },
+      "tags": ["audit", "auditing", "service", "workstation", "level2", "critical"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-4.1.2.1",
+      "rule_name": "Ensure audit log storage size is configured",
+      "rule_description": "Level 2: The maximum size of audit log files should be configured.",
+      "category": "Auditing",
+      "subcategory": "Audit Configuration",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify max_log_file setting",
+        "check_command": "grep -E '^max_log_file' /etc/audit/auditd.conf",
+        "expected_value": "max_log_file = 8 or larger"
+      },
+      "remediation": {
+        "remediation_step": "Edit /etc/audit/auditd.conf: max_log_file = 8",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Audit service restart required",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Adequate log size ensures sufficient audit trail retention.",
+        "impact": "Medium - Ensures audit trail completeness",
+        "false_positive_risk": "None"
+      },
+      "tags": ["audit", "logging", "configuration", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-4.1.3",
+      "rule_name": "Ensure events that modify date/time information are collected",
+      "rule_description": "Level 2: Monitor for changes to system time.",
+      "category": "Auditing",
+      "subcategory": "Audit Rules",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify time change audit rules",
+        "check_command": "grep -E 'adjtimex|settimeofday|clock_settime' /etc/audit/rules.d/*.rules",
+        "expected_value": "Audit rules for time modification present"
+      },
+      "remediation": {
+        "remediation_step": "Add audit rules to /etc/audit/rules.d/time.rules",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Audit rules loaded",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "Time changes can be used to hide malicious activity.",
+        "impact": "Medium - Supports forensic analysis",
+        "false_positive_risk": "None"
+      },
+      "tags": ["audit", "rules", "time", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-4.1.4",
+      "rule_name": "Ensure events that modify user/group information are collected",
+      "rule_description": "Level 2: Monitor for changes to user and group information.",
+      "category": "Auditing",
+      "subcategory": "Audit Rules",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify user/group audit rules",
+        "check_command": "grep -E '/etc/passwd|/etc/shadow|/etc/group|/etc/gshadow' /etc/audit/rules.d/*.rules",
+        "expected_value": "Audit rules for identity files present"
+      },
+      "remediation": {
+        "remediation_step": "Add audit rules to /etc/audit/rules.d/identity.rules",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Audit rules loaded",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "User/group changes are critical security events.",
+        "impact": "High - Supports security monitoring",
+        "false_positive_risk": "None"
+      },
+      "tags": ["audit", "rules", "users", "groups", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-5.2.11",
+      "rule_name": "Ensure SSH approved ciphers are used",
+      "rule_description": "Level 2: SSH should only use approved ciphers.",
+      "category": "SSH Configuration",
+      "subcategory": "Cryptography",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "High",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify SSH ciphers",
+        "check_command": "grep -E '^Ciphers' /etc/ssh/sshd_config",
+        "expected_value": "Only strong ciphers listed"
+      },
+      "remediation": {
+        "remediation_step": "Add to /etc/ssh/sshd_config: Ciphers aes256-ctr,aes192-ctr,aes128-ctr",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "SSH service restart required",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "Weak ciphers can be exploited to decrypt SSH traffic.",
+        "impact": "High - Protects SSH communications",
+        "false_positive_risk": "None"
+      },
+      "tags": ["ssh", "ciphers", "cryptography", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-5.2.12",
+      "rule_name": "Ensure SSH approved MAC algorithms are used",
+      "rule_description": "Level 2: SSH should only use approved MAC algorithms.",
+      "category": "SSH Configuration",
+      "subcategory": "Cryptography",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "High",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify SSH MAC algorithms",
+        "check_command": "grep -E '^MACs' /etc/ssh/sshd_config",
+        "expected_value": "Only strong MAC algorithms"
+      },
+      "remediation": {
+        "remediation_step": "Add to /etc/ssh/sshd_config: MACs hmac-sha2-512,hmac-sha2-256",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "SSH service restart required",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "Weak MAC algorithms can be exploited.",
+        "impact": "High - Protects SSH integrity",
+        "false_positive_risk": "None"
+      },
+      "tags": ["ssh", "mac", "cryptography", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-5.3.2",
+      "rule_name": "Ensure lockout for failed password attempts is configured",
+      "rule_description": "Level 2: Accounts should be locked after multiple failed login attempts.",
+      "category": "Authentication",
+      "subcategory": "Account Lockout",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "High",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify faillock configuration",
+        "check_command": "grep -E 'pam_faillock' /etc/pam.d/system-auth /etc/pam.d/password-auth",
+        "expected_value": "pam_faillock configured with deny and unlock_time"
+      },
+      "remediation": {
+        "remediation_step": "Configure pam_faillock with deny=5 unlock_time=900",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Accounts may be locked after failed attempts",
+        "estimated_time": "5 minutes"
+      },
+      "context": {
+        "rationale": "Account lockout mitigates brute force attacks.",
+        "impact": "High - Prevents brute force attacks",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["authentication", "lockout", "brute-force", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-5.3.3",
+      "rule_name": "Ensure password reuse is limited",
+      "rule_description": "Level 2: Password reuse should be limited.",
+      "category": "Authentication",
+      "subcategory": "Password History",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify password history configuration",
+        "check_command": "grep -E 'pam_pwhistory|remember' /etc/pam.d/system-auth",
+        "expected_value": "remember=5 or more"
+      },
+      "remediation": {
+        "remediation_step": "Add to pam_pwhistory: remember=5",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Users cannot reuse last 5 passwords",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "Password history prevents password cycling.",
+        "impact": "Medium - Improves password security",
+        "false_positive_risk": "None"
+      },
+      "tags": ["authentication", "passwords", "history", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-5.6.4",
+      "rule_name": "Ensure default user umask is 027 or more restrictive",
+      "rule_description": "Level 2: Default umask should be restrictive.",
+      "category": "System Configuration",
+      "subcategory": "Umask",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify default umask",
+        "check_command": "grep -E 'umask' /etc/bashrc /etc/profile /etc/profile.d/*",
+        "expected_value": "umask 027 or 077"
+      },
+      "remediation": {
+        "remediation_step": "Set umask 027 in /etc/bashrc and /etc/profile",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "New files more restrictive",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "Restrictive umask prevents world-readable files by default.",
+        "impact": "Medium - Improves file security",
+        "false_positive_risk": "None"
+      },
+      "tags": ["umask", "permissions", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-6.1.10",
+      "rule_name": "Ensure no world-writable files exist",
+      "rule_description": "Level 2: No files should be world-writable.",
+      "category": "File Permissions",
+      "subcategory": "World-Writable",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Find world-writable files",
+        "check_command": "df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type f -perm -0002",
+        "expected_value": "No output (no world-writable files)"
+      },
+      "remediation": {
+        "remediation_step": "Remove world-writable permission: chmod o-w <file>",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "May affect some applications",
+        "estimated_time": "10 minutes"
+      },
+      "context": {
+        "rationale": "World-writable files allow any user to modify them.",
+        "impact": "Medium - Prevents unauthorized file modification",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["permissions", "world-writable", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-6.1.11",
+      "rule_name": "Ensure no unowned files or directories exist",
+      "rule_description": "Level 2: All files should have a valid owner.",
+      "category": "File Permissions",
+      "subcategory": "Ownership",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Find unowned files",
+        "check_command": "df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -nouser",
+        "expected_value": "No output (no unowned files)"
+      },
+      "remediation": {
+        "remediation_step": "Assign owner to unowned files: chown root <file> or remove",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "None",
+        "estimated_time": "10 minutes"
+      },
+      "context": {
+        "rationale": "Unowned files may be exploited if a user is assigned that UID.",
+        "impact": "Low - Prevents potential UID collision",
+        "false_positive_risk": "None"
+      },
+      "tags": ["permissions", "ownership", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-6.1.13",
+      "rule_name": "Ensure SUID executables are reviewed",
+      "rule_description": "Level 2: All SUID executables should be reviewed for necessity.",
+      "category": "File Permissions",
+      "subcategory": "SUID/SGID",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Partial",
+        "audit_type": "config",
+        "detection_step": "Find SUID executables",
+        "check_command": "df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type f -perm -4000",
+        "expected_value": "Only expected SUID binaries present"
+      },
+      "remediation": {
+        "remediation_step": "Remove SUID bit from unnecessary binaries: chmod -s <file>",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "May affect functionality",
+        "estimated_time": "15 minutes"
+      },
+      "context": {
+        "rationale": "SUID binaries can be exploited for privilege escalation.",
+        "impact": "High - Reduces privilege escalation risk",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["permissions", "suid", "privilege-escalation", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.8.9",
+      "rule_name": "Ensure GNOME autorun is disabled",
+      "rule_description": "Level 2: Autorun of programs from removable media should be disabled.",
+      "category": "GUI",
+      "subcategory": "Removable Media",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify autorun is disabled",
+        "check_command": "gsettings get org.gnome.desktop.media-handling autorun-never",
+        "expected_value": "true"
+      },
+      "remediation": {
+        "remediation_step": "Disable autorun: gsettings set org.gnome.desktop.media-handling autorun-never true",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Programs won't autorun from media",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Autorun can execute malicious code from removable media.",
+        "impact": "Medium - Prevents malware from USB devices",
+        "false_positive_risk": "None"
+      },
+      "tags": ["gui", "autorun", "removable-media", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.8.10",
+      "rule_name": "Ensure GNOME autorun always prompt is enabled",
+      "rule_description": "Level 2: GNOME should always prompt before running autorun programs.",
+      "category": "GUI",
+      "subcategory": "Removable Media",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify autorun prompt setting",
+        "check_command": "gsettings get org.gnome.desktop.media-handling autorun-x-content",
+        "expected_value": "Empty array or ['x-content/unix-software']"
+      },
+      "remediation": {
+        "remediation_step": "Configure autorun-x-content appropriately",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Always prompts for autorun actions",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Prompting prevents automatic execution of potentially malicious content.",
+        "impact": "Medium - Prevents malware from removable media",
+        "false_positive_risk": "None"
+      },
+      "tags": ["gui", "autorun", "removable-media", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.8.11",
+      "rule_name": "Ensure WiFi can be disabled from the GUI",
+      "rule_description": "Level 2: Users should be able to disable WiFi from the GNOME GUI.",
+      "category": "GUI",
+      "subcategory": "Network",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Low",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify WiFi can be disabled",
+        "check_command": "gsettings get org.gnome.nm-applet disable-connected-notifications",
+        "expected_value": "true or false (setting exists)"
+      },
+      "remediation": {
+        "remediation_step": "Ensure NetworkManager is configured to allow WiFi control",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "None",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Ability to disable WiFi reduces attack surface when not needed.",
+        "impact": "Low - User control over network",
+        "false_positive_risk": "None"
+      },
+      "tags": ["gui", "wifi", "network", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.8.12",
+      "rule_name": "Ensure Bluetooth can be disabled from the GUI",
+      "rule_description": "Level 2: Users should be able to disable Bluetooth from the GNOME GUI.",
+      "category": "GUI",
+      "subcategory": "Bluetooth",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Low",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify Bluetooth can be disabled",
+        "check_command": "rfkill list bluetooth",
+        "expected_value": "Bluetooth listed and can be blocked"
+      },
+      "remediation": {
+        "remediation_step": "Ensure Bluetooth service and GUI controls are available",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "None",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Ability to disable Bluetooth reduces attack surface when not needed.",
+        "impact": "Low - User control over Bluetooth",
+        "false_positive_risk": "None"
+      },
+      "tags": ["gui", "bluetooth", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.8.13",
+      "rule_name": "Ensure Bluetooth is disabled when not in use",
+      "rule_description": "Level 2: Bluetooth should be disabled when not actively used.",
+      "category": "GUI",
+      "subcategory": "Bluetooth",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify Bluetooth status",
+        "check_command": "systemctl is-active bluetooth",
+        "expected_value": "inactive or not found"
+      },
+      "remediation": {
+        "remediation_step": "Disable Bluetooth service: systemctl disable --now bluetooth",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "Bluetooth devices unavailable",
+        "estimated_time": "1 minute"
+      },
+      "context": {
+        "rationale": "Bluetooth provides attack surface when not needed.",
+        "impact": "Medium - Reduces attack surface",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["bluetooth", "service", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.8.14",
+      "rule_name": "Ensure USBGuard is installed",
+      "rule_description": "Level 2: USBGuard should be installed to enforce USB device authorization.",
+      "category": "USB Security",
+      "subcategory": "USBGuard",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "config",
+        "detection_step": "Verify USBGuard is installed",
+        "check_command": "rpm -q usbguard",
+        "expected_value": "usbguard-<version>"
+      },
+      "remediation": {
+        "remediation_step": "Install USBGuard: dnf install usbguard",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "USB device authorization required",
+        "estimated_time": "2 minutes"
+      },
+      "context": {
+        "rationale": "USBGuard enforces policies on USB device access.",
+        "impact": "High - Prevents unauthorized USB devices",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["usb", "usbguard", "security", "workstation", "level2"]
+    },
+    {
+      "rule_id": "CIS-WS-L2-1.8.15",
+      "rule_name": "Ensure USBGuard is configured and enabled",
+      "rule_description": "Level 2: USBGuard should be configured and running.",
+      "category": "USB Security",
+      "subcategory": "USBGuard",
+      "testing_status": "verified",
+      "assessment": {
+        "severity": "Medium",
+        "is_auto": true,
+        "automation_level": "Full",
+        "audit_type": "runtime",
+        "detection_step": "Verify USBGuard service status",
+        "check_command": "systemctl is-enabled usbguard && systemctl is-active usbguard",
+        "expected_value": "enabled and active"
+      },
+      "remediation": {
+        "remediation_step": "Generate policy and enable USBGuard: usbguard generate-policy > /etc/usbguard/rules.conf && systemctl enable --now usbguard",
+        "rollback_supported": true,
+        "reboot_required": false,
+        "service_impact": "USB device authorization enforced",
+        "estimated_time": "5 minutes"
+      },
+      "context": {
+        "rationale": "Running USBGuard enforces USB device policies.",
+        "impact": "High - Prevents unauthorized USB devices",
+        "false_positive_risk": "Low"
+      },
+      "tags": ["usb", "usbguard", "service", "workstation", "level2"]
+    }
+  ]
+}

@@ -1,0 +1,302 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: "Hardening Rule Schema"
+description: "Schema for automated security hardening rules based on CIS and STIG benchmarks"
+type: object
+required:
+  - rules
+properties:
+  schema_version:
+    type: string
+    description: "Schema version for the rules file"
+  
+  system_info:
+    type: object
+    description: "System information"
+    properties:
+      name:
+        type: string
+      version:
+        type: string
+      company:
+        type: string
+      category:
+        type: string
+  
+  compliance_info:
+    type: object
+    description: "Compliance framework information"
+    properties:
+      framework:
+        type: string
+        enum: ["CIS", "STIG"]
+      version:
+        type: string
+        description: "Benchmark version"
+      profile:
+        type: string
+        description: "Compliance profile level"
+  
+  file_info:
+    type: object
+    description: "File metadata"
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      created:
+        type: string
+      modified:
+        type: string
+      rule_id_prefix:
+        type: string
+  
+  metadata:
+    type: object
+    description: "Alternative metadata structure"
+    properties:
+      name:
+        type: string
+      version:
+        type: string
+      description:
+        type: string
+      platform:
+        type: string
+      benchmark:
+        type: string
+      author:
+        type: string
+      created:
+        type: string
+      modified:
+        type: string
+  
+  rule_id_prefix:
+    type: string
+    description: "Global prefix for rule IDs"
+  
+  profile:
+    type: object
+    description: "Profile information"
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      level:
+        type: integer
+  
+  rules:
+    type: array
+    minItems: 1
+    items:
+      allOf:
+        - type: object
+          required:
+            - rule_id
+            - rule_name
+            - rule_description
+            - category
+            - assessment
+            - remediation
+          properties:
+            rule_id:
+              type: string
+            legacy_ids:
+              type: array
+              items:
+                type: string
+            rule_name:
+              type: string
+              maxLength: 200
+            rule_description:
+              type: string
+            category:
+              type: string
+            subcategory:
+              type: string
+            assessment:
+              type: object
+              required:
+                - severity
+                - is_auto
+                - audit_type
+                - detection_step
+              properties:
+                severity:
+                  type: string
+                  enum: ["Critical", "High", "Medium", "Low", "Informational"]
+                is_auto:
+                  type: boolean
+                audit_type:
+                  type: string
+                detection_step:
+                  type: string
+                expected_value:
+                  type: string
+                detection_script:
+                  type: string
+                check_command:
+                  type: string
+                data_sources:
+                  type: array
+                  items:
+                    type: string
+            remediation:
+              type: object
+              required:
+                - remediation_step
+              properties:
+                remediation_step:
+                  type: string
+                remediation_script:
+                  type: string
+                revert_step:
+                  type: string
+                reboot_required:
+                  type: boolean
+                  default: false
+                service_impact:
+                  type: string
+                dependencies:
+                  type: array
+                  items:
+                    type: string
+                estimated_time:
+                  type: string
+            context:
+              type: object
+              properties:
+                rationale:
+                  type: string
+                impact:
+                  type: string
+                false_positive_risk:
+                  type: string
+                  enum: ["None", "Low", "Medium", "High"]
+                default_value:
+                  type: string
+                references:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      reference:
+                        type: string
+                cve_references:
+                  type: array
+                  items:
+                    type: string
+            tags:
+              type: array
+              items:
+                type: string
+            scan_results:
+              type: object
+              properties:
+                actual_value:
+                  type: string
+                compliance_status:
+                  type: string
+                  enum: ["compliant", "non_compliant", "error", "not_applicable", "unknown"]
+                last_scanned:
+                  type: string
+                scan_duration_ms:
+                  type: integer
+                notes:
+                  type: string
+        
+        - type: object
+          required:
+            - id
+            - title
+            - description
+            - severity
+          properties:
+            id:
+              type: string
+              description: "Short rule ID"
+            title:
+              type: string
+              description: "Rule title"
+              maxLength: 200
+            description:
+              type: string
+              description: "Full description"
+            severity:
+              type: string
+              description: "Severity level"
+            category:
+              type: string
+              description: "Rule category"
+            subcategory:
+              type: string
+            detection_step:
+              type: object
+              description: "Detection configuration"
+              properties:
+                command:
+                  type: string
+                expected_output:
+                  type: string
+                condition:
+                  type: string
+            remediation_step:
+              type: object
+              description: "Remediation configuration"
+              properties:
+                command:
+                  type: string
+                description:
+                  type: string
+            directive:
+              type: string
+            setting:
+              type: string
+            location:
+              type: string
+            context:
+              type: string
+            check_command:
+              type: string
+            rationale:
+              type: string
+            remediation:
+              type: object
+              description: "Complex remediation structure"
+              properties:
+                wlst:
+                  type: string
+                command:
+                  type: string
+            check:
+              type: object
+              description: "Complex check structure"
+              properties:
+                command:
+                  type: string
+                expected:
+                  type: string
+                config_xml:
+                  type: string
+            impact:
+              type: string
+            references:
+              type: array
+              items:
+                type: object
+            tags:
+              type: array
+              items:
+                type: string
+            reboot_required:
+              type: boolean
+            cve_references:
+              type: array
+              items:
+                type: string
+
+additionalProperties: true

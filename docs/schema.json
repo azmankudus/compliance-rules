@@ -1,0 +1,620 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://compliance-rules.io/schemas/hardening-rule-schema.json",
+  "title": "Hardening Rule Schema",
+  "description": "Schema for automated security hardening rules based on CIS and STIG benchmarks",
+  "type": "object",
+  "required": ["rules"],
+  "$defs": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Version in semantic format (e.g., 1.0.0 or 1.0)",
+      "examples": ["1.0.0", "2.1.3", "1.0"]
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^[A-Z]+-\\d+(\\.\\d+)*$",
+      "description": "Rule ID in format PREFIX-123 or PREFIX-123.1",
+      "examples": ["CIS-123", "STIG-456.1", "WEB-789.2.3"]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["Critical", "High", "Medium", "Low", "Informational"],
+      "description": "Severity level of the rule"
+    },
+    "compliance_status": {
+      "type": "string",
+      "enum": ["compliant", "non_compliant", "error", "not_applicable", "unknown"],
+      "description": "Compliance status after scan"
+    },
+    "false_positive_risk": {
+      "type": "string",
+      "enum": ["None", "Low", "Medium", "High"],
+      "description": "Risk of false positive detection"
+    },
+    "reference": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Reference type (e.g., CIS, STIG, CVE, NIST)"
+        },
+        "reference": {
+          "type": "string",
+          "description": "Reference identifier or URL"
+        }
+      },
+      "required": ["type", "reference"]
+    },
+    "testing_status": {
+      "type": "string",
+      "enum": ["untested", "partial", "verified"],
+      "default": "untested",
+      "description": "Test coverage status for the rule"
+    },
+    "automation_level": {
+      "type": "string",
+      "enum": ["Full", "Partial", "Manual"],
+      "default": "Partial",
+      "description": "Level of automation possible for detection/remediation"
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "$ref": "#/$defs/version",
+      "description": "Schema version for the rules file",
+      "default": "1.0.0"
+    },
+    "system_info": {
+      "type": "object",
+      "description": "System information",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "System or product name"
+        },
+        "version": {
+          "$ref": "#/$defs/version",
+          "description": "System version"
+        },
+        "company": {
+          "type": "string",
+          "description": "Vendor or company name"
+        },
+        "category": {
+          "type": "string",
+          "description": "System category (e.g., Database, Web Server, OS)"
+        },
+        "compatible_platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of compatible platforms",
+          "examples": [["Linux", "Windows", "macOS"], ["RHEL 8", "RHEL 9", "CentOS 8"]]
+        }
+      }
+    },
+    "compliance_info": {
+      "type": "object",
+      "description": "Compliance framework information",
+      "properties": {
+        "framework": {
+          "type": "string",
+          "enum": ["CIS", "STIG", "NIST", "ISO", "PCI-DSS", "HIPAA", "SOC2"],
+          "description": "Compliance framework name"
+        },
+        "version": {
+          "$ref": "#/$defs/version",
+          "description": "Benchmark version"
+        },
+        "profile": {
+          "type": "string",
+          "description": "Compliance profile level",
+          "examples": ["Level 1", "Level 2", "Server", "Workstation"]
+        }
+      }
+    },
+    "file_info": {
+      "type": "object",
+      "description": "File metadata",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "File name"
+        },
+        "description": {
+          "type": "string",
+          "description": "File description"
+        },
+        "created": {
+          "$ref": "#/$defs/timestamp",
+          "description": "Creation timestamp"
+        },
+        "modified": {
+          "$ref": "#/$defs/timestamp",
+          "description": "Last modification timestamp"
+        },
+        "rule_id_prefix": {
+          "type": "string",
+          "description": "Prefix for rule IDs in this file"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Alternative metadata structure",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Metadata name"
+        },
+        "version": {
+          "$ref": "#/$defs/version",
+          "description": "Metadata version"
+        },
+        "description": {
+          "type": "string",
+          "description": "Metadata description"
+        },
+        "platform": {
+          "type": "string",
+          "description": "Target platform"
+        },
+        "benchmark": {
+          "type": "string",
+          "description": "Benchmark identifier"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author name or email"
+        },
+        "created": {
+          "$ref": "#/$defs/timestamp",
+          "description": "Creation timestamp"
+        },
+        "modified": {
+          "$ref": "#/$defs/timestamp",
+          "description": "Last modification timestamp"
+        },
+        "compatible_platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of compatible platforms"
+        }
+      }
+    },
+    "rule_id_prefix": {
+      "type": "string",
+      "description": "Global prefix for rule IDs"
+    },
+    "profile": {
+      "type": "object",
+      "description": "Profile information",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Profile name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Profile description"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Profile level (1-5)"
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Array of compliance rules",
+      "items": {
+        "allOf": [
+          {
+            "type": "object",
+            "required": [
+              "rule_id",
+              "rule_name",
+              "rule_description",
+              "category",
+              "assessment",
+              "remediation"
+            ],
+            "properties": {
+              "rule_id": {
+                "$ref": "#/$defs/rule_id",
+                "description": "Unique rule identifier"
+              },
+              "legacy_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Previous rule IDs for backward compatibility"
+              },
+              "rule_name": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Short human-readable rule name"
+              },
+              "rule_description": {
+                "type": "string",
+                "minLength": 10,
+                "description": "Detailed description of the rule"
+              },
+              "category": {
+                "type": "string",
+                "description": "Primary category (e.g., Access Control, Audit)"
+              },
+              "subcategory": {
+                "type": "string",
+                "description": "Secondary category"
+              },
+              "testing_status": {
+                "$ref": "#/$defs/testing_status"
+              },
+              "assessment": {
+                "type": "object",
+                "required": [
+                  "severity",
+                  "is_auto",
+                  "audit_type",
+                  "detection_step"
+                ],
+                "properties": {
+                  "severity": {
+                    "$ref": "#/$defs/severity"
+                  },
+                  "is_auto": {
+                    "type": "boolean",
+                    "description": "Whether assessment can be automated"
+                  },
+                  "automation_level": {
+                    "$ref": "#/$defs/automation_level"
+                  },
+                  "audit_type": {
+                    "type": "string",
+                    "description": "Type of audit (e.g., config, runtime, log)"
+                  },
+                  "detection_step": {
+                    "type": "string",
+                    "minLength": 10,
+                    "description": "Step-by-step detection procedure"
+                  },
+                  "expected_value": {
+                    "type": "string",
+                    "description": "Expected value for compliance"
+                  },
+                  "detection_script": {
+                    "type": "string",
+                    "description": "Script or code for automated detection"
+                  },
+                  "check_command": {
+                    "type": "string",
+                    "description": "Command to check compliance"
+                  },
+                  "data_sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Data sources for assessment"
+                  }
+                }
+              },
+              "remediation": {
+                "type": "object",
+                "required": ["remediation_step"],
+                "properties": {
+                  "remediation_step": {
+                    "type": "string",
+                    "minLength": 10,
+                    "description": "Step-by-step remediation procedure"
+                  },
+                  "remediation_script": {
+                    "type": "string",
+                    "description": "Script or code for automated remediation"
+                  },
+                  "revert_step": {
+                    "type": "string",
+                    "description": "Steps to revert the remediation"
+                  },
+                  "rollback_supported": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether rollback is supported"
+                  },
+                  "reboot_required": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether reboot is required after remediation"
+                  },
+                  "service_impact": {
+                    "type": "string",
+                    "description": "Expected service impact during remediation"
+                  },
+                  "dependencies": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Rule IDs that must be applied first"
+                  },
+                  "estimated_time": {
+                    "type": "string",
+                    "pattern": "^\\d+\\s*(seconds?|minutes?|hours?)$",
+                    "description": "Estimated remediation time",
+                    "examples": ["30 seconds", "5 minutes", "1 hour"]
+                  }
+                }
+              },
+              "context": {
+                "type": "object",
+                "properties": {
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this rule is important"
+                  },
+                  "impact": {
+                    "type": "string",
+                    "description": "Business or technical impact"
+                  },
+                  "false_positive_risk": {
+                    "$ref": "#/$defs/false_positive_risk"
+                  },
+                  "default_value": {
+                    "type": "string",
+                    "description": "Default configuration value"
+                  },
+                  "references": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/reference"
+                    },
+                    "description": "External references and documentation"
+                  },
+                  "cve_references": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^CVE-\\d{4}-\\d{4,}$"
+                    },
+                    "description": "CVE identifiers",
+                    "examples": ["CVE-2021-44228", "CVE-2023-12345"]
+                  }
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Tags for categorization and filtering",
+                "examples": [["security", "network", "critical"]]
+              },
+              "scan_results": {
+                "type": "object",
+                "properties": {
+                  "actual_value": {
+                    "type": "string",
+                    "description": "Actual detected value"
+                  },
+                  "compliance_status": {
+                    "$ref": "#/$defs/compliance_status"
+                  },
+                  "last_scanned": {
+                    "$ref": "#/$defs/timestamp",
+                    "description": "Timestamp of last scan"
+                  },
+                  "scan_duration_ms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Scan duration in milliseconds"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Additional scan notes"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["id", "title", "description", "severity"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Short rule ID"
+              },
+              "title": {
+                "type": "string",
+                "description": "Rule title",
+                "maxLength": 200
+              },
+              "description": {
+                "type": "string",
+                "description": "Full description"
+              },
+              "severity": {
+                "type": "string",
+                "description": "Severity level"
+              },
+              "category": {
+                "type": "string",
+                "description": "Rule category"
+              },
+              "subcategory": {
+                "type": "string"
+              },
+              "testing_status": {
+                "$ref": "#/$defs/testing_status"
+              },
+              "detection_step": {
+                "type": "object",
+                "description": "Detection configuration",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "expected_output": {
+                    "type": "string"
+                  },
+                  "condition": {
+                    "type": "string"
+                  }
+                }
+              },
+              "remediation_step": {
+                "type": "object",
+                "description": "Remediation configuration",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "directive": {
+                "type": "string"
+              },
+              "setting": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "context": {
+                "type": "string"
+              },
+              "check_command": {
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string"
+              },
+              "remediation": {
+                "type": "object",
+                "description": "Complex remediation structure",
+                "properties": {
+                  "wlst": {
+                    "type": "string"
+                  },
+                  "command": {
+                    "type": "string"
+                  }
+                }
+              },
+              "check": {
+                "type": "object",
+                "description": "Complex check structure",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "expected": {
+                    "type": "string"
+                  },
+                  "config_xml": {
+                    "type": "string"
+                  }
+                }
+              },
+              "impact": {
+                "type": "string"
+              },
+              "references": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/reference"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "reboot_required": {
+                "type": "boolean",
+                "default": false
+              },
+              "rollback_supported": {
+                "type": "boolean",
+                "default": true
+              },
+              "cve_references": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^CVE-\\d{4}-\\d{4,}$"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "metadata": {
+        "name": "Apache HTTP Server Hardening",
+        "version": "2.1.0",
+        "description": "CIS Benchmark for Apache HTTP Server",
+        "platform": "Linux",
+        "benchmark": "CIS Apache HTTP Server 2.4",
+        "author": "Security Team",
+        "compatible_platforms": ["RHEL 8", "Ubuntu 20.04", "Debian 11"]
+      },
+      "rules": [
+        {
+          "rule_id": "CIS-5.1",
+          "rule_name": "Disable WebDAV Modules",
+          "rule_description": "WebDAV modules should be disabled if not required",
+          "category": "Module Configuration",
+          "testing_status": "verified",
+          "assessment": {
+            "severity": "Medium",
+            "is_auto": true,
+            "automation_level": "Full",
+            "audit_type": "config",
+            "detection_step": "Run 'apachectl -M | grep dav' to check for WebDAV modules",
+            "check_command": "apachectl -M | grep -E 'dav(_lock)?_module'"
+          },
+          "remediation": {
+            "remediation_step": "Comment out or remove LoadModule directives for dav_module and dav_fs_module",
+            "rollback_supported": true,
+            "reboot_required": false,
+            "service_impact": "Apache restart required",
+            "estimated_time": "1 minute"
+          },
+          "context": {
+            "rationale": "WebDAV can be exploited to modify content if misconfigured",
+            "false_positive_risk": "Low",
+            "references": [
+              {"type": "CIS", "reference": "CIS Apache Benchmark v2.1.0 - 5.1"}
+            ]
+          },
+          "tags": ["security", "modules", "webdav"]
+        }
+      ]
+    }
+  ]
+}
