@@ -1,0 +1,208 @@
+schema_version: 1.0.0
+metadata:
+  name: CIS Benchmark for Red Hat Enterprise Linux 9 - Level 1 Workstation
+  version: 2.0.0
+  description: Center for Internet Security Benchmark for RHEL 9 Level 1 Workstation
+    Profile
+  platform: Red Hat Enterprise Linux 9
+  benchmark: CIS RHEL 9 Benchmark v2.0.0
+  author: Center for Internet Security
+  created: '2024-06-20T00:00:00Z'
+  modified: '2024-06-20T00:00:00Z'
+  compatible_platforms:
+  - RHEL 9.0
+  - RHEL 9.1
+  - RHEL 9.2
+  - RHEL 9.3
+  - RHEL 9.4
+  - RHEL 9.5
+compliance_info:
+  framework: CIS
+  version: 2.0.0
+  profile: Level 1 - Workstation
+profile:
+  name: CIS Level 1 Workstation
+  description: Baseline security configuration for RHEL 9 workstations
+  level: 1
+rules:
+- rule_id: CIS-WS-1.8.1
+  rule_name: Ensure GNOME Display Manager is installed
+  rule_description: For workstations, the graphical display manager should be installed
+    and configured
+  category: GUI
+  subcategory: Display Manager
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify GDM is installed
+    check_command: rpm -q gdm
+    expected_value: gdm-<version>
+  remediation:
+    remediation_step: 'Install GDM: dnf install gdm'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 2 minutes
+  context:
+    rationale: GDM provides the graphical login interface for workstations
+    impact: Medium - Required for GUI operation
+    false_positive_risk: None
+  tags:
+  - gui
+  - gdm
+  - display-manager
+  - workstation
+- rule_id: CIS-WS-1.8.2
+  rule_name: Ensure GDM login banner is configured
+  rule_description: The GDM login screen should display an appropriate security banner
+  category: GUI
+  subcategory: Display Manager
+  testing_status: verified
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify GDM banner configuration
+    check_command: grep -E 'banner-message-enable|banner-message-text' /etc/gdm/custom.conf
+    expected_value: Banner enabled with appropriate message
+  remediation:
+    remediation_step: Configure banner in /etc/gdm/custom.conf under [greeter]
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 2 minutes
+  context:
+    rationale: Login banners support legal prosecution of unauthorized access
+    impact: Low - Legal/compliance requirement
+    false_positive_risk: None
+  tags:
+  - gui
+  - gdm
+  - banner
+  - compliance
+  - workstation
+- rule_id: CIS-WS-1.8.3
+  rule_name: Ensure GDM disable-user-list is enabled
+  rule_description: User list on login screen should be disabled for security
+  category: GUI
+  subcategory: Display Manager
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify user list is disabled
+    check_command: grep 'disable-user-list' /etc/gdm/custom.conf
+    expected_value: disable-user-list=true
+  remediation:
+    remediation_step: 'Add to /etc/gdm/custom.conf under [greeter]: disable-user-list=true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Users must type username
+    estimated_time: 1 minute
+  context:
+    rationale: Hiding user list prevents enumeration of valid accounts
+    impact: Medium - Prevents account enumeration
+    false_positive_risk: None
+  tags:
+  - gui
+  - gdm
+  - privacy
+  - workstation
+- rule_id: CIS-WS-1.8.4
+  rule_name: Ensure GNOME screensaver lock is enabled
+  rule_description: GNOME screensaver should lock the screen after inactivity
+  category: GUI
+  subcategory: Screensaver
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify screensaver lock is enabled
+    check_command: gsettings get org.gnome.desktop.screensaver lock-enabled
+    expected_value: 'true'
+  remediation:
+    remediation_step: 'Enable screensaver lock: gsettings set org.gnome.desktop.screensaver
+      lock-enabled true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Screen locks after idle period
+    estimated_time: 1 minute
+  context:
+    rationale: Screen lock prevents unauthorized physical access to unlocked sessions
+    impact: Medium - Physical security
+    false_positive_risk: None
+  tags:
+  - gui
+  - screensaver
+  - lock
+  - physical-security
+  - workstation
+- rule_id: CIS-WS-1.8.5
+  rule_name: Ensure GNOME screensaver idle delay is configured
+  rule_description: GNOME screensaver should activate after a short idle period
+  category: GUI
+  subcategory: Screensaver
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify screensaver idle delay
+    check_command: gsettings get org.gnome.desktop.session idle-delay
+    expected_value: uint32 900 or less (15 minutes)
+  remediation:
+    remediation_step: 'Set idle delay: gsettings set org.gnome.desktop.session idle-delay
+      900'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Screen locks after 15 minutes idle
+    estimated_time: 1 minute
+  context:
+    rationale: Short idle delay prevents unauthorized access to unattended workstations
+    impact: Medium - Physical security
+    false_positive_risk: None
+  tags:
+  - gui
+  - screensaver
+  - idle
+  - physical-security
+  - workstation
+- rule_id: CIS-WS-1.8.7
+  rule_name: Ensure GNOME automatic mount is disabled
+  rule_description: Automatic mounting of removable media should be disabled
+  category: GUI
+  subcategory: Removable Media
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify automount is disabled
+    check_command: gsettings get org.gnome.desktop.media-handling automount
+    expected_value: 'false'
+  remediation:
+    remediation_step: 'Disable automount: gsettings set org.gnome.desktop.media-handling
+      automount false'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Media must be mounted manually
+    estimated_time: 1 minute
+  context:
+    rationale: Disabling automount prevents automatic execution from removable media
+    impact: Medium - Prevents malware from USB devices
+    false_positive_risk: None
+  tags:
+  - gui
+  - automount
+  - removable-media
+  - workstation

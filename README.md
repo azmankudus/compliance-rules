@@ -1,126 +1,214 @@
-# Compliance Rules
+<p align="center">
+  <img src="https://img.shields.io/badge/Compliance-Rules-blue?style=flat-square" alt="Compliance Rules" />
+  <img src="https://img.shields.io/badge/CIS-Benchmarks-green?style=flat-square" alt="CIS" />
+  <img src="https://img.shields.io/badge/DISA-STIG-red?style=flat-square" alt="STIG" />
+  <img src="https://img.shields.io/badge/RHEL-9-orange?style=flat-square" alt="RHEL" />
+</p>
 
-Automated security hardening rules based on CIS Benchmarks and DISA STIGs for enterprise software systems.
+<h1 align="center">🔍 Compliance Rules</h1>
 
-## Overview
+<p align="center">
+  <em>Automated security hardening rules based on CIS Benchmarks and DISA STIGs for enterprise software systems</em>
+</p>
 
-This repository contains machine-readable compliance rules in JSON format, designed for automated security assessment and remediation. Rules are structured according to the [JSON Schema](docs/schema.json) and sourced from official compliance bodies.
+<p align="center">
+  <a href="https://opencode.ai"><img src="https://img.shields.io/badge/Built%20with-OpenCode-9cf?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4oPHVuZ2F0dW5vdWQvT0eXBlbnQSBzZXJpbwZXJ5ldGFdWU" alt="OpenCode" /></a>
+  <a href="https://github.com/azmankudus/compliance-rules"><img src="https://img.shields.io/github/stars/azmankudus/compliance-rules?style=social" alt="GitHub Stars" /></a>
+</p>
 
-## Schema
+---
 
-The compliance rules follow the schema defined in [`docs/schema.json`](docs/schema.json), which includes:
+## 📋 Overview
 
-- **Metadata**: Framework, version, platform, and compatibility information
-- **Assessment**: Severity, automation level, detection steps, and check commands
-- **Remediation**: Step-by-step fixes, rollback support, and service impact
-- **Context**: Rationale, impact analysis, and references
+This repository contains machine-readable compliance rules in **YAML format**, designed for automated security assessment and remediation. Rules are structured according to the [JSON Schema](docs/schema.json) and sourced from official compliance bodies.
 
-### Key Features
-
-- Reusable `$defs` for common types (timestamps, versions, severity levels)
-- Format constraints (date-time, semantic versioning patterns)
-- Dual rule format support (nested and flat structures)
-- Testing status and automation level indicators
-
-## Available Compliance Rules
-
-### Red Hat Enterprise Linux 9
-
-| Document | Framework | Version | Profile | Description |
-|----------|-----------|---------|---------|-------------|
-| [CIS Level 1 Server](rules/linux/rhel9/cis/rhel9-cis-level1-server-v2.0.0.json) | CIS | 2.0.0 | Level 1 | Baseline security for servers |
-| [CIS Level 2 Server](rules/linux/rhel9/cis/rhel9-cis-level2-server-v2.0.0.json) | CIS | 2.0.0 | Level 2 | Enhanced security for servers |
-| [CIS Level 1 Workstation](rules/linux/rhel9/cis/rhel9-cis-level1-workstation-v2.0.0.json) | CIS | 2.0.0 | Level 1 | Baseline security for workstations |
-| [CIS Level 2 Workstation](rules/linux/rhel9/cis/rhel9-cis-level2-workstation-v2.0.0.json) | CIS | 2.0.0 | Level 2 | Enhanced security for workstations |
-| [DISA STIG](rules/linux/rhel9/stig/rhel9-stig-v2r7.json) | STIG | V2R7 | All MAC | DISA Security Technical Implementation Guide |
-
-## Rule Structure
-
-```json
-{
-  "rule_id": "CIS-1.1.2.1",
-  "rule_name": "Ensure /tmp is configured",
-  "rule_description": "The /tmp directory should be on a separate partition",
-  "category": "Filesystem",
-  "subcategory": "Partitioning",
-  "testing_status": "verified",
-  "assessment": {
-    "severity": "Medium",
-    "is_auto": true,
-    "automation_level": "Full",
-    "check_command": "mount | grep ' /tmp '"
-  },
-  "remediation": {
-    "remediation_step": "Configure /tmp in /etc/fstab with nodev,nosuid,noexec",
-    "reboot_required": true,
-    "rollback_supported": false
-  },
-  "tags": ["filesystem", "partitioning", "tmp"]
-}
-```
-
-## Supported Compliance Frameworks
-
-- **CIS (Center for Internet Security)**: Industry best practices with Level 1 (baseline) and Level 2 (enhanced) profiles
-- **DISA STIG (Defense Information Systems Agency)**: U.S. Department of Defense security requirements
-- **NIST 800-53**: Security and privacy controls (planned)
-- **PCI-DSS**: Payment Card Industry standards (planned)
-
-## Usage
-
-### Validation
-
-Validate rules against the schema:
-
-```bash
-# Using Python
-python3 -c "import json; json.load(open('rules/linux/rhel9/cis/rhel9-cis-level1-server-v2.0.0.json'))"
-
-# Using ajv-cli
-npx ajv validate -s docs/schema.json -d rules/linux/rhel9/cis/*.json
-```
-
-### Integration
-
-These rules can be integrated with:
-
-- **OpenSCAP / SCAP Workbench**: Convert to XCCDF/OVAL format
-- **Ansible**: Generate playbooks for automated remediation
-- **Terraform/Puppet/Chef**: Infrastructure as code compliance
-- **Custom scanners**: Build assessment tools using the structured JSON
-
-## Directory Structure
+## 📂 Folder Structure
 
 ```
 compliance-rules/
 ├── docs/
-│   └── schema.json          # JSON Schema for compliance rules
-├── rules/
-│   └── linux/
-│       └── rhel9/
-│           ├── cis/         # CIS Benchmark rules
-│           │   ├── rhel9-cis-level1-server-v2.0.0.json
-│           │   ├── rhel9-cis-level2-server-v2.0.0.json
-│           │   ├── rhel9-cis-level1-workstation-v2.0.0.json
-│           │   └── rhel9-cis-level2-workstation-v2.0.0.json
-│           └── stig/        # DISA STIG rules
-│               └── rhel9-stig-v2r7.json
+│   ├── schema.json              # JSON Schema for compliance rules
+│   └── schema.yaml              # YAML Schema (original)
+├── <vendor_abbr>/
+│   └── <product_abbr>-<product_version>/
+│       ├── <compliance_body>/
+│       │   └── <vendor_abbr>-<product_abbr>-<product_version>-<compliance_body>-<compliance_level>-<compliance_version>.yaml
 └── README.md
 ```
 
-## Sources
+## 📄 File Naming Convention
 
-- **CIS Benchmarks**: https://www.cisecurity.org/benchmark/red_hat_linux
-- **DISA STIGs**: https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9
-- **ComplianceAsCode**: https://github.com/ComplianceAsCode/content
+```
+<vendor_abbr>-<product_abbr>-<product_version>-<compliance_body>-<compliance_level>-<compliance_version>.yaml
+```
 
-## Contributing
+| Component | Description | Examples |
+|-----------|-------------|---------|
+| `vendor_abbr` | Vendor abbreviation | `rh` (Red Hat), `ms` (Microsoft) |
+| `product_abbr` | Product abbreviation | `rhel` (RHEL), `ws` (Windows Server) |
+| `product_version` | Product version | `9`, `2022`, `8` |
+| `compliance_body` | Compliance framework | `cis`, `stig`, `nist` |
+| `compliance_level` | Profile/Category level | See below |
+| `compliance_version` | Benchmark version | `v2.0.0`, `v2r7` |
 
-1. Follow the schema defined in `docs/schema.json`
-2. Source rules from official compliance bodies
-3. Include proper metadata and references
-4. Test validation before submitting
+### Compliance Levels by Framework
 
-## License
+| Framework | Level Format | Examples |
+|-----------|-------------|---------|
+| **CIS** | `level<1-2>-<type>` | `level1-server`, `level2-workstation` |
+| **STIG** | `cat<1-3>` | `cat1`, `cat2`, `cat3` |
+| **NIST** | `impact-<level>` | `impact-high`, `impact-moderate` |
+
+## 📊 Available Compliance Rules
+
+### Red Hat Enterprise Linux 9
+
+#### CIS Benchmarks
+
+| Document | Level | Profile | Description |
+|----------|------|---------|-------------|
+| [Level 1 Server](rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml) | `🟢 Baseline` | Server | Practical security for servers |
+| [Level 2 Server](rh/rhel-9/cis/rh-rhel-9-cis-level2-server-v2.0.0.yaml) | `🟡 Enhanced` | Server | Additional hardening for servers |
+| [Level 1 Workstation](rh/rhel-9/cis/rh-rhel-9-cis-level1-workstation-v2.0.0.yaml) | `🟢 Baseline` | Workstation | Practical security for desktops |
+| [Level 2 Workstation](rh/rhel-9/cis/rh-rhel-9-cis-level2-workstation-v2.0.0.yaml) | `🟡 Enhanced` | Workstation | Additional hardening for desktops |
+
+#### DISA STIG
+
+| Document | Category | Severity | Rules | Description |
+|----------|----------|----------|-------|-------------|
+| [CAT I](rh/rhel-9/stig/rh-rhel-9-stig-cat1-v2r7.yaml) | 🔴 CAT I | High | 20 | Critical security controls |
+| [CAT II](rh/rhel-9/stig/rh-rhel-9-stig-cat2-v2r7.yaml) | 🟡 CAT II | Medium | 414 | Standard security controls |
+| [CAT III](rh/rhel-9/stig/rh-rhel-9-stig-cat3-v2r7.yaml) | 🟢 CAT III | Low | 16 | Low-risk security controls |
+
+## 🏛️ Compliance Frameworks
+
+| Framework | Full Name | Description |
+|-----------|-----------|-------------|
+| **CIS** | Center for Internet Security | Industry best practices with Level 1/2 profiles |
+| **STIG** | DISA Security Technical Implementation Guide | U.S. Department of Defense requirements |
+| **NIST** | National Institute of Standards and Technology | Security and privacy controls *(planned)* |
+| **PCI-DSS** | Payment Card Industry Data Security Standard | Payment card security *(planned)* |
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.6+
+- PyYAML library
+
+### Installation
+
+```bash
+git clone https://github.com/azmankudus/compliance-rules.git
+cd compliance-rules
+pip install pyyaml
+```
+
+### Validate Rules
+```bash
+# Validate YAML syntax
+python3 -c "import yaml; yaml.safe_load(open('rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml'))"
+
+# Validate against schema
+python3 << 'EOF'
+import json, yaml
+from jsonschema import validate
+
+# Load schema
+with open('docs/schema.json') as f:
+    schema = json.load(f)
+
+# Load and validate
+with open('rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml') as f:
+    data = yaml.safe_load(f)
+    validate(instance=data, schema=schema)
+    print("✅ Valid!")
+EOF
+```
+
+## 📝 Rule Structure
+
+```yaml
+rule_id: CIS-1.1.2.1
+rule_name: Ensure /tmp is configured
+rule_description: The /tmp directory should be on a separate partition
+category: Filesystem
+subcategory: Partitioning
+testing_status: verified
+assessment:
+  severity: Medium
+  is_auto: true
+  automation_level: Full
+  audit_type: config
+  detection_step: "Verify /tmp is a separate mount point"
+  check_command: "mount | grep ' /tmp '"
+  expected_value: "Separate mount point for /tmp"
+remediation:
+  remediation_step: "Configure /tmp in /etc/fstab with nodev,nosuid,noexec"
+  rollback_supported: false
+  reboot_required: true
+  service_impact: "Requires filesystem reconfiguration"
+  estimated_time: "30 minutes"
+context:
+  rationale: "Separate /tmp prevents resource exhaustion and allows restrictive mount options"
+  impact: "Medium - Improves security and stability"
+  false_positive_risk: None
+tags:
+  - filesystem
+  - partitioning
+  - tmp
+```
+
+## 🔗 Integration
+
+These rules can be integrated with
+
+| Tool | Usage |
+|------|-------|
+| **OpenSCAP / SCAP Workbench** | Convert to XCCDF/OVAL format |
+| **Ansible** | Generate playbooks for automated remediation |
+| **Terraform / Puppet / Chef** | Infrastructure as code compliance |
+| **Custom scanners** | Build assessment tools using the structured YAML |
+
+## 📈 Statistics
+
+### Current Coverage
+
+| Product | CIS Rules | STIG Rules | Total |
+|---------|-----------|------------|-------|
+| RHEL 9 | 180+ | 450 | 630+ |
+
+### STIG Categories
+
+| Category | Rules | Severity | Action Required |
+|----------|-------|----------|-----------------|
+| CAT I | 20 | 🔴 High | Immediate |
+| CAT II | 414 | 🟡 Medium | Required |
+| CAT III | 16 | 🟢 Low | Best Practice |
+
+## 📚 Sources
+
+| Framework | Source |
+|-----------|--------|
+| CIS | [CIS RHEL Benchmark](https://www.cisecurity.org/benchmark/red_hat_linux) |
+| STIG | [DISA STIG Viewer](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9) |
+| ComplianceAsCode | [GitHub Repository](https://github.com/ComplianceAsCode/content) |
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Follow the schema in `docs/schema.json`
+4. Source rules from official compliance bodies
+5. Test validation before submitting
+6. Submit a pull request
+
+## 📜 License
 
 See [LICENSE](LICENSE) file for details.
+
+---
+
+<p align="center">
+  <em>Built with ❤️ for security professionals</em>
+</p>

@@ -1,0 +1,146 @@
+schema_version: 1.0.0
+metadata:
+  name: CIS Benchmark for Red Hat Enterprise Linux 9 - Level 2 Server
+  version: 2.0.0
+  description: Center for Internet Security Benchmark for RHEL 9 Level 2 Server Profile
+    - Extended security controls
+  platform: Red Hat Enterprise Linux 9
+  benchmark: CIS RHEL 9 Benchmark v2.0.0
+  author: Center for Internet Security
+  created: '2024-06-20T00:00:00Z'
+  modified: '2024-06-20T00:00:00Z'
+  compatible_platforms:
+  - RHEL 9.0
+  - RHEL 9.1
+  - RHEL 9.2
+  - RHEL 9.3
+  - RHEL 9.4
+  - RHEL 9.5
+compliance_info:
+  framework: CIS
+  version: 2.0.0
+  profile: Level 2 - Server
+profile:
+  name: CIS Level 2 Server
+  description: Enhanced security configuration for RHEL 9 servers
+  level: 2
+rules:
+- rule_id: CIS-L2-1.1.1.1
+  rule_name: Ensure mounting of cramfs filesystems is disabled
+  rule_description: 'Level 2: The cramfs filesystem type is a compressed read-only
+    Linux filesystem'
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify cramfs kernel module is disabled
+    check_command: modprobe -n -v cramfs | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/cramfs.conf with: install cramfs
+      /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  context:
+    rationale: Unused filesystem drivers increase attack surface
+    impact: Low - Reduces potential attack vectors
+    false_positive_risk: Low
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level2-server
+- rule_id: CIS-L2-1.1.23
+  rule_name: Ensure /var/log is a separate partition
+  rule_description: 'Level 2: The /var/log directory should be on a separate partition'
+  category: Filesystem
+  subcategory: Partitioning
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify /var/log is a separate partition
+    check_command: mount | grep ' /var/log '
+    expected_value: Separate mount point for /var/log
+  remediation:
+    remediation_step: Create separate partition for /var/log and migrate data
+    rollback_supported: false
+    reboot_required: true
+    service_impact: Requires system reconfiguration
+    estimated_time: 60 minutes
+  context:
+    rationale: Separate log partition prevents disk exhaustion from affecting system
+    impact: Medium - Improves system resilience
+    false_positive_risk: None
+  tags:
+  - filesystem
+  - partitioning
+  - logs
+  - level2-server
+- rule_id: CIS-L2-1.1.24
+  rule_name: Ensure /var/log/audit is a separate partition
+  rule_description: 'Level 2: The audit logs should be on a separate partition'
+  category: Filesystem
+  subcategory: Partitioning
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify /var/log/audit is a separate partition
+    check_command: mount | grep ' /var/log/audit '
+    expected_value: Separate mount point for /var/log/audit
+  remediation:
+    remediation_step: Create separate partition for /var/log/audit
+    rollback_supported: false
+    reboot_required: true
+    service_impact: Requires system reconfiguration
+    estimated_time: 60 minutes
+  context:
+    rationale: Separate audit partition ensures audit logs cannot fill the root filesystem
+    impact: Medium - Ensures audit trail availability
+    false_positive_risk: None
+  tags:
+  - filesystem
+  - partitioning
+  - audit
+  - level2-server
+- rule_id: CIS-L2-4.1.1.1
+  rule_name: Ensure auditd is installed
+  rule_description: 'Level 2: The audit daemon must be installed for security auditing'
+  category: Auditing
+  subcategory: Audit Daemon
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify auditd package is installed
+    check_command: rpm -q audit
+    expected_value: audit-<version>
+  remediation:
+    remediation_step: 'Install audit: dnf install audit'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  context:
+    rationale: Audit daemon is essential for security monitoring and compliance
+    impact: Critical - Required for security auditing
+    false_positive_risk: None
+  tags:
+  - audit
+  - auditing
+  - monitoring
+  - level2-server
+  - critical
