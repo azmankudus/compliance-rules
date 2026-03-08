@@ -317,7 +317,38 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 ---
 
-### 🪟 Windows Server 2019
+### 🪟 Windows Server 2022
+
+#### CIS Benchmarks
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Level 1 DC](ms/ws-2022/cis/ms-ws-2022-cis-level1-dc-v3.0.0.yaml) | 🟢 Baseline | Domain Controller | 247 | Baseline security for domain controllers | ✅ Verified |
+| [Level 1 MS](ms/ws-2022/cis/ms-ws-2022-cis-level1-ms-v3.0.0.yaml) | 🟢 Baseline | Member Server | 247 | Baseline security for member servers | ✅ Verified |
+        [Level 2 DC](ms/ws-2022/cis/ms-ws-2022-cis-level2-dc-v3.0.0.yaml) | 🟡 Enhanced | Domain Controller | 198 | Enhanced security for domain controllers | ✅ Verified |
+        [Level 2 MS](ms/ws-2022/cis/ms-ws-2022-cis-level2-ms-v3.0.0.yaml) | 🟡 Enhanced | Member Server | 198 | Enhanced security for member servers | ✅ Verified |
+
+#### DISA STIG
+
+| Document | Category | Severity | Rules | Description | Status |
+|----------|----------|----------|-------|-------------|--------|
+| [CAT I](ms/ws-2022/stig/ms-ws-2022-stig-cat1-v2r3.yaml) | 🔴 CAT I | High | 31 | Critical controls - Immediate action | ✅ Verified |
+        [CAT II](ms/ws-2022/stig/ms-ws-2022-stig-cat2-v2r3.yaml) | 🟡 CAT II | Medium | 232 | Standard controls - Required | ✅ Verified |
+        [CAT III](ms/ws-2022/stig/ms-ws-2022-stig-cat3-v2r3.yaml) | 🟢 CAT III | Low | 12 | Best practices - Recommended | ✅ Verified |
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Framework | Product | Total Rules | High | Medium | Low |
+|-----------|---------|-------------|------|--------|-----|
+| CIS | WS 2022 DC | 445 | 111 | 334 | 0 |
+    CIS | WS 2022 MS | 445 | 111 | 334 | 0 |
+    STIG | WS 2022 | 275 | 31 | 232 | 12 |
+    **Total** |        **720** | **900** | **12** |
+
+</details>
+
+---
 
 #### CIS Benchmarks
 
