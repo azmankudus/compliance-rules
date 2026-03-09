@@ -17,6 +17,7 @@
 <img src="https://img.shields.io/badge/Windows_Server-2019-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2019"/>
 <img src="https://img.shields.io/badge/Windows_Server-2022-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2022"/>
 <img src="https://img.shields.io/badge/Windows_Server-2025-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2025"/>
+<img src="https://img.shields.io/badge/Oracle_Solaris-11.4-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle Solaris 11.4"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -414,6 +415,43 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 ---
 
+### ☀️ Oracle Solaris 11.4
+
+#### DISA STIG
+
+##### X86 Architecture
+
+| Document | Category | Severity | Rules | Description | Status |
+|----------|----------|----------|-------|-------------|--------|
+| [CAT I](ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat1.yaml) | 🔴 CAT I | High | 14 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat2.yaml) | 🟡 CAT II | Medium | 152 | Standard controls - Required | ✅ Verified |
+| [CAT III](ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat3.yaml) | 🟢 CAT III | Low | 50 | Best practices - Recommended | ✅ Verified |
+
+##### SPARC Architecture
+
+| Document | Category | Severity | Rules | Description | Status |
+|----------|----------|----------|-------|-------------|--------|
+| [CAT I](ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat1.yaml) | 🔴 CAT I | High | 14 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat2.yaml) | 🟡 CAT II | Medium | 154 | Standard controls - Required | ✅ Verified |
+| [CAT III](ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat3.yaml) | 🟢 CAT III | Low | 49 | Best practices - Recommended | ✅ Verified |
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Framework | Product | Total Rules | High | Medium | Low |
+|-----------|---------|-------------|------|--------|-----|
+| STIG | Solaris 11.4 X86 | 216 | 14 | 152 | 50 |
+| STIG | Solaris 11.4 SPARC | 217 | 14 | 154 | 49 |
+| **Total** | | **433** | **28** | **306** | **99** |
+
+</details>
+
+#### CIS Benchmarks
+
+> ⚠️ **Not Yet Available** - CIS Benchmark for Oracle Solaris 11.4 requires manual extraction from the PDF document. The benchmark is available at [CIS Oracle Solaris Benchmark](https://www.cisecurity.org/benchmark/oracle_solaris) v1.1.0.
+
+---
+
 ## 🏛️ Supported Frameworks
 
 <table>
@@ -737,13 +775,15 @@ generate_ansible_playbook(
 | WS 2019 STIG | - | - | 34 | 227 | 14 | **275** |
 | WS 2016 DC | 256 | 55 | - | - | - | **311** |
 | WS 2016 MS | 264 | 59 | - | - | - | **323** |
+| Solaris 11.4 X86 STIG | - | - | 14 | 152 | 50 | **216** |
+| Solaris 11.4 SPARC STIG | - | - | 14 | 154 | 49 | **217** |
 | RHEL 10 Server | 225 | 77 | - | - | - | **302** |
 | RHEL 10 Workstation | 219 | 78 | - | - | - | **297** |
 | RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | **485** |
 | RHEL 9 Workstation | 6 | 3 | - | - | - | **9** |
 | RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | **376** |
 | RHEL 8 Workstation | 2 | 2 | - | - | - | **4** |
-| **Total** | **2482** | **1232** | **107** | **1193** | **69** | **5083** |
+| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **5516** |
 
 ### Severity Distribution
 
@@ -780,6 +820,9 @@ Manual:             21 rules (0.5%)  ░░░░░░░░░░░░░░�
 | **STIG** | [DISA STIG RHEL 9](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_9) | V2R7 | May 2025 |
 | **CIS** | [CIS RHEL 8 Benchmark](https://www.cisecurity.org/benchmark/red_hat_linux) | v4.0.0 | August 2025 |
 | **STIG** | [DISA STIG RHEL 8](https://www.stigviewer.com/stigs/red_hat_enterprise_linux_8) | V2R2 | January 2025 |
+| **STIG** | [DISA STIG Solaris 11 X86](https://www.stigviewer.com/stigs/solaris_11_x86) | V3R2 | May 2025 |
+| **STIG** | [DISA STIG Solaris 11 SPARC](https://www.stigviewer.com/stigs/solaris_11_sparc) | V3R2 | May 2025 |
+| **CIS** | [CIS Oracle Solaris 11.4 Benchmark](https://www.cisecurity.org/benchmark/oracle_solaris) | v1.1.0 | 2024 |
 
 ### Community Resources
 

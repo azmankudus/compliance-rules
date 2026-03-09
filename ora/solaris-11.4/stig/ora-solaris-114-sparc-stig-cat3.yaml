@@ -1,0 +1,2565 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: DISA STIG for Oracle Solaris 11.4 SPARC - CAT III
+  version: '3'
+  description: DISA Security Technical Implementation Guide for Oracle Solaris 11.4 SPARC - CAT III (Low)
+  platform: Oracle Solaris 11.4 SPARC
+  benchmark: DISA STIG Oracle Solaris 11.4 SPARC V3R2
+  author: Defense Information Systems Agency (DISA)
+  created: '2024-01-01T00:00:00Z'
+  modified: '2026-03-09T21:27:11Z'
+  compatible_platforms:
+  - Oracle Solaris 11.4 SPARC
+compliance_info:
+  framework: STIG
+  version: V3R2
+  profile: CAT III
+profile:
+  name: STIG CAT III
+  description: Low severity controls for Oracle Solaris 11.4 SPARC
+  category: CAT III
+rules:
+- rule_id: SV-216270r959010
+  rule_name: The auditing system must not define a different auditing level for specific users.
+  rule_description: Without auditing, individual system accesses cannot be tracked, and malicious activity cannot be detected and traced back to an individual account.
+  category: Security
+  subcategory: '216270'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      For each user on the system (not including root), check to see if special auditing flag configurations are set.
+
+
+      # userattr audit_flags [username]
+
+
+      If any flags are returned, this is a finding.'
+    check_command: This check applies to the global zone only. Determine the zone that you are currently securing.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      This action applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this action applies.
+
+
+      For each user on the system, remove all special audit configuration flags.
+
+
+      # usermod -K audit_flags= [username]'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Without auditing, individual system accesses cannot be tracked, and malicious activity cannot be detected and traced back to an individual account.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216270r959010_rule - V-216270
+  tags:
+  - stig
+  - low
+  - v-216270
+- rule_id: SV-216293r959010
+  rule_name: The UUCP service daemon must not be installed unless required.
+  rule_description: UUCP is an insecure protocol.
+  category: Security
+  subcategory: '216293'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the UUCP package is installed.
+
+
+      # pkg list /service/network/uucp
+
+
+      If an installed package named "/service/network/uucp" is listed, this is a finding.'
+    check_command: Determine if the UUCP package is installed.
+  remediation:
+    remediation_step: 'The Software Installation Profile is required.
+
+
+      # pfexec pkg uninstall /service/network/uucp'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: UUCP is an insecure protocol.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216293r959010_rule - V-216293
+  tags:
+  - stig
+  - low
+  - v-216293
+- rule_id: SV-216331r959010
+  rule_name: The system must require passwords to contain no more than three consecutive repeating characters.
+  rule_description: Complex passwords can reduce the likelihood of success of automated password-guessing attacks.
+  category: Security
+  subcategory: '216331'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the MAXREPEATS setting.
+
+
+      # grep ^MAXREPEATS /etc/default/passwd
+
+
+      If the MAXREPEATS setting is greater than 3, this is a finding.'
+    check_command: Check the MAXREPEATS setting.
+  remediation:
+    remediation_step: "The root role is required.\n# pfedit /etc/default/passwd \n\nLocate the line containing:\n\nMAXREPEATS\n\nChange the line to read: \n\nMAXREPEATS=3"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Complex passwords can reduce the likelihood of success of automated password-guessing attacks.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216331r959010_rule - V-216331
+  tags:
+  - stig
+  - low
+  - v-216331
+- rule_id: SV-216343r959010
+  rule_name: The value mesg n must be configured as the default setting for all users.
+  rule_description: The "mesg n" command blocks attempts to use the "write" or "talk" commands to contact users at their terminals, but has the side effect of slightly strengthening permissions on the user's TTY device.
+  category: Security
+  subcategory: '216343'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if "mesg n" is the default for users.
+
+
+      # grep "^mesg" /etc/.login
+
+
+      # grep "^mesg" /etc/profile
+
+
+      If either of these commands produces a line:
+
+      mesg y
+
+
+      this is a finding.
+
+
+      For each existing user on the system, enter the command:
+
+
+      # mesg
+
+
+      If the command output is:
+
+      is y
+
+
+      this is a finding.'
+    check_command: Determine if "mesg n" is the default for users.
+  remediation:
+    remediation_step: "The root role is required.\n\nEdit the default profile configuration files.\n\n# pfedit /etc/profile \n# pfedit /etc/.login\n\nIn each file add a new line:\n\nmesg n\n\nFor each user on the system, enter the command:\n\n# mesg n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: The "mesg n" command blocks attempts to use the "write" or "talk" commands to contact users at their terminals, but has the side effect of slightly strengthening permissions on the user's TTY device.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216343r959010_rule - V-216343
+  tags:
+  - stig
+  - low
+  - v-216343
+- rule_id: SV-216352r959010
+  rule_name: Consecutive login attempts for SSH must be limited to 3.
+  rule_description: Setting the authentication login limit to a low value will disconnect the attacker and force a reconnect, which severely limits the speed of such brute-force attacks.
+  category: Security
+  subcategory: '216352'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if consecutive login attempts are limited to 3.
+
+
+      # grep "^MaxAuthTries" /etc/ssh/sshd_config | grep -v Log
+
+
+      If the output of this command is not:
+
+
+      MaxAuthTries 6
+
+
+      this is a finding.
+
+
+      Note: Solaris SSH MaxAuthTries of 6 maps to 3 actual failed attempts.'
+    check_command: Determine if consecutive login attempts are limited to 3.
+  remediation:
+    remediation_step: "The root role is required.\n\nModify the sshd_config file.\n\n# pfedit /etc/ssh/sshd_config\n\nLocate the line containing:\n\nMaxAuthTries \n\nChange it to:\n\nMaxAuthTries 6\n\nRestart the SSH service.\n\n# svcadm restart svc:/network/ssh\n\nNote: Solaris SSH MaxAuthTries of 6 maps to 3 actual failed attempts."
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Setting the authentication login limit to a low value will disconnect the attacker and force a reconnect, which severely limits the speed of such brute-force attacks.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216352r959010_rule - V-216352
+  tags:
+  - stig
+  - low
+  - v-216352
+- rule_id: SV-216265r958406
+  rule_name: The audit system must be configured to audit login, logout, and session initiation.
+  rule_description: Without auditing, individual system accesses cannot be tracked, and malicious activity cannot be detected and traced back to an individual account.
+  category: Security
+  subcategory: '216265'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "The Audit Configuration profile is required.\n\nCheck that the audit flag for auditing login and logout is enabled.\n\nThis check applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nDetermine the OS version you are currently securing.\n# uname \u2013v\n\nFor Solaris 11, 11.1, 11.2, and 11.3:\n# pfexec auditconfig -getflags | grep active | cut -f2 -d=\n\nIf \"lo\" audit flag is not included in output, this is a finding\n\n# pfexec auditconfig -getnaflags | grep active | cut -f2 -d=\n\nIf \"na\" and \"lo\" audit flags are not included in output, this is a finding\n\nFor Solaris 11.4 or newer:\n# pfexec auditconfig -t -getflags | cut -f2 -d=\n\nIf \"cusa\" or if the \"ft,lo,ap,ss,as,ua,pe\u201D audit flag(s) are not included in output, this is a finding\n\n# pfexec auditconfig -t -getnaflags | cut -f2 -d=\n\nIf \"na\" and \"lo\" audit flags are not included in output,\
+      \ this is a finding\n\nDetermine if auditing policy is set to collect command line arguments.\n\n# pfexec auditconfig -getpolicy | grep active | grep argv\n\nIf the active audit policies line does not appear, this is a finding."
+    check_command: The Audit Configuration profile is required.
+  remediation:
+    remediation_step: 'The Audit Configuration profile is required. All audit flags must be enabled in a single command.
+
+
+      This action applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this action applies.
+
+
+      For Solaris 11, 11.1, 11.2, and 11.3:
+
+      # pfexec auditconfig -setflags cusa,-ps,fd,-fa,fm
+
+      # pfexec auditconfig -setnaflags lo,na
+
+
+      For Solaris 11.4 or newer:
+
+      # pfexec auditconfig -setflags cusa,-fa,-ex,-ps,fd,fm
+
+      # pfexec auditconfig -setnaflags lo,na
+
+
+      Enable the audit policy to collect command line arguments.
+
+
+      # pfexec auditconfig -setpolicy +argv
+
+
+      These changes will not affect users that are currently logged in.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Without auditing, individual system accesses cannot be tracked, and malicious activity cannot be detected and traced back to an individual account.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216265r958406_rule - V-216265
+  tags:
+  - stig
+  - low
+  - v-216265
+- rule_id: SV-216268r959010
+  rule_name: The audit system must be configured to audit failed attempts to access files and programs.
+  rule_description: Without auditing, individual system accesses cannot be tracked, and malicious activity cannot be detected and traced back to an individual account.
+  category: Security
+  subcategory: '216268'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "The Audit Configuration profile is required.\n\nCheck that the audit flag for auditing file access is enabled.\n\nThis check applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nDetermine the OS version you are currently securing.\n# uname \u2013v\n\nFor Solaris 11, 11.1, 11.2, and 11.3:\n# pfexec auditconfig -getflags | grep active | cut -f2 -d=\n\nIf \"-fa\" and \"-ps\" audit flags are not displayed, this is a finding.\n\nFor Solaris 11.4 or newer:\n# pfexec auditconfig -t -getflags | cut -f2 -d=\n\nIf \"-fa\", \"-ex\", and \"-ps\" audit flags are not displayed, this is a finding.\n\nDetermine if auditing policy is set to collect command line arguments.\n\n# pfexec auditconfig -getpolicy | grep active | grep argv\n\nIf the active audit policies line does not appear, this is a finding."
+    check_command: The Audit Configuration profile is required.
+  remediation:
+    remediation_step: 'The Audit Configuration profile is required. All audit flags must be enabled in a single command.
+
+
+      This action applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this action applies.
+
+
+      For Solaris 11, 11.1, 11.2, and 11.3:
+
+      # pfexec auditconfig -setflags cusa,-ps,fd,-fa,fm
+
+
+      For Solaris 11.4 or newer:
+
+      # pfexec auditconfig -setflags cusa,-fa,-ex,-ps,fd,fm
+
+
+      Enable the audit policy to collect command line arguments.
+
+
+      # pfexec auditconfig -setpolicy +argv
+
+
+      These changes will not affect users that are currently logged in.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Without auditing, individual system accesses cannot be tracked, and malicious activity cannot be detected and traced back to an individual account.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216268r959010_rule - V-216268
+  tags:
+  - stig
+  - low
+  - v-216268
+- rule_id: SV-216269r958440
+  rule_name: The operating system must protect against an individual falsely denying having performed a particular action. In order to do so the system must be configured to send audit records to a remote audit server.
+  rule_description: 'Keeping audit records on a remote system reduces the likelihood of audit records being changed or corrupted. Duplicating and protecting the audit trail on a separate system reduces the likelihood of an individual being able to deny performing an action.
+
+
+    Solaris has supported rsyslog since version 11.1 and the differences between syslog and rsyslog are numerous. Solaris 11.4 installs rsyslog by default, but previous versions require a manual installation. When establishing a rsyslog server to forward to, it is important to consider the network requirements for this action.  Note the following configuration options:
+
+    There are three ways to forward message: the traditional UDP transport, which is extremely lossy but standard; the plain TCP based transport, which loses messages only during certain situations but is widely available; and the RELP transport, which does not lose messages but is currently available only as part of the rsyslogd 3.15.0 and above.
+
+    Examples of each configuration:
+
+    UDP  *.* @remotesystemname
+
+    TCP  *.* @@remotesystemname
+
+    RELP  *.* :omrelp:remotesystemname:2514
+
+    Please note that a port number was given as there is no standard port for RELP.'
+  category: Security
+  subcategory: '216269'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Audit Configuration rights profile is required.\n\nThis check applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nCheck that the syslog audit plugin is enabled.\n\n# pfexec auditconfig -getplugin | grep audit_syslog\n\nIf \"inactive\" appears, this is a finding.\n\nDetermine which system-log service instance is online.\n\n# pfexec svcs system-log\n\nCheck that the /etc/syslog.conf or /etc/rsyslog.conf file is configured properly:\n\n# grep audit.notice /etc/syslog.conf\nor\n# grep @@ /etc/rsyslog.conf\n\nIf \naudit.notice @remotesystemname , audit.notice !remotesystemname (syslog configuration)\nor\n*.* @@remotesystemname (rsyslog configuration)\npoints to an invalid remote system or is commented out, this is a finding.\n\nIf no output is produced, this is a finding.\n\nCheck the remote syslog host to ensure that audit records can be found for this host."
+    check_command: Audit Configuration rights profile is required.
+  remediation:
+    remediation_step: "Service Management, Audit Configuration and Audit Control rights profile is required.\n\nThis action applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this action applies.\n\nConfigure Solaris 11 to use the syslog audit plugin\n\n# pfexec auditconfig -setplugin audit_syslog active \n\nDetermine which system-log service instance is online.\n\n# pfexec svcs system-log\n\nIf the default system-log service is online:\n\n# pfedit /etc/syslog.conf \n\nAdd the line:\n\naudit.notice @[remotesystemname]\nor\naudit.notice ![remotesystemname]\n\nReplacing the remote system name with the correct hostname.\n\nIf the rsyslog service is online, modify the /etc/rsyslog.conf file.\n\n# pfedit /etc/rsyslog.conf\n\nAdd the line:\n\n*.* @@[remotesystemname]\nOr \n*.* :omrelp:[remotesystemname]:[designatedportnumber]\n\nReplacing the remote system name with the correct hostname.\n\nCreate the log file\
+      \ on the remote system\n\n# touch /var/adm/auditlog\n\nRefresh the syslog service\n\n# pfexec svcadm refresh system/system-log:default\n\nor\n\n# pfexec svcadm refresh system/system-log:rsyslog\n\nRefresh the audit service\n\n# pfexec audit -s"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: 'Keeping audit records on a remote system reduces the likelihood of audit records being changed or corrupted. Duplicating and protecting the audit trail on a separate system reduces the likelihood of an individual being able to deny performing an action.
+
+
+      Solaris has supported rsyslog since version 11.1 and the differences between syslog and rsyslog are numerous. Solaris 11.4 installs rsyslog by default, but previous versions require a manual installation. When establishing a rsyslog server to forward to, it is important to consider the network requirements for this action.  Note the following configuration options:
+
+      There are three ways to forward message: the traditional UDP transport, which is extremely lossy but standard; the plain TCP based transport, which loses messages only during certain situations but is widely available; and the RELP transport, which does not lose messages but is currently available only as part of the rsyslogd 3.15.0 and above.
+
+      Examples of each configuration:
+
+      UDP  *.* @remotesystemname
+
+      TCP  *.* @@remotesystemname
+
+      RELP  *.* :omrelp:remotesystemname:2514
+
+      Please note that a port number was given as there is no standard port for RELP.'
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216269r958440_rule - V-216269
+  tags:
+  - stig
+  - low
+  - v-216269
+- rule_id: SV-216286r959010
+  rule_name: The finger daemon package must not be installed.
+  rule_description: Finger is an insecure protocol.
+  category: Security
+  subcategory: '216286'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the finger package is installed.
+
+
+      # pkg list service/network/finger
+
+
+      If an installed package named service/network/finger is listed, this is a finding.'
+    check_command: Determine if the finger package is installed.
+  remediation:
+    remediation_step: 'The Software Installation Profile is required.
+
+
+      # pfexec pkg uninstall service/network/finger'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Finger is an insecure protocol.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216286r959010_rule - V-216286
+  tags:
+  - stig
+  - low
+  - v-216286
+- rule_id: SV-216289r959010
+  rule_name: The pidgin IM client package must not be installed.
+  rule_description: Instant messaging is an insecure protocol.
+  category: Security
+  subcategory: '216289'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the pidgin package is installed.
+
+
+      # pkg list communication/im/pidgin
+
+
+      If an installed package named communication/im/pidgin is listed, this is a finding.'
+    check_command: Determine if the pidgin package is installed.
+  remediation:
+    remediation_step: 'The Software Installation Profile is required.
+
+
+      # pfexec pkg uninstall communication/im/pidgin'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Instant messaging is an insecure protocol.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216289r959010_rule - V-216289
+  tags:
+  - stig
+  - low
+  - v-216289
+- rule_id: SV-216316r959010
+  rule_name: Generic Security Services (GSS) must be disabled.
+  rule_description: This service should be disabled if it is not required.
+  category: Security
+  subcategory: '216316'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine the status of the Generic Security Services.
+
+
+      # svcs -Ho state svc:/network/rpc/gss
+
+
+      If the GSS service is reported as online, this is a finding.'
+    check_command: Determine the status of the Generic Security Services.
+  remediation:
+    remediation_step: 'The Service Management profile is required:
+
+
+      Disable the GSS service.
+
+
+      # pfexec svcadm disable svc:/network/rpc/gss'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: This service should be disabled if it is not required.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216316r959010_rule - V-216316
+  tags:
+  - stig
+  - low
+  - v-216316
+- rule_id: SV-216317r959010
+  rule_name: Systems services that are not required must be disabled.
+  rule_description: Services that are enabled but not required by the mission may provide excessive access or additional attack vectors to penetrate the system.
+  category: Security
+  subcategory: '216317'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine all of the systems services that are enabled on the system.
+
+
+      # svcs -a | grep online
+
+
+      Document all enabled services and disable any that are not required.'
+    check_command: Determine all of the systems services that are enabled on the system.
+  remediation:
+    remediation_step: "The Service Management profile is required:\n\nDisable any other service not required. \n\n# pfexec svcadm disable [service name]"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Services that are enabled but not required by the mission may provide excessive access or additional attack vectors to penetrate the system.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216317r959010_rule - V-216317
+  tags:
+  - stig
+  - low
+  - v-216317
+- rule_id: SV-216322r958364
+  rule_name: The operating system must automatically terminate temporary accounts within 72 hours.
+  rule_description: "If temporary user accounts remain active when no longer needed or for an excessive period, these accounts may be used to gain unauthorized access. To mitigate this risk, automated termination of all temporary accounts must be set upon account creation. \n\nTemporary accounts are established as part of normal account activation procedures when there is a need for short-term accounts without the demand for immediacy in account activation. \n\nIf temporary accounts are used, the operating system must be configured to automatically terminate these types of accounts after a DoD-defined time period of 72 hours.\n\nWhen temporary and emergency accounts are created, there is a risk the temporary account may remain in place and active after the need for the account no longer exists.\n\nTo address this, in the event temporary accounts are required, accounts designated as temporary in nature must be automatically terminated after 72 hours. Such a process and capability greatly\
+    \ reduces the risk of accounts being misused, hijacked, or data compromised."
+  category: Security
+  subcategory: '216322'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'The root role is required.
+
+
+      Determine if an expiration date is set for temporary accounts.
+
+
+      # logins -aox |awk -F: ''($14 == "0") {print}''
+
+
+      This command produces a list of accounts with no expiration date set. If any of these accounts are temporary accounts, this is a finding.
+
+
+      # logins -aox |awk -F: ''($14 != "0") {print}''
+
+
+      This command produces a list of accounts with an expiration date set as defined in the last field. If any accounts have a date that is not within 72 hours, this is a finding.'
+    check_command: The root role is required.
+  remediation:
+    remediation_step: 'The User Security role is required.
+
+
+      Apply an expiration date to temporary users.
+
+
+      # pfexec usermod -e "[date]" [username]
+
+
+      Enter the date in the form mm/dd/yyyy such that it is within 72 hours.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: "If temporary user accounts remain active when no longer needed or for an excessive period, these accounts may be used to gain unauthorized access. To mitigate this risk, automated termination of all temporary accounts must be set upon account creation. \n\nTemporary accounts are established as part of normal account activation procedures when there is a need for short-term accounts without the demand for immediacy in account activation. \n\nIf temporary accounts are used, the operating system must be configured to automatically terminate these types of accounts after a DoD-defined time period of 72 hours.\n\nWhen temporary and emergency accounts are created, there is a risk the temporary account may remain in place and active after the need for the account no longer exists.\n\nTo address this, in the event temporary accounts are required, accounts designated as temporary in nature must be automatically terminated after 72 hours. Such a process and capability greatly reduces\
+      \ the risk of accounts being misused, hijacked, or data compromised."
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216322r958364_rule - V-216322
+  tags:
+  - stig
+  - low
+  - v-216322
+- rule_id: SV-216342r959010
+  rule_name: The default umask for FTP users must be 077.
+  rule_description: Setting a very secure default value for umask ensures that users make a conscious choice about their file permissions.
+  category: Security
+  subcategory: '216342'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'The package service/network/ftp must be installed for this check.
+
+
+      # pkg list service/network/ftp
+
+
+      If the output of this command is:
+
+
+      pkg list: no packages matching ''service/network/ftp'' installed
+
+
+      no further action is required.
+
+
+      Determine if the FTP umask is set to 077.
+
+
+      # egrep -i "^UMASK" /etc/proftpd.conf | awk ''{ print $2 }''
+
+
+      If 077 is not displayed, this is a finding.'
+    check_command: The package service/network/ftp must be installed for this check.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      # pkg list service/network/ftp
+
+
+      If the output of this command is:
+
+
+      pkg list: no packages matching ''service/network/ftp'' installed
+
+
+      no further action is required. Otherwise, edit the FTP configuration file.
+
+
+      # pfedit /etc/proftpd.conf
+
+
+      Locate the line containing:
+
+
+      Umask
+
+
+      Change the line to read:
+
+
+      Umask 077'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Setting a very secure default value for umask ensures that users make a conscious choice about their file permissions.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216342r959010_rule - V-216342
+  tags:
+  - stig
+  - low
+  - v-216342
+- rule_id: SV-216356r970703
+  rule_name: The operating system must terminate the network connection associated with a communications session at the end of the session or after 10 minutes of inactivity.
+  rule_description: "This requirement applies to both internal and external networks. \n\nTerminating network connections associated with communications sessions means de-allocating associated TCP/IP address/port pairs at the operating system level.\n\nThe time period of inactivity may, as the organization deems necessary, be a set of time periods by type of network access or for specific accesses."
+  category: Security
+  subcategory: '216356'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if SSH is configured to disconnect sessions after 10 minutes of inactivity.
+
+
+      # grep ClientAlive /etc/ssh/sshd_config
+
+
+      If the output of this command is not:
+
+
+      ClientAliveInterval 600
+
+      ClientAliveCountMax 0
+
+
+      this is a finding.'
+    check_command: Determine if SSH is configured to disconnect sessions after 10 minutes of inactivity.
+  remediation:
+    remediation_step: "The root role is required.\n\nConfigure the system to disconnect SSH sessions after 10 minutes of inactivity.\n\nModify the sshd_config file:\n\n# pfedit /etc/ssh/sshd_config\n\nModify or add the lines containing:\n\nClientAliveInterval\nClientAliveCountMax \n\nChange them to:\n\nClientAliveInterval 600\nClientAliveCountMax 0\n\nRestart the SSH service:\n\n# svcadm restart svc:/network/ssh"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: "This requirement applies to both internal and external networks. \n\nTerminating network connections associated with communications sessions means de-allocating associated TCP/IP address/port pairs at the operating system level.\n\nThe time period of inactivity may, as the organization deems necessary, be a set of time periods by type of network access or for specific accesses."
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216356r970703_rule - V-216356
+  tags:
+  - stig
+  - low
+  - v-216356
+- rule_id: SV-216362r987814
+  rule_name: The operating system, upon successful logon, must display to the user the date and time of the last logon (access).
+  rule_description: Users need to be aware of activity that occurs regarding their account. Providing users with information regarding the date and time of their last successful login allows the user to determine if any unauthorized activity has occurred and gives them an opportunity to notify administrators.
+  category: Security
+  subcategory: '216362'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if last login will be printed for SSH users.
+
+
+      # grep PrintLastLog /etc/ssh/sshd_config
+
+
+      If PrintLastLog is found, not preceded with a "#" sign, and is set to "no", this is a finding.
+
+
+      PrintLastLog should either not exist (defaulting to yes) or exist and be set to yes.'
+    check_command: Determine if last login will be printed for SSH users.
+  remediation:
+    remediation_step: 'The root role is required for this action.
+
+
+      # pfedit /etc/ssh/sshd_config
+
+
+      Locate the line containing:
+
+
+      PrintLastLog no
+
+
+      and place a comment sign ("# ")at the beginning of the line or delete the line
+
+
+      # PrintLastLog no
+
+
+      Restart the ssh service
+
+
+      # pfexec svcadm restart svc:/network/ssh'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Users need to be aware of activity that occurs regarding their account. Providing users with information regarding the date and time of their last successful login allows the user to determine if any unauthorized activity has occurred and gives them an opportunity to notify administrators.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216362r987814_rule - V-216362
+  tags:
+  - stig
+  - low
+  - v-216362
+- rule_id: SV-216367r958398
+  rule_name: The operating system must limit the number of concurrent sessions for each account to an organization-defined number of sessions.
+  rule_description: "Limiting the number of allowed users and sessions per user can limit risks related to denial of service attacks. The organization may define the maximum number of concurrent sessions for an information system account globally, by account type, by account, or by a combination thereof. \n\nThis requirement addresses concurrent sessions for a single information system account and does not address concurrent sessions by a single user via multiple accounts."
+  category: Security
+  subcategory: '216367'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Identify the organizational requirements for maximum number of sessions and which users must be restricted. If there are no requirements to limit concurrent sessions, this item does not apply.
+
+
+      For each user requiring concurrent session restrictions, determine if that user is in the user.[username] project where [username] is the user''s account username.
+
+
+      # projects [username] | grep user
+
+
+      If the output does not include the project user.[username], this is a finding.
+
+
+      Determine the project membership for the user.
+
+
+      # projects [username]
+
+
+      If the user is a member of any project other than default, group.[groupname], or user.[username], this is a finding.
+
+
+      Determine whether the max-tasks resource control is enabled properly.
+
+
+      # projects -l user.[username] | grep attribs
+
+
+      If the output does not include the text:
+
+
+      attribs: project.max-tasks=(privileged,[MAX],deny)
+
+
+      where [MAX] is the organization-defined maximum number of concurrent sessions, this is a finding.'
+    check_command: Identify the organizational requirements for maximum number of sessions and which users must be restricted. If there are no requirements to limit concurrent sessions, this item does not apply.
+  remediation:
+    remediation_step: 'Identify the organizational requirements for maximum number of sessions and which users must be restricted. If there are no requirements to limit concurrent sessions, this item does not apply.
+
+
+      The Project Management profile is required.
+
+
+      For each user requiring concurrent session restrictions, add the user to the special user.[username] project where [username] is the user''s account username where [MAX] is equal to the organizational requirement.
+
+
+      # pfexec projadd -K ''project.max-tasks=(privileged,[MAX],deny)'' user.[username]
+
+
+      Determine the project membership for the user.
+
+
+      # projects [username]
+
+
+      If the user is a member of any projects other than default, group.[groupname], or user.[username], remove that project from the user''s account.
+
+
+      The root role is required.
+
+
+      # pfedit /etc/user_attr
+
+
+      Locate the line containing the user''s username. Remove any project=[projectname] entries from the fifth field.
+
+
+      # pfedit /etc/project
+
+
+      Locate the line containing the user''s username in a project other than default, group.[groupname], or user.[username], and remove the user from the project''s entry or entries from the fourth field.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: "Limiting the number of allowed users and sessions per user can limit risks related to denial of service attacks. The organization may define the maximum number of concurrent sessions for an information system account globally, by account type, by account, or by a combination thereof. \n\nThis requirement addresses concurrent sessions for a single information system account and does not address concurrent sessions by a single user via multiple accounts."
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216367r958398_rule - V-216367
+  tags:
+  - stig
+  - low
+  - v-216367
+- rule_id: SV-216368r959010
+  rule_name: The system must disable directed broadcast packet forwarding.
+  rule_description: This parameter must be disabled to reduce the risk of denial of service attacks.
+  category: Security
+  subcategory: '216368'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if directed broadcast packet forwarding is disabled.
+
+
+      # ipadm show-prop -p _forward_directed_broadcasts -co current ip
+
+
+      If the output of this command is not "0", this is a finding.'
+    check_command: Determine if directed broadcast packet forwarding is disabled.
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Disable directed broadcast packet forwarding.
+
+
+      # pfexec ipadm set-prop -p _forward_directed_broadcasts=0 ip'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: This parameter must be disabled to reduce the risk of denial of service attacks.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216368r959010_rule - V-216368
+  tags:
+  - stig
+  - low
+  - v-216368
+- rule_id: SV-216369r959010
+  rule_name: The system must not respond to ICMP timestamp requests.
+  rule_description: By accurately determining the system's clock state, an attacker can more effectively attack certain time-based pseudorandom number generators (PRNGs) and the authentication systems that rely on them.
+  category: Security
+  subcategory: '216369'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if ICMP time stamp responses are disabled.
+
+
+      # ipadm show-prop -p _respond_to_timestamp -co current ip
+
+
+
+      If the output of both commands is not "0", this is a finding.'
+    check_command: Determine if ICMP time stamp responses are disabled.
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Disable source respond to timestamp.
+
+
+      # pfexec ipadm set-prop -p _respond_to_timestamp=0 ip'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: By accurately determining the system's clock state, an attacker can more effectively attack certain time-based pseudorandom number generators (PRNGs) and the authentication systems that rely on them.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216369r959010_rule - V-216369
+  tags:
+  - stig
+  - low
+  - v-216369
+- rule_id: SV-216370r959010
+  rule_name: The system must not respond to ICMP broadcast timestamp requests.
+  rule_description: By accurately determining the system's clock state, an attacker can more effectively attack certain time-based pseudorandom number generators (PRNGs) and the authentication systems that rely on them.
+  category: Security
+  subcategory: '216370'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if response to ICMP broadcast timestamp requests is disabled.
+
+
+      # ipadm show-prop -p _respond_to_timestamp_broadcast -co current ip
+
+
+      If the output of this command is not "0", this is a finding.'
+    check_command: Determine if response to ICMP broadcast timestamp requests is disabled.
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Disable respond to timestamp broadcasts.
+
+
+      # pfexec ipadm set-prop -p _respond_to_timestamp_broadcast=0 ip'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: By accurately determining the system's clock state, an attacker can more effectively attack certain time-based pseudorandom number generators (PRNGs) and the authentication systems that rely on them.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216370r959010_rule - V-216370
+  tags:
+  - stig
+  - low
+  - v-216370
+- rule_id: SV-216371r959010
+  rule_name: The system must not respond to ICMP broadcast netmask requests.
+  rule_description: By determining the netmasks of various computers in your network, an attacker can better map your subnet structure and infer trust relationships.
+  category: Security
+  subcategory: '216371'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the response to address mask broadcast is disabled.
+
+
+      # ipadm show-prop -p _respond_to_address_mask_broadcast -co current ip
+
+
+      If the output of this command is not "0", this is a finding.'
+    check_command: Determine if the response to address mask broadcast is disabled.
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Disable responses to address mask broadcast.
+
+
+      # pfexec ipadm set-prop -p _respond_to_address_mask_broadcast=0 ip'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: By determining the netmasks of various computers in your network, an attacker can better map your subnet structure and infer trust relationships.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216371r959010_rule - V-216371
+  tags:
+  - stig
+  - low
+  - v-216371
+- rule_id: SV-216373r959010
+  rule_name: The system must not respond to multicast echo requests.
+  rule_description: Multicast echo requests can be useful for reconnaissance of systems and for denial of service attacks.
+  category: Security
+  subcategory: '216373'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if response to multicast echo requests is disabled.
+
+
+      # ipadm show-prop -p _respond_to_echo_multicast -co current ipv4
+
+      # ipadm show-prop -p _respond_to_echo_multicast -co current ipv6
+
+
+
+      If the output of all commands is not "0", this is a finding.'
+    check_command: Determine if response to multicast echo requests is disabled.
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Disable respond to echo multi-cast for IPv4 and IPv6.
+
+
+      # pfexec ipadm set-prop -p _respond_to_echo_multicast=0 ipv4
+
+      # pfexec ipadm set-prop -p _respond_to_echo_multicast=0 ipv6'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Multicast echo requests can be useful for reconnaissance of systems and for denial of service attacks.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216373r959010_rule - V-216373
+  tags:
+  - stig
+  - low
+  - v-216373
+- rule_id: SV-216374r959010
+  rule_name: The system must ignore ICMP redirect messages.
+  rule_description: Ignoring ICMP redirect messages reduces the likelihood of denial of service attacks.
+  category: Security
+  subcategory: '216374'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if ICMP redirect messages are ignored.
+
+
+      # ipadm show-prop -p _ignore_redirect -co current ipv4
+
+      # ipadm show-prop -p _ignore_redirect -co current ipv6
+
+
+      If the output of all commands is not "1", this is a finding.'
+    check_command: Determine if ICMP redirect messages are ignored.
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Disable ignore redirects for IPv4 and IPv6.
+
+
+      # pfexec ipadm set-prop -p _ignore_redirect=1 ipv4
+
+      # pfexec ipadm set-prop -p _ignore_redirect=1 ipv6'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Ignoring ICMP redirect messages reduces the likelihood of denial of service attacks.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216374r959010_rule - V-216374
+  tags:
+  - stig
+  - low
+  - v-216374
+- rule_id: SV-216376r959010
+  rule_name: The system must disable ICMP redirect messages.
+  rule_description: A malicious user can exploit the ability of the system to send ICMP redirects by continually sending packets to the system, forcing the system to respond with ICMP redirect messages, resulting in an adverse impact on the CPU performance of the system.
+  category: Security
+  subcategory: '216376'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine the version of Solaris 11 in use.
+
+
+      # cat /etc/release
+
+
+      If the version of Solaris is earlier than Solaris 11.2, determine if ICMP redirect messages are disabled.
+
+
+      # ipadm show-prop -p _send_redirects -co current ipv4
+
+      # ipadm show-prop -p _send_redirects -co current ipv6
+
+
+      If the output of all commands is not "0", this is a finding.
+
+
+      If the version of Solaris is Solaris 11.2 or later, determine if ICMP redirect messages are disabled.
+
+
+      # ipadm show-prop -p send_redirects -co current ipv4
+
+      # ipadm show-prop -p send_redirects -co current ipv6
+
+
+      If the output of all commands is not "off", this is a finding.'
+    check_command: Determine the version of Solaris 11 in use.
+  remediation:
+    remediation_step: "The Network Management profile is required.\n\nIf the version of Solaris is earlier than Solaris 11.2, disable send redirects for IPv4 and IPv6.\n\n# pfexec ipadm set-prop -p _send_redirects=0 ipv4\n# pfexec ipadm set-prop -p _send_redirects=0 ipv6 \n\nIf the version of Solaris is Solaris 11.2 or later, disable send redirects for IPv4 and IPv6.\n\n# pfexec ipadm set-prop -p send_redirects=off ipv4\n# pfexec ipadm set-prop -p send_redirects=off ipv6"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: A malicious user can exploit the ability of the system to send ICMP redirects by continually sending packets to the system, forcing the system to respond with ICMP redirect messages, resulting in an adverse impact on the CPU performance of the system.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216376r959010_rule - V-216376
+  tags:
+  - stig
+  - low
+  - v-216376
+- rule_id: SV-216377r959010
+  rule_name: The system must disable TCP reverse IP source routing.
+  rule_description: If enabled, reverse IP source routing would allow an attacker to more easily complete a three-way TCP handshake and spoof new connections.
+  category: Security
+  subcategory: '216377'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Determine if TCP reverse IP source routing is disabled. \n\n# ipadm show-prop -p _rev_src_routes -co current tcp\n\nIf the output of this command is not \"0\", this is a finding."
+    check_command: 'Determine if TCP reverse IP source routing is disabled. '
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Disable reverse source routing.
+
+
+      # pfexec ipadm set-prop -p _rev_src_routes=0 tcp'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: If enabled, reverse IP source routing would allow an attacker to more easily complete a three-way TCP handshake and spoof new connections.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216377r959010_rule - V-216377
+  tags:
+  - stig
+  - low
+  - v-216377
+- rule_id: SV-216379r959010
+  rule_name: The system must set maximum number of incoming connections to 1024.
+  rule_description: This setting controls the maximum number of incoming connections that can be accepted on a TCP port limiting exposure to denial of service attacks.
+  category: Security
+  subcategory: '216379'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Determine if the maximum number of incoming connections is set to 1024.\n\n# ipadm show-prop -p _conn_req_max_q -co current tcp\n\nIf the value returned is smaller than \"1024\", this is a finding. \n\nIn environments where connection numbers are high, such as a busy web server, this value may need to be increased."
+    check_command: Determine if the maximum number of incoming connections is set to 1024.
+  remediation:
+    remediation_step: 'The Network Management profile is required.
+
+
+      Configure maximum number of incoming connections.
+
+
+      # pfexec ipadm set-prop -p _conn_req_max_q=1024 tcp'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: This setting controls the maximum number of incoming connections that can be accepted on a TCP port limiting exposure to denial of service attacks.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216379r959010_rule - V-216379
+  tags:
+  - stig
+  - low
+  - v-216379
+- rule_id: SV-216381r959010
+  rule_name: The system must implement TCP Wrappers.
+  rule_description: 'TCP Wrappers is a host-based access control system that allows administrators to control who has access to various network services based on the IP address of the remote end of the connection. TCP Wrappers also provides logging information via syslog about both successful and unsuccessful connections.
+
+
+    TCP Wrappers provides granular control over what services can be accessed over the network. Its logs show attempted access to services from non-authorized systems, which can help identify unauthorized access attempts.'
+  category: Security
+  subcategory: '216381'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if TCP Wrappers is configured.
+
+
+      # inetadm -p | grep tcp_wrappers
+
+
+      If the output of this command is "FALSE", this is a finding.
+
+
+      The above command will check whether TCP Wrappers is enabled for all TCP-based services started by inetd. TCP Wrappers are enabled by default for sendmail and SunSSH (version 0.5.11). The use of OpenSSH access is controlled by the sshd_config file starting with Solaris
+
+      11.3. SunSSH is removed starting with Solaris 11.4.
+
+
+      Individual inetd services may still be configured to use TCP Wrappers even if the global parameter (above) is set to "FALSE". To check the status of individual inetd services, use the command:
+
+
+
+      # for svc in `inetadm | awk ''/svc:\// { print $NF }''`; do
+
+      val=`inetadm -l ${svc} | grep -c tcp_wrappers=TRUE`
+
+      if [ ${val} -eq 1 ]; then
+
+      echo "TCP Wrappers enabled for ${svc}"
+
+      fi
+
+      done
+
+
+      If the required services are not configured to use TCP Wrappers, this is finding.
+
+
+      # ls /etc/hosts.deny
+
+      # ls /etc/hosts.allow
+
+
+      If these files are not found, this is a finding.'
+    check_command: Determine if TCP Wrappers is configured.
+  remediation:
+    remediation_step: "The root role is required.\n\nConfigure allowed and denied hosts per organizational policy.\n\n1. Create and customize the policy in /etc/hosts.allow:\n\n# echo \"ALL: [net]/[mask] , [net]/[mask], ...\" > /etc/hosts.allow\n\nwhere each [net>/[mask> combination (for example, the Class C address block \"192.168.1.0/255.255.255.0\") can represent one network block in use by the organization that requires access to this system.\n\n2. Create a default deny policy in /etc/hosts.deny: # echo \"ALL: ALL\" >/etc/hosts.deny\n\n3. Enable TCP Wrappers for all services started by inetd: \n\n# inetadm -M tcp_wrappers=TRUE"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: 'TCP Wrappers is a host-based access control system that allows administrators to control who has access to various network services based on the IP address of the remote end of the connection. TCP Wrappers also provides logging information via syslog about both successful and unsuccessful connections.
+
+
+      TCP Wrappers provides granular control over what services can be accessed over the network. Its logs show attempted access to services from non-authorized systems, which can help identify unauthorized access attempts.'
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216381r959010_rule - V-216381
+  tags:
+  - stig
+  - low
+  - v-216381
+- rule_id: SV-216394r959010
+  rule_name: The system must prevent local applications from generating source-routed packets.
+  rule_description: Source-routed packets allow the source of the packet to suggest that routers forward the packet along a different path than configured on the router, which can be used to bypass network security measures.
+  category: Security
+  subcategory: '216394'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Determine the OS version you are currently securing.\n# uname \u2013v\n\nSolaris 11, 11.1, 11.2, and 11.3 use IP Filter.  To continue checking IP Filter, the IP Filter Management profile is required.\n\nCheck the system for an IPF rule blocking outgoing source-routed packets.\n\n# ipfstat -o\n\nExamine the list for rules such as: \nblock out log quick from any to any with opt lsrr\nblock out log quick from any to any with opt ssrr\n\nIf the listed rules do not block both lsrr and ssrr options, this is a finding.\n\nFor Solaris 11.3 or newer that use Packet Filter, the Network Firewall Management rights profile is required.\n\nEnsure that IP Options are not in use:\n# pfctl -s rules | grep allow-opts\n\nIf any output is returned, this is a finding."
+    check_command: Determine the OS version you are currently securing.
+  remediation:
+    remediation_step: "The root role is required.\n\n# pfedit /etc/ipf/ipf.conf \n\nFor Solaris 11, 11.1, 11.2, and 11.3 that use IP Filter dd rules to block outgoing source-routed packets, such as:\n\nblock out log quick all with opt lsrr \nblock out log quick all with opt ssrr\n\nReload the IPF rules.\n\n# ipf -Fa -A -f /etc/ipf/ipf.conf   \n\nFor Solaris 11.3 or newer that use Packet Filter remove or modify any rules that include \"allow-opts\".\n\nReload the Packet Filter rules:\n# svcadm refresh firewall:default"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Source-routed packets allow the source of the packet to suggest that routers forward the packet along a different path than configured on the router, which can be used to bypass network security measures.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216394r959010_rule - V-216394
+  tags:
+  - stig
+  - low
+  - v-216394
+- rule_id: SV-216395r958390
+  rule_name: The operating system must display the DoD approved system use notification message or banner before granting access to the system for general system logons.
+  rule_description: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+  category: Security
+  subcategory: '216395'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review the contents of these two files and check that the proper DoD banner message is configured.
+
+
+      # cat /etc/motd
+
+      # cat /etc/issue
+
+
+      If the DoD-approved banner text is not in the files, this is a finding.'
+    check_command: Review the contents of these two files and check that the proper DoD banner message is configured.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Edit the contents of these two files and ensure that the proper DoD banner message is viewable.
+
+
+      # pfedit /etc/motd
+
+      # pfedit /etc/issue
+
+
+      The DoD required text is:
+
+
+      "You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only. By using this IS (which includes any device attached to this IS), you consent to the following conditions:
+
+      -The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.
+
+      -At any time, the USG may inspect and seize data stored on this IS.
+
+      -Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.
+
+      -This IS includes security measures (e.g., authentication and access controls) to protect USG interests -- not for your personal benefit or privacy. -Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details."'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216395r958390_rule - V-216395
+  tags:
+  - stig
+  - low
+  - v-216395
+- rule_id: SV-216396r958390
+  rule_name: The operating system must display the DoD approved system use notification message or banner for SSH connections.
+  rule_description: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+  category: Security
+  subcategory: '216396'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check SSH configuration for banner message:
+
+
+      # grep "^Banner" /etc/ssh/sshd_config
+
+
+      If the output is not:
+
+      Banner /etc/issue
+
+      and /etc/issue does not contain the approved banner text, this is a finding.'
+    check_command: 'Check SSH configuration for banner message:'
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Edit the SSH configuration file.
+
+
+      # pfedit /etc/ssh/sshd_config
+
+
+      Locate the file containing:
+
+
+      Banner
+
+
+      Change the line to read:
+
+
+      Banner /etc/issue
+
+
+      Edit the /etc/issue file
+
+
+      # pfedit /etc/issue
+
+
+      The DoD required text is:
+
+
+      "You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only. By using this IS (which includes any device attached to this IS), you consent to the following conditions:
+
+      -The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.
+
+      -At any time, the USG may inspect and seize data stored on this IS.
+
+      -Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.
+
+      -This IS includes security measures (e.g., authentication and access controls) to protect USG interests -- not for your personal benefit or privacy. -Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details."
+
+
+      Restart the SSH service
+
+
+      # svcadm restart svc:/network/ssh'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216396r958390_rule - V-216396
+  tags:
+  - stig
+  - low
+  - v-216396
+- rule_id: SV-216397r958390
+  rule_name: The GNOME service must display the DoD approved system use notification message or banner before granting access to the system.
+  rule_description: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+  category: Security
+  subcategory: '216397'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This item does not apply if a graphic login is not configured.
+
+
+      Log in to the Gnome Graphical interface. If the approved banner message does not appear, this is a finding.
+
+
+      # cat /etc/issue
+
+
+      # grep /etc/gdm/Init/Default zenity
+
+
+      If /etc/issue does not contain that DoD-approved banner message or /etc/gdm/Init/Default does not contain the line:
+
+
+      /usr/bin/zenity --text-info --width=800 --height=300 \
+
+      --title="Security Message" --filename=/etc/issue
+
+
+      this is a finding.'
+    check_command: This item does not apply if a graphic login is not configured.
+  remediation:
+    remediation_step: "The root role is required.\n\nIf the system does not use XWindows, this is not applicable.\n\n# pfedit /etc/issue \n\nInsert the proper DoD banner message text. The DoD required text is:\n\n\"You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only. By using this IS (which includes any device attached to this IS), you consent to the following conditions:\n-The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\n-At any time, the USG may inspect and seize data stored on this IS.\n-Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\n-This IS includes security measures\
+      \ (e.g., authentication and access controls) to protect USG interests -- not for your personal benefit or privacy. -Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\"\n\n# pfedit /etc/gdm/Init/Default\n\nAdd the following content before the \"exit 0\" line of the file.\n\n/usr/bin/zenity --text-info --width=800 --height=300 \\\n--title=\"Security Message\" --filename=/etc/issue"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216397r958390_rule - V-216397
+  tags:
+  - stig
+  - low
+  - v-216397
+- rule_id: SV-216398r958390
+  rule_name: The FTP service must display the DoD approved system use notification message or banner before granting access to the system.
+  rule_description: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+  category: Security
+  subcategory: '216398'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Determine if the FTP server package is installed:\n\n# pkg list service/network/ftp \n\nIf the package is not installed, this check does not apply.\n\n# grep DisplayConnect /etc/proftpd.conf\n\nIf:\n\nDisplayConnect /etc/issue\n\ndoes not appear, this is a finding.\n\nIf /etc/issue does not contain the approved DoD text, this is a finding."
+    check_command: 'Determine if the FTP server package is installed:'
+  remediation:
+    remediation_step: "The root role is required. \n\nThe package: pkg:/service/network/ftp must be installed.\n\n# pfedit /etc/issue \n\nInsert the proper DoD banner message text. The DoD required text is:\n\n\"You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only. By using this IS (which includes any device attached to this IS), you consent to the following conditions:\n-The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\n-At any time, the USG may inspect and seize data stored on this IS.\n-Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\n-This IS includes security measures\
+      \ (e.g., authentication and access controls) to protect USG interests -- not for your personal benefit or privacy. -Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\"\n\n# echo \"DisplayConnect /etc/issue\" >> /etc/proftpd.conf\n\n# svcadm restart ftp"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Warning messages inform users who are attempting to log in to the system of their legal status regarding the system and must include the name of the organization that owns the system and any monitoring policies that are in place. As implementing a logon banner to deter inappropriate use can provide a foundation for legal action against abuse, this warning content should be set as appropriate.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216398r958390_rule - V-216398
+  tags:
+  - stig
+  - low
+  - v-216398
+- rule_id: SV-216413r958552
+  rule_name: The operating system must protect the confidentiality and integrity of information at rest.
+  rule_description: "When data is written to digital media, such as hard drives, mobile computers, external/removable hard drives, personal digital assistants, flash/thumb drives, etc., there is risk of data loss and data compromise. \n\nAn organizational assessment of risk guides the selection of media and associated information contained on the media requiring restricted access. Organizations need to document in policy and procedures the media requiring restricted access, individuals authorized to access the media, and the specific measures taken to restrict access. \n\nFewer protection measures are needed for media containing information determined by the organization to be in the public domain, to be publicly releasable, or to have limited or no adverse impact if accessed by other than authorized personnel. In these situations, it is assumed the physical access controls where the media resides provide adequate protection. \n\nAs part of a defense-in-depth strategy, the organization considers\
+    \ routinely encrypting information at rest on selected secondary storage devices. The employment of cryptography is at the discretion of the information owner/steward. The selection of the cryptographic mechanisms used is based upon maintaining the confidentiality and integrity of the information."
+  category: Security
+  subcategory: '216413'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Determine if file system encryption is required by your organization. If not required, this item does not apply.\n\nDetermine if file system encryption is enabled for user data sets. This check does not apply to the root, var, share, swap or dump datasets.\n\n# zfs list \n\nUsing the file system name, determine if the file system is encrypted:\n\n# zfs get encryption [filesystem] \n\nIf \"encryption off\" is listed, this is a finding."
+    check_command: Determine if file system encryption is required by your organization. If not required, this item does not apply.
+  remediation:
+    remediation_step: 'The ZFS file system management profile is required.
+
+
+      ZFS file system encryption may only be enabled on creation of the file system. If a file system must be encrypted and is not, its data should be archived, it must be removed and re-created.
+
+
+      First, stop running applications using the file systems, archive the data, unmount, and then remove the file system.
+
+
+      # umount [file system name]
+
+      # zfs destroy [file system name]
+
+
+      When creating ZFS file systems, ensure that they are created as encrypted file systems.
+
+
+      # pfexec zfs create -o encryption=on [file system name]
+
+      Enter passphrase for ''[file system name]'': xxxxxxx
+
+      Enter again: xxxxxxx
+
+
+      Store the passphrase in a safe location. The passphrase will be required to mount the file systems upon system reboot. If automated mounting is required, the passphrase must be stored in a file.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: "When data is written to digital media, such as hard drives, mobile computers, external/removable hard drives, personal digital assistants, flash/thumb drives, etc., there is risk of data loss and data compromise. \n\nAn organizational assessment of risk guides the selection of media and associated information contained on the media requiring restricted access. Organizations need to document in policy and procedures the media requiring restricted access, individuals authorized to access the media, and the specific measures taken to restrict access. \n\nFewer protection measures are needed for media containing information determined by the organization to be in the public domain, to be publicly releasable, or to have limited or no adverse impact if accessed by other than authorized personnel. In these situations, it is assumed the physical access controls where the media resides provide adequate protection. \n\nAs part of a defense-in-depth strategy, the organization considers\
+      \ routinely encrypting information at rest on selected secondary storage devices. The employment of cryptography is at the discretion of the information owner/steward. The selection of the cryptographic mechanisms used is based upon maintaining the confidentiality and integrity of the information."
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216413r958552_rule - V-216413
+  tags:
+  - stig
+  - low
+  - v-216413
+- rule_id: SV-216415r958576
+  rule_name: The operating system must use cryptographic mechanisms to protect the integrity of audit information.
+  rule_description: Protection of audit records and audit data is of critical importance. Cryptographic mechanisms are the industry established standard used to protect the integrity of audit data.
+  category: Security
+  subcategory: '216415'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "The Audit Configuration and the Audit Control profiles are required.\n\nThis check applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nDetermine if audit log encryption is required by your organization. If not required, this check does not apply.\n\nDetermine where the audit logs are stored and whether the file system is encrypted.\n\n# pfexec auditconfig -getplugin audit_binfile\n\nThe p_dir attribute lists the location of the audit log filesystem. \n\nThe default location for Solaris 11.1 is /var/audit. /var/audit is a link to /var/share/audit which, by default, is mounted on rpool/VARSHARE.\n\nDetermine if this is encrypted:\n\n# zfs get encryption rpool/VARSHARE\n\nIf the file system where audit logs are stored reports \"encryption off\", this is a finding."
+    check_command: The Audit Configuration and the Audit Control profiles are required.
+  remediation:
+    remediation_step: 'The ZFS File System Management and ZFS Storage Management profiles are required.
+
+
+      This action applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this action applies.
+
+
+      The Audit Configuration and the Audit Control profiles are required.
+
+
+      If necessary, create a new ZFS pool to store the encrypted audit logs.
+
+
+      # pfexec zpool create auditp mirror [device] [device]
+
+
+      Create an encryption key:
+
+
+      # pktool genkey keystore=file outkey=/[filename] keytype=aes keylen=256
+
+
+      Create a new file system to store the audit logs with encryption enabled. Use the file name created in the previous step as the keystore.
+
+
+      # pfexec zfs create -o encryption=aes-256-ccm -o keysource=raw,file:///[filename] -o compression=on -o mountpoint=/audit auditp/auditf
+
+
+      Configure auditing to use this encrypted directory.
+
+
+      # pfexec auditconfig -setplugin audit_binfile p_dir=/audit/
+
+
+      Refresh the audit service for the setting to be applied:
+
+
+      # pfexec audit -s'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Protection of audit records and audit data is of critical importance. Cryptographic mechanisms are the industry established standard used to protect the integrity of audit data.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216415r958576_rule - V-216415
+  tags:
+  - stig
+  - low
+  - v-216415
+- rule_id: SV-216423r959010
+  rule_name: Users must have a valid home directory assignment.
+  rule_description: All users must be assigned a home directory in the passwd file. Failure to have a home directory may result in the user being put in the root directory.
+  category: Security
+  subcategory: '216423'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "The root role is required.\n\nDetermine if each user has a valid home directory.\n\n# logins -xo | while read line; do\n     user=`echo ${line} | awk -F: '{ print $1 }'`\n     home=`echo ${line} | awk -F: '{ print $6 }'`\n     if [ -z \"${home}\" ]; then\n        echo ${user}\n     fi\ndone\n\nIf output is produced, this is a finding."
+    check_command: The root role is required.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Correct or justify any items discovered in the check step. Determine if there exists any users who are in passwd but do not have a home directory, and work with those users to determine the best course of action in accordance with site policy.  This generally means deleting the user or creating a valid home directory.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: All users must be assigned a home directory in the passwd file. Failure to have a home directory may result in the user being put in the root directory.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216423r959010_rule - V-216423
+  tags:
+  - stig
+  - low
+  - v-216423
+- rule_id: SV-216424r959010
+  rule_name: All user accounts must be configured to use a home directory that exists.
+  rule_description: If the user's home directory does not exist, the user will be placed in "/" and will not be able to write any files or have local environment variables set.
+  category: Security
+  subcategory: '216424'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "The root role is required.\n\nCheck if a GUI is installed.\n\nDetermine the OS version you are currently securing:. \n# uname \u2013v\n\nFor Solaris 11, 11.1, 11.2, and 11.3:\n# pkg info gdm\n# pkg info coherence-26\n# pkg info coherence-27\n\nIf none of these packages are installed on the system, then no GUI is present.\nFor Solaris 11.4 or newer:\n# pkg info gdm\n\nIf gdm is not installed on the system, then no GUI is present.\n\n# pkg info uucp\n\nuucp is no longer installed by default starting in 11.4 and is deprecated. \n\nFor all versions, check that all users' home directories exist.\n\n# pwck\n\nAccounts with no home directory will output \"Login directory not found\".\n\nIf no GUI is present, then \"gdm\" and \"upnp\" accounts should generate errors. On all systems, with uucp package installed, the \"uucp\" and \"nuucp\" accounts should generate errors.\n\nIf users' home directories do not exist, this is a finding."
+    check_command: The root role is required.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Work with users identified in the check step to determine the best course of action in accordance with site policy. This generally means deleting the user account or creating a valid home directory.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: If the user's home directory does not exist, the user will be placed in "/" and will not be able to write any files or have local environment variables set.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216424r959010_rule - V-216424
+  tags:
+  - stig
+  - low
+  - v-216424
+- rule_id: SV-216435r959010
+  rule_name: All valid SUID/SGID files must be documented.
+  rule_description: There are valid reasons for SUID/SGID programs, but it is important to identify and review such programs to ensure they are legitimate.
+  category: Security
+  subcategory: '216435'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "The root role is required.\n\n# find / \\( -fstype nfs -o -fstype cachefs -o -fstype autofs \\\n-o -fstype ctfs -o -fstype mntfs -o -fstype objfs \\\n-o -fstype proc \\) -prune -o -type f -perm -4000 -o \\\n-perm -2000 -print\n\nOutput should only be Solaris-provided files and approved customer files.\n\nSolaris-provided SUID/SGID files can be listed using the command: \n\n# pkg contents -a mode=4??? -a mode=2??? -t file -o pkg.name,path,mode\n\nDigital signatures on the Solaris Set-UID binaries can be verified with the elfsign utility, such as this example:\n\n# elfsign verify -e /usr/bin/su\nelfsign: verification of /usr/bin/su passed.\n\nThis message indicates that the binary is properly signed.\n\nIf non-vendor provided or non-approved files are included in the list, this is a finding."
+    check_command: The root role is required.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Determine the existence of any set-UID programs that do not belong on the system, and work with the owners (or system administrator) to determine the best course of action in accordance with site policy.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: There are valid reasons for SUID/SGID programs, but it is important to identify and review such programs to ensure they are legitimate.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216435r959010_rule - V-216435
+  tags:
+  - stig
+  - low
+  - v-216435
+- rule_id: SV-216437r959010
+  rule_name: The operating system must have no files with extended attributes.
+  rule_description: Attackers or malicious users could hide information, exploits, etc. in extended attribute areas. Since extended attributes are rarely used, it is important to find files with extended attributes set and correct these attributes.
+  category: Security
+  subcategory: '216437'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'The root role is required.
+
+
+      Identify all files with extended attributes.
+
+
+      # find / \( -fstype nfs -o -fstype cachefs -o -fstype autofs \
+
+      -o -fstype ctfs -o -fstype mntfs -o -fstype objfs \
+
+      -o -fstype proc \) -prune -o -xattr -ls
+
+
+      If output is produced, this is a finding.'
+    check_command: The root role is required.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Correct or justify any items discovered in the Check step. Determine the existence of any files having extended file attributes, and determine the best course of action in accordance with site policy.
+
+
+      Remove the files or the extended attributes.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Attackers or malicious users could hide information, exploits, etc. in extended attribute areas. Since extended attributes are rarely used, it is important to find files with extended attributes set and correct these attributes.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216437r959010_rule - V-216437
+  tags:
+  - stig
+  - low
+  - v-216437
+- rule_id: SV-216439r958566
+  rule_name: The operating system must reveal error messages only to authorized personnel.
+  rule_description: Proper file permissions and ownership ensures that only designated personnel in the organization can access error messages.
+  category: Security
+  subcategory: '216439'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the permissions of the /var/adm/messages file:
+
+      # ls -l /var/adm/messages
+
+
+      Check the permissions of the /var/adm directory:
+
+      # ls -ld /var/adm
+
+
+      If the owner and group of /var/adm/messages is not root and the permissions are not 640, this is a finding.
+
+
+      If the owner of /var/adm is not root, group is not sys, and the permissions are not 750, this is a finding.'
+    check_command: 'Check the permissions of the /var/adm/messages file:'
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Change the permissions and owner on the /var/adm/messages file:
+
+
+      # chmod 640 /var/adm/messages
+
+      # chown root /var/adm/messages
+
+      # chgrp root /var/adm/messages
+
+
+      Change the permissions and owner on the /var/adm directory:
+
+
+      # chmod 750 /var/adm
+
+      # chown root /var/adm
+
+      # chgrp sys /var/adm'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper file permissions and ownership ensures that only designated personnel in the organization can access error messages.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216439r958566_rule - V-216439
+  tags:
+  - stig
+  - low
+  - v-216439
+- rule_id: SV-216444r959010
+  rule_name: Address Space Layout Randomization (ASLR) must be enabled.
+  rule_description: Modification of memory area can result in executable code vulnerabilities. ASLR can reduce the likelihood of these attacks. ASLR activates the randomization of key areas of the process such as stack, brk-based heap, memory mappings, and so forth.
+  category: Security
+  subcategory: '216444'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "This check applies to the global zone only. \n\nDetermine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nDetermine if address space layout randomization is enabled.\n\nDetermine the OS version you are currently securing:. \n# uname \u2013v\n\nFor Solaris 11, 11.1, 11.2, and 11.3:\n# sxadm info -p | grep aslr | grep enabled\n\nFor Solaris 11.4 or newer:\n# sxadm status -p -o status aslr | grep enabled \n\nIf no output is produced, this is a finding."
+    check_command: 'This check applies to the global zone only. '
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      This action applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this action applies.
+
+
+      Enable address space layout randomization.
+
+
+      # sxadm delcust aslr
+
+
+      Enabling ASLR may affect the function or stability of some applications, including those that use Solaris Intimate Shared Memory features.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Modification of memory area can result in executable code vulnerabilities. ASLR can reduce the likelihood of these attacks. ASLR activates the randomization of key areas of the process such as stack, brk-based heap, memory mappings, and so forth.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216444r959010_rule - V-216444
+  tags:
+  - stig
+  - low
+  - v-216444
+- rule_id: SV-216460r959010
+  rule_name: The system must not have any unnecessary accounts.
+  rule_description: Accounts providing no operational purpose provide additional opportunities for system compromise. Unnecessary accounts include user accounts for individuals not requiring access to the system and application accounts for applications not installed on the system.
+  category: Security
+  subcategory: '216460'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the system for unnecessary user accounts.
+
+
+      # getent passwd
+
+
+      Some examples of unnecessary accounts include games, news, gopher, ftp, and lp. If any unnecessary accounts are found, this is a finding.'
+    check_command: Check the system for unnecessary user accounts.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Remove all unnecessary accounts, such as games, from the /etc/passwd file before connecting a system to the network. Other accounts, such as news and gopher, associated with a service not in use should also be removed.
+
+
+      Identify unnecessary accounts.
+
+
+      # getent passwd
+
+
+      Remove unnecessary accounts.
+
+
+      # userdel [username]'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Accounts providing no operational purpose provide additional opportunities for system compromise. Unnecessary accounts include user accounts for individuals not requiring access to the system and application accounts for applications not installed on the system.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216460r959010_rule - V-216460
+  tags:
+  - stig
+  - low
+  - v-216460
+- rule_id: SV-216454r959010
+  rule_name: The system must require passwords to change the boot device settings. (SPARC)
+  rule_description: Setting the EEPROM password helps prevent attackers who gain physical access to the system console from booting from an external device (such as a CD-ROM or floppy).
+  category: Security
+  subcategory: '216454'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies only to SPARC-based systems.
+
+
+      This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      Determine if the EEPROM security mode on SPARC-based systems is configured correctly.
+
+
+      # eeprom security-mode
+
+
+      If the output of this command is not "security-mode=command", this is a finding.'
+    check_command: This check applies only to SPARC-based systems.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      This action applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this action applies.
+
+
+      # eeprom security-mode=command
+
+
+
+      After entering the command above, the administrator will be prompted for a password. This password will be required to authorize any future command issued at boot-level on the system (the ok or > prompt) except for the normal multi-user boot command (i.e., the system will be able to reboot unattended).
+
+
+      Write down the password and store it in a secure location.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Setting the EEPROM password helps prevent attackers who gain physical access to the system console from booting from an external device (such as a CD-ROM or floppy).
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216454r959010_rule - V-216454
+  tags:
+  - stig
+  - low
+  - v-216454
+- rule_id: SV-216470r1099906
+  rule_name: All manual editing of system-relevant files shall be done using the pfedit command, which logs changes made to the files.
+  rule_description: Editing a system file with common tools such as vi, emacs, or gedit does not allow the auditing of changes made by an operator. This reduces the capability of determining which operator made security-relevant changes to the system.
+  category: Security
+  subcategory: '216470'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Ask the operators if they use vi, emacs, or gedit to make changes to system files.
+
+
+      If vi, emacs, or gedit are used to make changes to system files, this is a finding.'
+    check_command: Ask the operators if they use vi, emacs, or gedit to make changes to system files.
+  remediation:
+    remediation_step: 'Advise the operators to use pfedit or other appropriate command line tools to make system changes instead of vi, emacs, or gedit.
+
+
+      Oracle Solaris includes administrative configuration files which use pfedit, and the solaris.admin.edit/path_to_file authorization is not recommended. Alternate commands exist which are both domain-specific and safer. For example, for the /etc/passwd, /etc/shadow, or /etc/user_attr files, use instead passwd, useradd, userdel, or usermod. For the /etc/group file, use instead groupadd, groupdel, or groupmod. For updating /etc/security/auth_attr, /etc/security/exec_attr, or /etc/security/prof_attr, the preferred command is profiles.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Editing a system file with common tools such as vi, emacs, or gedit does not allow the auditing of changes made by an operator. This reduces the capability of determining which operator made security-relevant changes to the system.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216470r1099906_rule - V-216470
+  tags:
+  - stig
+  - low
+  - v-216470
+- rule_id: SV-216474r959010
+  rule_name: The /etc/zones directory, and its contents, must have the vendor default owner, group, and permissions.
+  rule_description: Incorrect ownership can result in unauthorized changes or theft of data.
+  category: Security
+  subcategory: '216474'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      Check the ownership of the files and directories.
+
+
+      # pkg verify system/zones
+
+
+      The command should return no output. If output is produced, this is a finding.'
+    check_command: This check applies to the global zone only. Determine the zone that you are currently securing.
+  remediation:
+    remediation_step: "This check applies to the global zone only.  Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nThe Software Installation profile is required.\n\nChange the ownership and permissions of the files and directories to the factory default. \n\n# pkg fix system/zones"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Incorrect ownership can result in unauthorized changes or theft of data.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216474r959010_rule - V-216474
+  tags:
+  - stig
+  - low
+  - v-216474
+- rule_id: SV-216475r959010
+  rule_name: The limitpriv zone option must be set to the vendor default or less permissive.
+  rule_description: Solaris zones can be assigned privileges generally reserved for the global zone using the "limitpriv" zone option. Any privilege assignments in excess of the vendor defaults may provide the ability for a non-global zone to compromise the global zone.
+  category: Security
+  subcategory: '216475'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      List the non-global zones on the system.
+
+
+      # zoneadm list -vi | grep -v global
+
+
+      From the output list of non-global zones found, determine if any are Kernel zones.
+
+
+      # zoneadm list -cv | grep [zonename] | grep solaris-kz
+
+
+      Exclude any Kernel zones found from the list of local zones.
+
+
+      List the configuration for each zone.
+
+
+      # zonecfg -z [zonename] info |grep limitpriv
+
+
+      If the output of this command has a setting for limitpriv and it is not:
+
+      limitpriv: default
+
+
+      this is a finding.'
+    check_command: This check applies to the global zone only. Determine the zone that you are currently securing.
+  remediation:
+    remediation_step: "This check applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nThe Zone Security profile is required:\n\nChange the \"limitpriv\" setting to default. \n\n# pfexec zonecfg -z [zone] set limitpriv=default"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Solaris zones can be assigned privileges generally reserved for the global zone using the "limitpriv" zone option. Any privilege assignments in excess of the vendor defaults may provide the ability for a non-global zone to compromise the global zone.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216475r959010_rule - V-216475
+  tags:
+  - stig
+  - low
+  - v-216475
+- rule_id: SV-216477r959010
+  rule_name: The audit system must identify in which zone an event occurred.
+  rule_description: Tracking the specific Solaris zones in the audit trail reduces the time required to determine the cause of a security event.
+  category: Security
+  subcategory: '216477'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      List the non-global zones on the system.
+
+
+      # zoneadm list -vi | grep -v global
+
+
+      The Audit Configuration profile is required.
+
+
+      Determine whether the "zonename" auditing policy is in effect.
+
+
+      # pfexec auditconfig -getpolicy | grep active | grep zonename
+
+
+      If no output is returned, this is a finding.'
+    check_command: This check applies to the global zone only. Determine the zone that you are currently securing.
+  remediation:
+    remediation_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      List the non-global zones on the system.
+
+
+      # zoneadm list -vi | grep -v global
+
+
+      The Audit Configuration profile is required.
+
+
+      Enable the "zonename" auditing policy.
+
+
+      # pfexec auditconfig -setpolicy +zonename'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Tracking the specific Solaris zones in the audit trail reduces the time required to determine the cause of a security event.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216477r959010_rule - V-216477
+  tags:
+  - stig
+  - low
+  - v-216477
+- rule_id: SV-216478r959010
+  rule_name: The audit system must maintain a central audit trail for all zones.
+  rule_description: Centralized auditing simplifies the investigative process to determine the cause of a security event.
+  category: Security
+  subcategory: '216478'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      List the non-global zones on the system.
+
+
+      # zoneadm list -vi | grep -v global
+
+
+      The Audit Configuration profile is required.
+
+
+      Determine whether the "perzone" auditing policy is in effect.
+
+
+      # pfexec auditconfig -getpolicy | grep active | grep perzone
+
+
+      If output is returned, this is a finding.'
+    check_command: This check applies to the global zone only. Determine the zone that you are currently securing.
+  remediation:
+    remediation_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      List the non-global zones on the system.
+
+
+      # zoneadm list -vi | grep -v global
+
+
+      The Audit Configuration profile is required.
+
+
+      Disable the "perzone" auditing policy.
+
+
+      # pfexec auditconfig -setpolicy -perzone'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Centralized auditing simplifies the investigative process to determine the cause of a security event.
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216478r959010_rule - V-216478
+  tags:
+  - stig
+  - low
+  - v-216478
+- rule_id: SV-219982r958870
+  rule_name: The operating system must employ cryptographic mechanisms to protect information in storage.
+  rule_description: "When data is written to digital media, such as hard drives, mobile computers, external/removable hard drives, personal digital assistants, flash/thumb drives, etc., there is risk of data loss and data compromise. \n\nAn organizational assessment of risk guides the selection of media and associated information contained on the media requiring restricted access. Organizations need to document in policy and procedures the media requiring restricted access, individuals authorized to access the media, and the specific measures taken to restrict access. \n\nFewer protection measures are needed for media containing information determined by the organization to be in the public domain, to be publicly releasable, or to have limited or no adverse impact if accessed by other than authorized personnel. In these situations, it is assumed the physical access controls where the media resides provide adequate protection. \n\nAs part of a defense-in-depth strategy, the organization considers\
+    \ routinely encrypting information at rest on selected secondary storage devices. The employment of cryptography is at the discretion of the information owner/steward. The selection of the cryptographic mechanisms used is based upon maintaining the confidentiality and integrity of the information."
+  category: Security
+  subcategory: '219982'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Determine if file system encryption is required by your organization. If not required, this item does not apply.\n\nDetermine if file system encryption is enabled for user data sets. This check does not apply to the root, var, share, swap or dump datasets.\n\n# zfs list \n\nUsing the file system name, determine if the file system is encrypted:\n\n# zfs get encryption [filesystem] \n\nIf \"encryption off\" is listed, this is a finding."
+    check_command: Determine if file system encryption is required by your organization. If not required, this item does not apply.
+  remediation:
+    remediation_step: 'The ZFS file system management profile is required.
+
+
+      ZFS file system encryption may only be enabled on creation of the file system. If a file system must be encrypted and is not, its data should be archived, it must be removed and re-created.
+
+
+      First, stop running applications using the file systems, archive the data, unmount, and then remove the file system.
+
+
+      # umount [file system name]
+
+      # zfs destroy [file system name]
+
+
+      When creating ZFS file systems, ensure that they are created as encrypted file systems.
+
+
+      # pfexec zfs create -o encryption=on [file system name]
+
+      Enter passphrase for ''[file system name]'': xxxxxxx
+
+      Enter again: xxxxxxx
+
+
+      Store the passphrase in a safe location. The passphrase will be required to mount the file systems upon system reboot. If automated mounting is required, the passphrase must be stored in a file.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: "When data is written to digital media, such as hard drives, mobile computers, external/removable hard drives, personal digital assistants, flash/thumb drives, etc., there is risk of data loss and data compromise. \n\nAn organizational assessment of risk guides the selection of media and associated information contained on the media requiring restricted access. Organizations need to document in policy and procedures the media requiring restricted access, individuals authorized to access the media, and the specific measures taken to restrict access. \n\nFewer protection measures are needed for media containing information determined by the organization to be in the public domain, to be publicly releasable, or to have limited or no adverse impact if accessed by other than authorized personnel. In these situations, it is assumed the physical access controls where the media resides provide adequate protection. \n\nAs part of a defense-in-depth strategy, the organization considers\
+      \ routinely encrypting information at rest on selected secondary storage devices. The employment of cryptography is at the discretion of the information owner/steward. The selection of the cryptographic mechanisms used is based upon maintaining the confidentiality and integrity of the information."
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-219982r958870_rule - V-219982
+  tags:
+  - stig
+  - low
+  - v-219982
+- rule_id: SV-219983r958870
+  rule_name: The operating system must employ cryptographic mechanisms to prevent unauthorized disclosure of information at rest unless otherwise protected by alternative physical measures.
+  rule_description: "When data is written to digital media, such as hard drives, mobile computers, external/removable hard drives, personal digital assistants, flash/thumb drives, etc., there is risk of data loss and data compromise. \n\nAn organizational assessment of risk guides the selection of media and associated information contained on the media requiring restricted access. Organizations need to document in policy and procedures the media requiring restricted access, individuals authorized to access the media, and the specific measures taken to restrict access. \n\nFewer protection measures are needed for media containing information determined by the organization to be in the public domain, to be publicly releasable, or to have limited or no adverse impact if accessed by other than authorized personnel. In these situations, it is assumed the physical access controls where the media resides provide adequate protection. \n\nAs part of a defense-in-depth strategy, the organization considers\
+    \ routinely encrypting information at rest on selected secondary storage devices. The employment of cryptography is at the discretion of the information owner/steward. The selection of the cryptographic mechanisms used is based upon maintaining the confidentiality and integrity of the information."
+  category: Security
+  subcategory: '219983'
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Determine if file system encryption is required by your organization. If not required, this item does not apply.\n\nDetermine if file system encryption is enabled for user data sets. This check does not apply to the root, var, share, swap or dump datasets.\n\n# zfs list \n\nUsing the file system name, determine if the file system is encrypted:\n\n# zfs get encryption [filesystem] \n\nIf \"encryption off\" is listed, this is a finding."
+    check_command: Determine if file system encryption is required by your organization. If not required, this item does not apply.
+  remediation:
+    remediation_step: 'The ZFS file system management profile is required.
+
+
+      ZFS file system encryption may only be enabled on creation of the file system. If a file system must be encrypted and is not, its data should be archived, it must be removed and re-created.
+
+
+      First, stop running applications using the file systems, archive the data, unmount, and then remove the file system.
+
+
+      # umount [file system name]
+
+      # zfs destroy [file system name]
+
+
+      When creating ZFS file systems, ensure that they are created as encrypted file systems.
+
+
+      # pfexec zfs create -o encryption=on [file system name]
+
+      Enter passphrase for ''[file system name]'': xxxxxxx
+
+      Enter again: xxxxxxx
+
+
+      Store the passphrase in a safe location. The passphrase will be required to mount the file systems upon system reboot. If automated mounting is required, the passphrase must be stored in a file.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: "When data is written to digital media, such as hard drives, mobile computers, external/removable hard drives, personal digital assistants, flash/thumb drives, etc., there is risk of data loss and data compromise. \n\nAn organizational assessment of risk guides the selection of media and associated information contained on the media requiring restricted access. Organizations need to document in policy and procedures the media requiring restricted access, individuals authorized to access the media, and the specific measures taken to restrict access. \n\nFewer protection measures are needed for media containing information determined by the organization to be in the public domain, to be publicly releasable, or to have limited or no adverse impact if accessed by other than authorized personnel. In these situations, it is assumed the physical access controls where the media resides provide adequate protection. \n\nAs part of a defense-in-depth strategy, the organization considers\
+      \ routinely encrypting information at rest on selected secondary storage devices. The employment of cryptography is at the discretion of the information owner/steward. The selection of the cryptographic mechanisms used is based upon maintaining the confidentiality and integrity of the information."
+    impact: Low
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-219983r958870_rule - V-219983
+  tags:
+  - stig
+  - low
+  - v-219983

@@ -1,0 +1,709 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: DISA STIG for Oracle Solaris 11.4 SPARC - CAT I
+  version: '3'
+  description: DISA Security Technical Implementation Guide for Oracle Solaris 11.4 SPARC - CAT I (High)
+  platform: Oracle Solaris 11.4 SPARC
+  benchmark: DISA STIG Oracle Solaris 11.4 SPARC V3R2
+  author: Defense Information Systems Agency (DISA)
+  created: '2024-01-01T00:00:00Z'
+  modified: '2026-03-09T21:27:11Z'
+  compatible_platforms:
+  - Oracle Solaris 11.4 SPARC
+compliance_info:
+  framework: STIG
+  version: V3R2
+  profile: CAT I
+profile:
+  name: STIG CAT I
+  description: High severity controls for Oracle Solaris 11.4 SPARC
+  category: CAT I
+rules:
+- rule_id: SV-216292r959010
+  rule_name: The telnet service daemon must not be installed unless required.
+  rule_description: Telnet is an insecure protocol.
+  category: Security
+  subcategory: '216292'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the telnet daemon package in installed.
+
+
+      # pkg list service/network/telnet
+
+
+      If an installed package named "service/network/telnet" is listed and vntsd is not in use for LDoms, this is a finding.'
+    check_command: Determine if the telnet daemon package in installed.
+  remediation:
+    remediation_step: 'The Software Installation Profile is required.
+
+
+      # pfexec pkg uninstall service/network/telnet'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Telnet is an insecure protocol.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216292r959010_rule - V-216292
+  tags:
+  - stig
+  - high
+  - v-216292
+- rule_id: SV-216355r959010
+  rule_name: Login must not be permitted with empty/null passwords for SSH.
+  rule_description: Permitting login without a password is inherently risky.
+  category: Security
+  subcategory: '216355'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if empty/null passwords are allowed for the SSH service.
+
+
+      # grep "^PermitEmptyPasswords" /etc/ssh/sshd_config
+
+
+      If the output of this command is not:
+
+
+      PermitEmptyPasswords no
+
+
+      this is a finding.'
+    check_command: Determine if empty/null passwords are allowed for the SSH service.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Modify the sshd_config file
+
+
+      # pfedit /etc/ssh/sshd_config
+
+
+      Locate the line containing:
+
+
+      PermitEmptyPasswords
+
+
+      Change it to:
+
+
+      PermitEmptyPasswords no
+
+
+      Restart the SSH service.
+
+
+      # svcadm restart svc:/network/ssh'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Permitting login without a password is inherently risky.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216355r959010_rule - V-216355
+  tags:
+  - stig
+  - high
+  - v-216355
+- rule_id: SV-216273r958424
+  rule_name: The operating system must alert designated organizational officials in the event of an audit processing failure.
+  rule_description: Proper alerts to system administrators and IA officials of audit failures ensure a timely response to critical system issues.
+  category: Security
+  subcategory: '216273'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      The root role is required.
+
+
+      Verify the presence of an audit_warn entry in /etc/mail/aliases.
+
+      # /usr/lib/sendmail -bv audit_warn
+
+      If the response is:
+
+      audit_warn... User unknown
+
+
+      this is a finding.
+
+
+      Review the output of the command and verify that the audit_warn alias notifies the appropriate users in this form:
+
+
+      audit_warn:user1,user2
+
+
+      If an appropriate user is not listed, this is a finding.'
+    check_command: This check applies to the global zone only. Determine the zone that you are currently securing.
+  remediation:
+    remediation_step: "The root role is required. \n\nThis action applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this action applies.\n\nAdd an audit_warn alias to /etc/mail/aliases that will forward to designated system administrator(s).\n\n# pfedit /etc/mail/aliases\n\nInsert a line in the form:\naudit_warn:user1,user2\n\nPut the updated aliases file into service.\n# newaliases"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper alerts to system administrators and IA officials of audit failures ensure a timely response to critical system issues.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216273r958424_rule - V-216273
+  tags:
+  - stig
+  - high
+  - v-216273
+- rule_id: SV-216288r959010
+  rule_name: The NIS package must not be installed.
+  rule_description: NIS is an insecure protocol.
+  category: Security
+  subcategory: '216288'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the NIS package is installed.
+
+
+      # pkg list service/network/nis
+
+
+      If an installed package named "service/network/nis" is listed, this is a finding.'
+    check_command: Determine if the NIS package is installed.
+  remediation:
+    remediation_step: 'The Software Installation Profile is required.
+
+
+      # pfexec pkg uninstall service/network/nis'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: NIS is an insecure protocol.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216288r959010_rule - V-216288
+  tags:
+  - stig
+  - high
+  - v-216288
+- rule_id: SV-216290r959010
+  rule_name: The FTP daemon must not be installed unless required.
+  rule_description: FTP is an insecure protocol.
+  category: Security
+  subcategory: '216290'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the FTP package is installed.
+
+
+      # pkg list service/network/ftp
+
+
+      If an installed package named "service/network/ftp" is listed and not required for operations, this is a finding.'
+    check_command: Determine if the FTP package is installed.
+  remediation:
+    remediation_step: 'The Software Installation Profile is required.
+
+
+      # pfexec pkg uninstall service/network/ftp'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: FTP is an insecure protocol.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216290r959010_rule - V-216290
+  tags:
+  - stig
+  - high
+  - v-216290
+- rule_id: SV-216291r959010
+  rule_name: The TFTP service daemon must not be installed unless required.
+  rule_description: TFTP is an insecure protocol.
+  category: Security
+  subcategory: '216291'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the TFTP package is installed.
+
+
+      # pkg list service/network/tftp
+
+
+      If an installed package named "/service/network/tftp" is listed and not required for operations, this is a finding.'
+    check_command: Determine if the TFTP package is installed.
+  remediation:
+    remediation_step: 'The Software Installation Profile is required.
+
+
+      # pfexec pkg uninstall install/installadm
+
+      # pfexec pkg uninstall service/network/tftp'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: TFTP is an insecure protocol.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216291r959010_rule - V-216291
+  tags:
+  - stig
+  - high
+  - v-216291
+- rule_id: SV-216311r959010
+  rule_name: X displays must not be exported to the world.
+  rule_description: Open X displays allow an attacker to capture keystrokes and to execute commands remotely. Many users have their X Server set to xhost +, permitting access to the X Server by anyone, from anywhere.
+  category: Security
+  subcategory: '216311'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "If X Windows is not used on the system, this is not applicable.\n\nCheck the output of the xhost command from an X terminal.\n\nProcedure:\n$ xhost\nIf the output reports access control is enabled (and possibly lists the hosts that can receive X Window logins), this is not a finding. If the xhost command returns a line indicating access control is disabled, this is a finding.\n\nNOTE: It may be necessary to define the display if the command reports it cannot open the display. \n\nProcedure:\n$ DISPLAY=MachineName:0.0; export DISPLAY\nMachineName may be replaced with an Internet Protocol Address. Repeat the check procedure after setting the display."
+    check_command: If X Windows is not used on the system, this is not applicable.
+  remediation:
+    remediation_step: If using an xhost-type authentication the xhost - command can be used to remove current trusted hosts and then selectively allow only trusted hosts to connect with xhost + commands. A cryptographically secure authentication, such as provided by the xauth program, is always preferred. Refer to your X11 server's documentation for further security information.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Open X displays allow an attacker to capture keystrokes and to execute commands remotely. Many users have their X Server set to xhost +, permitting access to the X Server by anyone, from anywhere.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216311r959010_rule - V-216311
+  tags:
+  - stig
+  - high
+  - v-216311
+- rule_id: SV-216359r959010
+  rule_name: The system must not allow autologin capabilities from the GNOME desktop.
+  rule_description: As automatic logins are a known security risk for other than "kiosk" types of systems, GNOME automatic login should be disabled in pam.conf.
+  category: Security
+  subcategory: '216359'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if autologin is enabled for the GNOME desktop.
+
+
+      # egrep "auth|account" /etc/pam.d/gdm-autologin | grep -vc ^#
+
+
+      If the command returns other than "0", this is a finding.'
+    check_command: Determine if autologin is enabled for the GNOME desktop.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Modify the /etc/pam.d/gdm-autologin file.
+
+
+      # pfedit /etc/pam.d/gdm-autologin
+
+
+      Locate the lines:
+
+
+      auth required pam_unix_cred.so.1
+
+      auth sufficient pam_allow.so.1
+
+      account sufficient pam_allow.so.1
+
+
+      Change the lines to read:
+
+
+      #auth required pam_unix_cred.so.1
+
+      #auth sufficient pam_allow.so.1
+
+      #account sufficient pam_allow.so.1'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: As automatic logins are a known security risk for other than "kiosk" types of systems, GNOME automatic login should be disabled in pam.conf.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216359r959010_rule - V-216359
+  tags:
+  - stig
+  - high
+  - v-216359
+- rule_id: SV-216365r959010
+  rule_name: The operating system must not allow logins for users with blank passwords.
+  rule_description: If the password field is blank and the system does not enforce a policy that passwords are required, it could allow login without proper authentication of a user.
+  category: Security
+  subcategory: '216365'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine if the system is enforcing a policy that passwords are required.
+
+
+      # grep ^PASSREQ /etc/default/login
+
+
+      If the command does not return:
+
+
+      PASSREQ=YES
+
+
+      this is a finding.'
+    check_command: Determine if the system is enforcing a policy that passwords are required.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Modify the /etc/default/login file.
+
+
+      # pfedit /etc/default/login
+
+
+      Insert the line:
+
+
+      PASSREQ=YES'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: If the password field is blank and the system does not enforce a policy that passwords are required, it could allow login without proper authentication of a user.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216365r959010_rule - V-216365
+  tags:
+  - stig
+  - high
+  - v-216365
+- rule_id: SV-216421r959010
+  rule_name: There must be no user .rhosts files.
+  rule_description: Even though the .rhosts files are ineffective if support is disabled in /etc/pam.conf, they may have been brought over from other systems and could contain information useful to an attacker for those other systems.
+  category: Security
+  subcategory: '216421'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'The root role is required.
+
+
+      Check for the presence of .rhosts files.
+
+
+      # for dir in \
+
+      `logins -ox | awk -F: ''($8 == "PS") { print $6 }''`; do
+
+      find ${dir}/.rhosts -type f -ls 2>/dev/null
+
+      done
+
+
+      If output is produced, this is a finding.'
+    check_command: The root role is required.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Remove any .rhosts files found.
+
+
+      # rm [file name]'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Even though the .rhosts files are ineffective if support is disabled in /etc/pam.conf, they may have been brought over from other systems and could contain information useful to an attacker for those other systems.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216421r959010_rule - V-216421
+  tags:
+  - stig
+  - high
+  - v-216421
+- rule_id: SV-216442r959010
+  rule_name: The operating system must be a supported release.
+  rule_description: An operating system release is considered supported if the vendor continues to provide security patches for the product. With an unsupported release, it will not be possible to resolve security issues discovered in the system software.
+  category: Security
+  subcategory: '216442'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine the operating system version.
+
+
+      # uname -a
+
+
+      If the release is not supported by the vendor, this is a finding.'
+    check_command: Determine the operating system version.
+  remediation:
+    remediation_step: Upgrade to a supported version of the operating system.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: An operating system release is considered supported if the vendor continues to provide security patches for the product. With an unsupported release, it will not be possible to resolve security issues discovered in the system software.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216442r959010_rule - V-216442
+  tags:
+  - stig
+  - high
+  - v-216442
+- rule_id: SV-216456r959010
+  rule_name: SNMP communities, users, and passphrases must be changed from the default.
+  rule_description: Whether active or not, default SNMP passwords, users, and passphrases must be changed to maintain security. If the service is running with the default authenticators, then anyone can gather data about the system and the network and use the information to potentially compromise the integrity of the system or network(s).
+  category: Security
+  subcategory: '216456'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'The root role is required.
+
+
+      Check the SNMP configuration for default passwords.
+
+      Locate and examine the SNMP configuration.
+
+
+      Procedure:
+
+
+      Find any occurrences of the snmpd.conf file delivered with Solaris packages:
+
+
+      # pkg search -l -Ho path snmpd.conf | awk ''{ print "/"$1 }''
+
+
+      # more [filename]
+
+
+      Identify any community names or user password configurations. If any community name or password is set to a default value, such as public, private, snmp-trap, or password, this is a finding.'
+    check_command: The root role is required.
+  remediation:
+    remediation_step: 'The root role is required.
+
+
+      Change the default snmpd.conf community passwords. To change them, locate the snmpd.conf file and edit it.
+
+
+      # pfedit [filename]
+
+
+      Locate the line system-group-read-community which has a default password of public and make the password something more random (less guessable). Make the same changes for the lines that read system- group-write-community, read-community, write-community, trap, and trap-community. Read the information in the file carefully. The trap is defining who to send traps to, for instance, by default. It is not a password, but the name of a host.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Whether active or not, default SNMP passwords, users, and passphrases must be changed to maintain security. If the service is running with the default authenticators, then anyone can gather data about the system and the network and use the information to potentially compromise the integrity of the system or network(s).
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-216456r959010_rule - V-216456
+  tags:
+  - stig
+  - high
+  - v-216456
+- rule_id: SV-219966r958758
+  rule_name: The audit system must alert the System Administrator (SA) if there is any type of audit failure.
+  rule_description: Proper alerts to system administrators and Information Assurance (IA) officials of audit failures ensure a timely response to critical system issues.
+  category: Security
+  subcategory: '219966'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'This check applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this check applies.
+
+
+      The root role is required.
+
+
+      Verify the presence of an audit_warn entry in /etc/mail/aliases.
+
+      # /usr/lib/sendmail -bv audit_warn
+
+      If the response is:
+
+      audit_warn... User unknown
+
+
+      this is a finding.
+
+
+      Review the output of the command and verify that the audit_warn alias notifies the appropriate users in this form:
+
+
+      audit_warn:user1,user2
+
+
+      If an appropriate user is not listed, this is a finding.'
+    check_command: This check applies to the global zone only. Determine the zone that you are currently securing.
+  remediation:
+    remediation_step: "The root role is required. \n\nThis action applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this action applies.\n\nAdd an audit_warn alias to /etc/mail/aliases that will forward to designated system administrator(s).\n\n# pfedit /etc/mail/aliases\n\nInsert a line in the form:\naudit_warn:user1,user2\n\nPut the updated aliases file into service.\n# newaliases"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper alerts to system administrators and Information Assurance (IA) officials of audit failures ensure a timely response to critical system issues.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-219966r958758_rule - V-219966
+  tags:
+  - stig
+  - high
+  - v-219966
+- rule_id: SV-219968r958752
+  rule_name: The operating system must configure auditing to reduce the likelihood of storage capacity being exceeded.
+  rule_description: Overflowing the audit storage area can result in a denial of service or system outage.
+  category: Security
+  subcategory: '219968'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "The Audit Configuration profile is required.\n\nThis check applies to the global zone only. Determine the zone that you are currently securing.\n\n# zonename\n\nIf the command output is \"global\", this check applies.\n\nCheck the status of the audit system. It must be auditing.\n\n# pfexec auditconfig -getplugin \n\nIf the output of this command does not contain:\n\np_fsize=4M\n\nthis is a finding."
+    check_command: The Audit Configuration profile is required.
+  remediation:
+    remediation_step: 'The Audit Control profile is required.
+
+
+      This action applies to the global zone only. Determine the zone that you are currently securing.
+
+
+      # zonename
+
+
+      If the command output is "global", this action applies.
+
+
+      Set the size of a binary audit file to a specific size. The size is specified in megabytes.
+
+
+      # pfexec auditconfig -setplugin audit_binfile p_fsize=4M
+
+
+      Restart the audit system.
+
+
+      # pfexec audit -s'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal
+    estimated_time: 5 minutes
+  context:
+    rationale: Overflowing the audit storage area can result in a denial of service or system outage.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: STIG
+      reference: SV-219968r958752_rule - V-219968
+  tags:
+  - stig
+  - high
+  - v-219968
