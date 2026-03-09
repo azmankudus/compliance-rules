@@ -15,6 +15,8 @@
 <img src="https://img.shields.io/badge/RHEL-10-orange?style=flat-square&logo=redhat&logoColor=white" alt="RHEL 10"/>
 <img src="https://img.shields.io/badge/Windows_Server-2016-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2016"/>
 <img src="https://img.shields.io/badge/Windows_Server-2019-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2019"/>
+<img src="https://img.shields.io/badge/Windows_Server-2022-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2022"/>
+<img src="https://img.shields.io/badge/Windows_Server-2025-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2025"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -349,6 +351,37 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 </details>
 
 ---
+
+### 🪟 Windows Server 2025
+
+#### CIS Benchmarks
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Level 1 DC](ms/ws-2025/cis/ms-ws-2025-cis-level1-dc-v2.0.0.yaml) | 🟢 Baseline | Domain Controller | 247 | Baseline security for domain controllers | ✅ Verified |
+| [Level 1 MS](ms/ws-2025/cis/ms-ws-2025-cis-level1-ms-v2.0.0.yaml) | 🟢 Baseline | Member Server | 247 | Baseline security for member servers | ✅ Verified |
+| [Level 2 DC](ms/ws-2025/cis/ms-ws-2025-cis-level2-dc-v2.0.0.yaml) | 🟡 Enhanced | Domain Controller | 198 | Enhanced security for domain controllers | ✅ Verified |
+| [Level 2 MS](ms/ws-2025/cis/ms-ws-2025-cis-level2-ms-v2.0.0.yaml) | 🟡 Enhanced | Member Server | 198 | Enhanced security for member servers | ✅ Verified |
+
+#### DISA STIG
+
+> ⚠️ **Not Yet Available** - DISA STIG for Windows Server 2025 has not been released yet. This section will be updated when available.
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Framework | Product | Total Rules | High | Medium | Low |
+|-----------|---------|-------------|------|--------|-----|
+| CIS | WS 2025 DC | 445 | 111 | 334 | 0 |
+| CIS | WS 2025 MS | 445 | 111 | 334 | 0 |
+| STIG | WS 2025 | - | - | - | - |
+| **Total** | | **890** | **222** | **668** | **0** |
+
+</details>
+
+---
+
+### 🪟 Windows Server 2019
 
 #### CIS Benchmarks
 
@@ -694,6 +727,11 @@ generate_ansible_playbook(
 
 | Product | CIS L1 | CIS L2 | STIG CAT I | STIG CAT II | STIG CAT III | **Total** |
 |---------|--------|--------|------------|-------------|--------------|-----------|
+| WS 2025 DC | 247 | 198 | - | - | - | **445** |
+| WS 2025 MS | 247 | 198 | - | - | - | **445** |
+| WS 2022 DC | 247 | 198 | - | - | - | **445** |
+| WS 2022 MS | 247 | 198 | - | - | - | **445** |
+| WS 2022 STIG | - | - | 31 | 232 | 12 | **275** |
 | WS 2019 DC | 243 | 177 | - | - | - | **420** |
 | WS 2019 MS | 243 | 177 | - | - | - | **420** |
 | WS 2019 STIG | - | - | 34 | 227 | 14 | **275** |
@@ -705,22 +743,22 @@ generate_ansible_playbook(
 | RHEL 9 Workstation | 6 | 3 | - | - | - | **9** |
 | RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | **376** |
 | RHEL 8 Workstation | 2 | 2 | - | - | - | **4** |
-| **Total** | **1494** | **634** | **76** | **961** | **57** | **3222** |
+| **Total** | **2482** | **1232** | **107** | **1193** | **69** | **5083** |
 
 ### Severity Distribution
 
 ```
-High (Critical):   395 rules (12.3%) ████████████░░░░░░░░░░░░░░░░
-Medium:           2770 rules (86.0%) ████████████████████████████
-Low:                57 rules (1.8%)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░
+High (Critical):   617 rules (15.0%) ███████████████░░░░░░░░░░░░░
+Medium:           3438 rules (83.6%) █████████████████████████████
+Low:                57 rules (1.4%)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ### Automation Coverage
 
 ```
-Fully Automated:  3060 rules (95.0%) ████████████████████████████
-Partially Auto:   145 rules (4.5%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
-Manual:            17 rules (0.5%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+Fully Automated:  3906 rules (95.0%) ████████████████████████████
+Partially Auto:    185 rules (4.5%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
+Manual:             21 rules (0.5%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ---
@@ -731,6 +769,9 @@ Manual:            17 rules (0.5%)  ░░░░░░░░░░░░░░�
 
 | Framework | Source | Version | Date |
 |-----------|--------|---------|------|
+| **CIS** | [CIS Windows Server 2025 Benchmark](https://www.cisecurity.org/benchmark/microsoft_windows_server) | v2.0.0 | 2025 |
+| **CIS** | [CIS Windows Server 2022 Benchmark](https://www.cisecurity.org/benchmark/microsoft_windows_server) | v3.0.0 | 2024 |
+| **STIG** | [DISA STIG Windows Server 2022](https://www.stigviewer.com/stigs/microsoft_windows_server_2022) | V2R3 | May 2025 |
 | **CIS** | [CIS Windows Server 2019 Benchmark](https://www.cisecurity.org/benchmark/microsoft_windows_server) | v4.0.0 | 2024 |
 | **STIG** | [DISA STIG Windows Server 2019](https://www.stigviewer.com/stigs/microsoft_windows_server_2019) | V3R4 | May 2025 |
 | **CIS** | [CIS Windows Server 2016 Benchmark](https://www.cisecurity.org/benchmark/microsoft_windows_server) | v4.0.0 | 2024 |
