@@ -1,0 +1,676 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: DISA STIG for Red Hat Enterprise Linux 7 - CAT I
+  version: V3R15
+  description: DISA Security Technical Implementation Guide for RHEL 7 - CAT I
+  platform: Red Hat Enterprise Linux 7
+  benchmark: DISA STIG Red Hat Enterprise Linux 7 V3R15
+  author: Defense Information Systems Agency (DISA)
+  created: '2024-05-30T00:00:00Z'
+  modified: '2024-07-24T00:00:00Z'
+  compatible_platforms:
+  - RHEL 7.x
+compliance_info:
+  framework: STIG
+  version: '3.15'
+  profile: CAT I
+profile:
+  name: STIG CAT I
+  description: Critical controls
+  level: 1
+rules:
+- rule_id: STIG-010010
+  id: RHEL-07-010010
+  legacy_ids:
+  - V-204392
+  - SV-204392r991558_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be configured so that the file permissions, ownership, and group membership of system files and commands match the vendor values.
+  title: The Red Hat Enterprise Linux operating system must be configured so that the file permissions, ownership, and group membership of system files and commands match the vendor values.
+  rule_description: The Red Hat Enterprise Linux operating system must be configured so that the file permissions, ownership, and group membership of system files and commands match the vendor values.
+  description: The Red Hat Enterprise Linux operating system must be configured so that the file permissions, ownership, and group membership of system files and commands match the vendor values.
+  category: AU-9
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the file permissions, ownership, and group membership of system files and commands match the vendor values. Check the default file permissions, ownership, and group membership of system files and commands with the following command: # for i in \`rpm -Va | grep -E ''^.{1}M|^.{5}U|^.{6}G'' | cut -d " " -f 4,5\`;do for j in \`rpm -qf $i\`;do rpm -ql $j --dump | cut -d " " -f 1,5,6,7 | grep $i;done;done /var/log/gdm 040755 root root /etc/audisp/audisp-remote.conf 0100640 root root /usr/bin/passwd 0104755 root root For each file returned, verify the current permissions, ownership, and group membership: # ls -la &lt;filename&gt; -rw-------. 1 root root 2017 Nov 1 10:03 /etc/audisp/audisp-remote.conf If the file is more permissive than the default permissions, this is a finding. If the file is not owned by the default owner and is not documented with the Information System Security Officer (ISSO), this is a finding. If the file is not a member of the default group and
+      is not documented with the Information System Security Officer (ISSO), this is a finding.'
+  remediation:
+    remediation_step: 'Run the following command to determine which package owns the file: # rpm -qf <filename> Reset the user and group ownership of files within a package with the following command: # rpm --setugids <packagename> Reset the permissions of files within a package with the following command: # rpm --setperms <packagename>'
+  tags:
+  - stig
+  - rhel7
+  - au-9
+  - cci-001494
+- rule_id: STIG-010290
+  id: RHEL-07-010290
+  legacy_ids:
+  - V-204424
+  - SV-204424r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not allow accounts configured with blank or null passwords.
+  title: The Red Hat Enterprise Linux operating system must not allow accounts configured with blank or null passwords.
+  rule_description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'To verify that null passwords cannot be used, run the following command: # grep nullok /etc/pam.d/system-auth /etc/pam.d/password-auth If this produces any output, it may be possible to log on with accounts with empty passwords. If null passwords can be used, this is a finding.'
+  remediation:
+    remediation_step: 'If an account is configured for password authentication but does not have an assigned password, it may be possible to log on to the account without authenticating. Remove any instances of the "nullok" option in "/etc/pam.d/system-auth" and "/etc/pam.d/password-auth" to prevent logons with empty passwords. Note: Per requirement RHEL-07-010199, RHEL 7 must be configured to not overwrite custom authentication configuration settings while using the authconfig utility, otherwise manual changes to the listed files will be overwritten whenever the authconfig utility is used.'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-010300
+  id: RHEL-07-010300
+  legacy_ids:
+  - V-204425
+  - SV-204425r958486_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be configured so that the SSH daemon does not allow authentication using an empty password.
+  title: The Red Hat Enterprise Linux operating system must be configured so that the SSH daemon does not allow authentication using an empty password.
+  rule_description: Configuring this setting for the SSH daemon provides additional assurance that remote logon via SSH will require a password, even in the event of misconfiguration elsewhere.
+  description: Configuring this setting for the SSH daemon provides additional assurance that remote logon via SSH will require a password, even in the event of misconfiguration elsewhere.
+  category: IA-2
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'To determine how the SSH daemon''s "PermitEmptyPasswords" option is set, run the following command: # grep -i PermitEmptyPasswords /etc/ssh/sshd\_config PermitEmptyPasswords no If no line, a commented line, or a line indicating the value "no" is returned, the required value is set. If the required value is not set, this is a finding.'
+  remediation:
+    remediation_step: 'To explicitly disallow remote logon from accounts with empty passwords, add or correct the following line in "/etc/ssh/sshd\_config": PermitEmptyPasswords no The SSH service must be restarted for changes to take effect. Any accounts with empty passwords should be disabled immediately, and PAM configuration should prevent users from being able to assign themselves empty passwords.'
+  tags:
+  - stig
+  - rhel7
+  - ia-2
+  - cci-000766
+- rule_id: STIG-010440
+  id: RHEL-07-010440
+  legacy_ids:
+  - V-204432
+  - SV-204432r991591_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not allow an unattended or automatic logon to the system via a graphical user interface.
+  title: The Red Hat Enterprise Linux operating system must not allow an unattended or automatic logon to the system via a graphical user interface.
+  rule_description: Failure to restrict system access to authenticated users negatively impacts operating system security.
+  description: Failure to restrict system access to authenticated users negatively impacts operating system security.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system does not allow an unattended or automatic logon to the system via a graphical user interface. Note: If the system does not have GNOME installed, this requirement is Not Applicable. Check for the value of the "AutomaticLoginEnable" in the "/etc/gdm/custom.conf" file with the following command: # grep -i automaticloginenable /etc/gdm/custom.conf AutomaticLoginEnable=false If the value of "AutomaticLoginEnable" is not set to "false", this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to not allow an unattended or automatic logon to the system via a graphical user interface. Note: If the system does not have GNOME installed, this requirement is Not Applicable. Add or edit the line for the "AutomaticLoginEnable" parameter in the \[daemon\] section of the "/etc/gdm/custom.conf" file to "false": \[daemon\] AutomaticLoginEnable=false'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-010450
+  id: RHEL-07-010450
+  legacy_ids:
+  - V-204433
+  - SV-204433r991591_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not allow an unrestricted logon to the system.
+  title: The Red Hat Enterprise Linux operating system must not allow an unrestricted logon to the system.
+  rule_description: Failure to restrict system access to authenticated users negatively impacts operating system security.
+  description: Failure to restrict system access to authenticated users negatively impacts operating system security.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system does not allow an unrestricted logon to the system via a graphical user interface. Note: If the system does not have GNOME installed, this requirement is Not Applicable. Check for the value of the "TimedLoginEnable" parameter in "/etc/gdm/custom.conf" file with the following command: # grep -i timedloginenable /etc/gdm/custom.conf TimedLoginEnable=false If the value of "TimedLoginEnable" is not set to "false", this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to not allow an unrestricted account to log on to the system via a graphical user interface. Note: If the system does not have GNOME installed, this requirement is Not Applicable. Add or edit the line for the "TimedLoginEnable" parameter in the \[daemon\] section of the "/etc/gdm/custom.conf" file to "false": \[daemon\] TimedLoginEnable=false'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-010482
+  id: RHEL-07-010482
+  legacy_ids:
+  - V-204438
+  - SV-204438r958472_rule
+  rule_name: Red Hat Enterprise Linux operating systems version 7.2 or newer with a Basic Input/Output System (BIOS) must require authentication upon booting into single-user and maintenance modes.
+  title: Red Hat Enterprise Linux operating systems version 7.2 or newer with a Basic Input/Output System (BIOS) must require authentication upon booting into single-user and maintenance modes.
+  rule_description: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files on the system. GRUB 2 is the default boot loader for RHEL 7 and is designed to require a password to boot into single-user mode or make modifications to the boot menu.
+  description: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files on the system. GRUB 2 is the default boot loader for RHEL 7 and is designed to require a password to boot into single-user mode or make modifications to the boot menu.
+  category: AC-3
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'For systems that use UEFI, this is Not Applicable. For systems that are running a version of RHEL prior to 7.2, this is Not Applicable. Check to see if an encrypted grub superusers password is set. On systems that use a BIOS, use the following command: $ sudo grep -iw grub2\_password /boot/grub2/user.cfg GRUB2\_PASSWORD=grub.pbkdf2.sha512.\[password\_hash\] If the grub superusers password does not begin with "grub.pbkdf2.sha512", this is a finding.'
+  remediation:
+    remediation_step: 'Configure the system to encrypt the boot password for the grub superusers account with the grub2-setpassword command, which creates/overwrites the /boot/grub2/user.cfg file. Generate an encrypted grub2 password for the grub superusers account with the following command: $ sudo grub2-setpassword Enter password: Confirm password:'
+  tags:
+  - stig
+  - rhel7
+  - ac-3
+  - cci-000213
+- rule_id: STIG-010491
+  id: RHEL-07-010491
+  legacy_ids:
+  - V-204440
+  - SV-204440r958472_rule
+  rule_name: Red Hat Enterprise Linux operating systems version 7.2 or newer using Unified Extensible Firmware Interface (UEFI) must require authentication upon booting into single-user and maintenance modes.
+  title: Red Hat Enterprise Linux operating systems version 7.2 or newer using Unified Extensible Firmware Interface (UEFI) must require authentication upon booting into single-user and maintenance modes.
+  rule_description: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files on the system. GRUB 2 is the default boot loader for RHEL 7 and is designed to require a password to boot into single-user mode or make modifications to the boot menu.
+  description: If the system does not require valid authentication before it boots into single-user or maintenance mode, anyone who invokes single-user or maintenance mode is granted privileged access to all files on the system. GRUB 2 is the default boot loader for RHEL 7 and is designed to require a password to boot into single-user mode or make modifications to the boot menu.
+  category: AC-3
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'For systems that use BIOS, this is Not Applicable. For systems that are running a version of RHEL prior to 7.2, this is Not Applicable. Check to see if an encrypted grub superusers password is set. On systems that use UEFI, use the following command: $ sudo grep -iw grub2\_password /boot/efi/EFI/redhat/user.cfg GRUB2\_PASSWORD=grub.pbkdf2.sha512.\[password\_hash\] If the grub superusers password does not begin with "grub.pbkdf2.sha512", this is a finding.'
+  remediation:
+    remediation_step: 'Configure the system to encrypt the boot password for the grub superusers account with the grub2-setpassword command, which creates/overwrites the /boot/efi/EFI/redhat/user.cfg file. Generate an encrypted grub2 password for the grub superusers account with the following command: $ sudo grub2-setpassword Enter password: Confirm password:'
+  tags:
+  - stig
+  - rhel7
+  - ac-3
+  - cci-000213
+- rule_id: STIG-020000
+  id: RHEL-07-020000
+  legacy_ids:
+  - V-204442
+  - SV-204442r958478_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not have the rsh-server package installed.
+  title: The Red Hat Enterprise Linux operating system must not have the rsh-server package installed.
+  rule_description: It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked and therefore may remain unsecured. They increase the risk to the platform by providing additional attack vectors. Operating systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions). The rsh-server service provides an unencrypted remote access service that does not provide for the confidentiality and integrity of user passwords or the remote session and has very weak authentication. If a privileged user were to log on using this service, the privileged user password could be compromised.
+  description: It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked and therefore may remain unsecured. They increase the risk to the platform by providing additional attack vectors. Operating systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions). The rsh-server service provides an unencrypted remote access service that does not provide for the confidentiality and integrity of user passwords or the remote session and has very weak authentication. If a privileged user were to log on using this service, the privileged user password could be compromised.
+  category: CM-7
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check to see if the rsh-server package is installed with the following command: # yum list installed rsh-server If the rsh-server package is installed, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to disable non-essential capabilities by removing the rsh-server package from the system with the following command: # yum remove rsh-server'
+  tags:
+  - stig
+  - rhel7
+  - cm-7
+  - cci-000381
+- rule_id: STIG-020010
+  id: RHEL-07-020010
+  legacy_ids:
+  - V-204443
+  - SV-204443r958478_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not have the ypserv package installed.
+  title: The Red Hat Enterprise Linux operating system must not have the ypserv package installed.
+  rule_description: Removing the "ypserv" package decreases the risk of the accidental (or intentional) activation of NIS or NIS+ services.
+  description: Removing the "ypserv" package decreases the risk of the accidental (or intentional) activation of NIS or NIS+ services.
+  category: CM-7
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'The NIS service provides an unencrypted authentication service that does not provide for the confidentiality and integrity of user passwords or the remote session. Check to see if the "ypserve" package is installed with the following command: # yum list installed ypserv If the "ypserv" package is installed, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to disable non-essential capabilities by removing the "ypserv" package from the system with the following command: # yum remove ypserv'
+  tags:
+  - stig
+  - rhel7
+  - cm-7
+  - cci-000381
+- rule_id: STIG-020050
+  id: RHEL-07-020050
+  legacy_ids:
+  - V-204447
+  - SV-204447r982212_rule
+  rule_name: The Red Hat Enterprise Linux operating system must prevent the installation of software, patches, service packs, device drivers, or operating system components from a repository without verification t
+  title: The Red Hat Enterprise Linux operating system must prevent the installation of software, patches, service packs, device drivers, or operating system components from a repository without verification t
+  rule_description: Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been provided by a trusted vendor. Accordingly, patches, service packs, device drivers, or operating system components must be signed with a certificate recognized and approved by the organization. Verifying the authenticity of the software prior to installation validates the integrity of the patch or upgrade received from a vendor. This verifies the software has not been tampered with and that it has been provided by a trusted vendor. Self-signed certificates are disallowed by this requirement. The operating system should not have to verify the software again. This requirement does not mandate DoD certificates for this purpose; however, the certificate used to verify the software must be from an approved CA.
+  description: Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been provided by a trusted vendor. Accordingly, patches, service packs, device drivers, or operating system components must be signed with a certificate recognized and approved by the organization. Verifying the authenticity of the software prior to installation validates the integrity of the patch or upgrade received from a vendor. This verifies the software has not been tampered with and that it has been provided by a trusted vendor. Self-signed certificates are disallowed by this requirement. The operating system should not have to verify the software again. This requirement does not mandate DoD certificates for this purpose; however, the certificate used to verify the software must be from an approved CA.
+  category: CM-5
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system prevents the installation of patches, service packs, device drivers, or operating system components from a repository without verification that they have been digitally signed using a certificate that is recognized and approved by the organization. Check that yum verifies the signature of packages from a repository prior to install with the following command: # grep gpgcheck /etc/yum.conf gpgcheck=1 If "gpgcheck" is not set to "1", or if options are missing or commented out, ask the System Administrator how the certificates for patches and other operating system components are verified. If there is no process to validate certificates that is approved by the organization, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to verify the signature of packages from a repository prior to install by setting the following option in the "/etc/yum.conf" file: gpgcheck=1'
+  tags:
+  - stig
+  - rhel7
+  - cm-5
+  - cci-001749
+- rule_id: STIG-020060
+  id: RHEL-07-020060
+  legacy_ids:
+  - V-204448
+  - SV-204448r982212_rule
+  rule_name: The Red Hat Enterprise Linux operating system must prevent the installation of software, patches, service packs, device drivers, or operating system components of local packages without verification t
+  title: The Red Hat Enterprise Linux operating system must prevent the installation of software, patches, service packs, device drivers, or operating system components of local packages without verification t
+  rule_description: Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been provided by a trusted vendor. Accordingly, patches, service packs, device drivers, or operating system components must be signed with a certificate recognized and approved by the organization. Verifying the authenticity of the software prior to installation validates the integrity of the patch or upgrade received from a vendor. This verifies the software has not been tampered with and that it has been provided by a trusted vendor. Self-signed certificates are disallowed by this requirement. The operating system should not have to verify the software again. This requirement does not mandate DoD certificates for this purpose; however, the certificate used to verify the software must be from an approved CA.
+  description: Changes to any software components can have significant effects on the overall security of the operating system. This requirement ensures the software has not been tampered with and that it has been provided by a trusted vendor. Accordingly, patches, service packs, device drivers, or operating system components must be signed with a certificate recognized and approved by the organization. Verifying the authenticity of the software prior to installation validates the integrity of the patch or upgrade received from a vendor. This verifies the software has not been tampered with and that it has been provided by a trusted vendor. Self-signed certificates are disallowed by this requirement. The operating system should not have to verify the software again. This requirement does not mandate DoD certificates for this purpose; however, the certificate used to verify the software must be from an approved CA.
+  category: CM-5
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system prevents the installation of patches, service packs, device drivers, or operating system components of local packages without verification that they have been digitally signed using a certificate that is recognized and approved by the organization. Check that yum verifies the signature of local packages prior to install with the following command: # grep localpkg\_gpgcheck /etc/yum.conf localpkg\_gpgcheck=1 If "localpkg\_gpgcheck" is not set to "1", or if options are missing or commented out, ask the System Administrator how the signatures of local packages and other operating system components are verified. If there is no process to validate the signatures of local packages that is approved by the organization, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to verify the signature of local packages prior to install by setting the following option in the "/etc/yum.conf" file: localpkg\_gpgcheck=1'
+  tags:
+  - stig
+  - rhel7
+  - cm-5
+  - cci-001749
+- rule_id: STIG-020230
+  id: RHEL-07-020230
+  legacy_ids:
+  - V-204455
+  - SV-204455r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be configured so that the x86 Ctrl-Alt-Delete key sequence is disabled on the command line.
+  title: The Red Hat Enterprise Linux operating system must be configured so that the x86 Ctrl-Alt-Delete key sequence is disabled on the command line.
+  rule_description: A locally logged-on user who presses Ctrl-Alt-Delete, when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk of short-term loss of availability of systems due to unintentional reboot. In the GNOME graphical environment, risk of unintentional reboot from the Ctrl-Alt-Delete sequence is reduced because the user will be prompted before any action is taken.
+  description: A locally logged-on user who presses Ctrl-Alt-Delete, when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk of short-term loss of availability of systems due to unintentional reboot. In the GNOME graphical environment, risk of unintentional reboot from the Ctrl-Alt-Delete sequence is reduced because the user will be prompted before any action is taken.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system is not configured to reboot the system when Ctrl-Alt-Delete is pressed. Check that the ctrl-alt-del.target is masked and not active with the following command: # systemctl status ctrl-alt-del.target ctrl-alt-del.target Loaded: masked (/dev/null; bad) Active: inactive (dead) If the ctrl-alt-del.target is not masked, this is a finding. If the ctrl-alt-del.target is active, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the system to disable the Ctrl-Alt-Delete sequence for the command line with the following commands: # systemctl disable ctrl-alt-del.target # systemctl mask ctrl-alt-del.target'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-020231
+  id: RHEL-07-020231
+  legacy_ids:
+  - V-204456
+  - SV-204456r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be configured so that the x86 Ctrl-Alt-Delete key sequence is disabled in the Graphical User Interface.
+  title: The Red Hat Enterprise Linux operating system must be configured so that the x86 Ctrl-Alt-Delete key sequence is disabled in the Graphical User Interface.
+  rule_description: A locally logged-on user who presses Ctrl-Alt-Delete, when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk of short-term loss of availability of systems due to unintentional reboot. In the graphical environment, risk of unintentional reboot from the Ctrl-Alt-Delete sequence is reduced because the user will be prompted before any action is taken.
+  description: A locally logged-on user who presses Ctrl-Alt-Delete, when at the console, can reboot the system. If accidentally pressed, as could happen in the case of a mixed OS environment, this can create the risk of short-term loss of availability of systems due to unintentional reboot. In the graphical environment, risk of unintentional reboot from the Ctrl-Alt-Delete sequence is reduced because the user will be prompted before any action is taken.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Note: If the operating system does not have a graphical user interface installed, this requirement is Not Applicable. Verify the operating system is not configured to reboot the system when Ctrl-Alt-Delete is pressed. Check that the ctrl-alt-del.target is masked and not active in the graphical user interface with the following command: # grep logout /etc/dconf/db/local.d/\* logout='''' If "logout" is not set to use two single quotations, or is missing, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the system to disable the Ctrl-Alt-Delete sequence for the graphical user interface with the following command: # touch /etc/dconf/db/local.d/00-disable-CAD Add the setting to disable the Ctrl-Alt-Delete sequence for the graphical user interface: \[org/gnome/settings-daemon/plugins/media-keys\] logout='''''
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-020250
+  id: RHEL-07-020250
+  legacy_ids:
+  - V-204458
+  - SV-204458r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be a vendor supported release.
+  title: The Red Hat Enterprise Linux operating system must be a vendor supported release.
+  rule_description: An operating system release is considered "supported" if the vendor continues to provide security patches for the product. With an unsupported release, it will not be possible to resolve security issues discovered in the system software.
+  description: An operating system release is considered "supported" if the vendor continues to provide security patches for the product. With an unsupported release, it will not be possible to resolve security issues discovered in the system software.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the version of the operating system is vendor supported. Check the version of the operating system with the following command: # cat /etc/redhat-release Red Hat Enterprise Linux Server release 7.9 (Maipo) Current End of Maintenance Support for RHEL 7.9 is 30 June 2024. If the release is not supported by the vendor, this is a finding.'
+  remediation:
+    remediation_step: Upgrade to a supported version of the operating system.
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-020310
+  id: RHEL-07-020310
+  legacy_ids:
+  - V-204462
+  - SV-204462r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be configured so that the root account must be the only account having unrestricted access to the system.
+  title: The Red Hat Enterprise Linux operating system must be configured so that the root account must be the only account having unrestricted access to the system.
+  rule_description: If an account other than root also has a User Identifier (UID) of "0", it has root authority, giving that account unrestricted access to the entire operating system. Multiple accounts with a UID of "0" afford an opportunity for potential intruders to guess a password for a privileged account.
+  description: If an account other than root also has a User Identifier (UID) of "0", it has root authority, giving that account unrestricted access to the entire operating system. Multiple accounts with a UID of "0" afford an opportunity for potential intruders to guess a password for a privileged account.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the system for duplicate UID "0" assignments with the following command: # awk -F: ''$3 == 0 {print $1}'' /etc/passwd If any accounts other than root have a UID of "0", this is a finding.'
+  remediation:
+    remediation_step: Change the UID of any account on the system, other than root, that has a UID of "0". If the account is associated with system commands or applications, the UID should be changed to one greater than "0" but less than "1000". Otherwise, assign a UID of greater than "1000" that has not already been assigned.
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-021350
+  id: RHEL-07-021350
+  legacy_ids:
+  - V-204497
+  - SV-204497r958408_rule
+  rule_name: 'The Red Hat Enterprise Linux operating system must implement NIST FIPS-validated cryptography for the following: to provision digital signatures, to generate cryptographic hashes, and to protect data '
+  title: 'The Red Hat Enterprise Linux operating system must implement NIST FIPS-validated cryptography for the following: to provision digital signatures, to generate cryptographic hashes, and to protect data '
+  rule_description: 'Use of weak or untested encryption algorithms undermines the purposes of using encryption to protect data. The operating system must implement cryptographic modules adhering to the higher standards approved by the federal government since this provides assurance they have been tested and validated. Satisfies: SRG-OS-000033-GPOS-00014, SRG-OS-000185-GPOS-00079, SRG-OS-000396-GPOS-00176, SRG-OS-000405-GPOS-00184, SRG-OS-000478-GPOS-00223'
+  description: 'Use of weak or untested encryption algorithms undermines the purposes of using encryption to protect data. The operating system must implement cryptographic modules adhering to the higher standards approved by the federal government since this provides assurance they have been tested and validated. Satisfies: SRG-OS-000033-GPOS-00014, SRG-OS-000185-GPOS-00079, SRG-OS-000396-GPOS-00176, SRG-OS-000405-GPOS-00184, SRG-OS-000478-GPOS-00223'
+  category: AC-17
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system implements DoD-approved encryption to protect the confidentiality of remote access sessions. Check to see if the "dracut-fips" package is installed with the following command: # yum list installed dracut-fips dracut-fips-033-360.el7\_2.x86\_64.rpm If a "dracut-fips" package is installed, check to see if the kernel command line is configured to use FIPS mode with the following command: Note: GRUB 2 reads its configuration from the "/boot/grub2/grub.cfg" file on traditional BIOS-based machines and from the "/boot/efi/EFI/redhat/grub.cfg" file on UEFI machines. # grep fips /boot/grub2/grub.cfg /vmlinuz-3.8.0-0.40.el7.x86\_64 root=/dev/mapper/rhel-root ro rd.md=0 rd.dm=0 rd.lvm.lv=rhel/swap crashkernel=auto rd.luks=0 vconsole.keymap=us rd.lvm.lv=rhel/root rhgb fips=1 quiet If the kernel command line is configured to use FIPS mode, check to see if the system is in FIPS mode with the following command: # cat /proc/sys/crypto/fips\_enabled 1 If a
+      "dracut-fips" package is not installed, the kernel command line does not have a fips entry, or the system has a value of "0" for "fips\_enabled" in "/proc/sys/crypto", this is a finding. Verify the file /etc/system-fips exists. # ls -l /etc/system-fips If this file does not exist, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to implement DoD-approved encryption by installing the dracut-fips package. To enable strict FIPS compliance, the fips=1 kernel option needs to be added to the kernel command line during system installation so key generation is done with FIPS-approved algorithms and continuous monitoring tests in place. Configure the operating system to implement DoD-approved encryption by following the steps below: The fips=1 kernel option needs to be added to the kernel command line during system installation so that key generation is done with FIPS-approved algorithms and continuous monitoring tests in place. Users should also ensure that the system has plenty of entropy during the installation process by moving the mouse around, or if no mouse is available, ensuring that many keystrokes are typed. The recommended amount of keystrokes is 256 and more. Less than 256 keystrokes may generate a non-unique key. Install the dracut-fips package with the following
+      command: # yum install dracut-fips Recreate the "initramfs" file with the following command: Note: This command will overwrite the existing "initramfs" file. # dracut -f Modify the kernel command line of the current kernel in the "grub.cfg" file by adding the following option to the GRUB\_CMDLINE\_LINUX key in the "/etc/default/grub" file and then rebuild the "grub.cfg" file: fips=1 Changes to "/etc/default/grub" require rebuilding the "grub.cfg" file as follows: On BIOS-based machines, use the following command: # grub2-mkconfig -o /boot/grub2/grub.cfg On UEFI-based machines, use the following command: # grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg If /boot or /boot/efi reside on separate partitions, the kernel parameter boot=<partition of /boot or /boot/efi> must be added to the kernel command line. You can identify a partition by running the df /boot or df /boot/efi command: # df /boot Filesystem 1K-blocks Used Available Use% Mounted on /dev/sda1 495844 53780 416464 12% /boot
+      To ensure the "boot=" configuration option will work even if device naming changes occur between boots, identify the universally unique identifier (UUID) of the partition with the following command: # blkid /dev/sda1 /dev/sda1: UUID="05c000f1-a213-759e-c7a2-f11b7424c797" TYPE="ext4" For the example above, append the following string to the kernel command line: boot=UUID=05c000f1-a213-759e-c7a2-f11b7424c797 If the file /etc/system-fips does not exists, recreate it: # touch /etc/ system-fips Reboot the system for the changes to take effect.'
+  tags:
+  - stig
+  - rhel7
+  - ac-17
+  - cci-000068
+- rule_id: STIG-021710
+  id: RHEL-07-021710
+  legacy_ids:
+  - V-204502
+  - SV-204502r958478_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not have the telnet-server package installed.
+  title: The Red Hat Enterprise Linux operating system must not have the telnet-server package installed.
+  rule_description: It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked and therefore may remain unsecured. They increase the risk to the platform by providing additional attack vectors. Operating systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions). Examples of non-essential capabilities include, but are not limited to, games, software packages, tools, and demonstration software not related to requirements or providing a wide array of functionality not required for every mission, but which cannot be disabled.
+  description: It is detrimental for operating systems to provide, or install by default, functionality exceeding requirements or mission objectives. These unnecessary capabilities or services are often overlooked and therefore may remain unsecured. They increase the risk to the platform by providing additional attack vectors. Operating systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions). Examples of non-essential capabilities include, but are not limited to, games, software packages, tools, and demonstration software not related to requirements or providing a wide array of functionality not required for every mission, but which cannot be disabled.
+  category: CM-7
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the operating system is configured to disable non-essential capabilities. The most secure way of ensuring a non-essential capability is disabled is to not have the capability installed. The telnet service provides an unencrypted remote access service that does not provide for the confidentiality and integrity of user passwords or the remote session. If a privileged user were to log on using this service, the privileged user password could be compromised. Check to see if the telnet-server package is installed with the following command: # yum list installed telnet-server If the telnet-server package is installed, this is a finding.'
+  remediation:
+    remediation_step: 'Configure the operating system to disable non-essential capabilities by removing the telnet-server package from the system with the following command: # yum remove telnet-server'
+  tags:
+  - stig
+  - rhel7
+  - cm-7
+  - cci-000381
+- rule_id: STIG-040390
+  id: RHEL-07-040390
+  legacy_ids:
+  - V-204594
+  - SV-204594r987796_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be configured so that the SSH daemon is configured to only use the SSHv2 protocol.
+  title: The Red Hat Enterprise Linux operating system must be configured so that the SSH daemon is configured to only use the SSHv2 protocol.
+  rule_description: 'SSHv1 is an insecure implementation of the SSH protocol and has many well-known vulnerability exploits. Exploits of the SSH daemon could provide immediate root access to the system. Satisfies: SRG-OS-000074-GPOS-00042, SRG-OS-000480-GPOS-00227'
+  description: 'SSHv1 is an insecure implementation of the SSH protocol and has many well-known vulnerability exploits. Exploits of the SSH daemon could provide immediate root access to the system. Satisfies: SRG-OS-000074-GPOS-00042, SRG-OS-000480-GPOS-00227'
+  category: IA-5
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the version of the operating system with the following command: # cat /etc/redhat-release If the release is 7.4 or newer this requirement is Not Applicable. Verify the SSH daemon is configured to only use the SSHv2 protocol. Check that the SSH daemon is configured to only use the SSHv2 protocol with the following command: # grep -i protocol /etc/ssh/sshd\_config Protocol 2 #Protocol 1,2 If any protocol line other than "Protocol 2" is uncommented, this is a finding.'
+  remediation:
+    remediation_step: 'Remove all Protocol lines that reference version "1" in "/etc/ssh/sshd\_config" (this file may be named differently or be in a different location if using a version of SSH that is provided by a third-party vendor). The "Protocol" line must be as follows: Protocol 2 The SSH service must be restarted for changes to take effect.'
+  tags:
+  - stig
+  - rhel7
+  - ia-5
+  - cci-000197
+- rule_id: STIG-040540
+  id: RHEL-07-040540
+  legacy_ids:
+  - V-204606
+  - SV-204606r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not contain .shosts files.
+  title: The Red Hat Enterprise Linux operating system must not contain .shosts files.
+  rule_description: The .shosts files are used to configure host-based authentication for individual users or the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the system, as it does not require interactive identification and authentication of a connection request, or for the use of two-factor authentication.
+  description: The .shosts files are used to configure host-based authentication for individual users or the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the system, as it does not require interactive identification and authentication of a connection request, or for the use of two-factor authentication.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify there are no ".shosts" files on the system. Check the system for the existence of these files with the following command: # find / -name ''\*.shosts'' If any ".shosts" files are found on the system, this is a finding.'
+  remediation:
+    remediation_step: 'Remove any found ".shosts" files from the system. # rm /\[path\]/\[to\]/\[file\]/.shosts'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-040550
+  id: RHEL-07-040550
+  legacy_ids:
+  - V-204607
+  - SV-204607r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not contain shosts.equiv files.
+  title: The Red Hat Enterprise Linux operating system must not contain shosts.equiv files.
+  rule_description: The shosts.equiv files are used to configure host-based authentication for the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the system, as it does not require interactive identification and authentication of a connection request, or for the use of two-factor authentication.
+  description: The shosts.equiv files are used to configure host-based authentication for the system via SSH. Host-based authentication is not sufficient for preventing unauthorized access to the system, as it does not require interactive identification and authentication of a connection request, or for the use of two-factor authentication.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify there are no "shosts.equiv" files on the system. Check the system for the existence of these files with the following command: # find / -name shosts.equiv If any "shosts.equiv" files are found on the system, this is a finding.'
+  remediation:
+    remediation_step: 'Remove any found "shosts.equiv" files from the system. # rm /\[path\]/\[to\]/\[file\]/shosts.equiv'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-040690
+  id: RHEL-07-040690
+  legacy_ids:
+  - V-204620
+  - SV-204620r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not have a File Transfer Protocol (FTP) server package installed unless needed.
+  title: The Red Hat Enterprise Linux operating system must not have a File Transfer Protocol (FTP) server package installed unless needed.
+  rule_description: The FTP service provides an unencrypted remote access that does not provide for the confidentiality and integrity of user passwords or the remote session. If a privileged user were to log on using this service, the privileged user password could be compromised. SSH or other encrypted file transfer methods must be used in place of this service.
+  description: The FTP service provides an unencrypted remote access that does not provide for the confidentiality and integrity of user passwords or the remote session. If a privileged user were to log on using this service, the privileged user password could be compromised. SSH or other encrypted file transfer methods must be used in place of this service.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify an FTP server has not been installed on the system. Check to see if an FTP server has been installed with the following commands: # yum list installed vsftpd vsftpd-3.0.2.el7.x86\_64.rpm If "vsftpd" is installed and is not documented with the Information System Security Officer (ISSO) as an operational requirement, this is a finding.'
+  remediation:
+    remediation_step: 'Document the "vsftpd" package with the ISSO as an operational requirement or remove it from the system with the following command: # yum remove vsftpd'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-040700
+  id: RHEL-07-040700
+  legacy_ids:
+  - V-204621
+  - SV-204621r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not have the Trivial File Transfer Protocol (TFTP) server package installed if not required for operational support.
+  title: The Red Hat Enterprise Linux operating system must not have the Trivial File Transfer Protocol (TFTP) server package installed if not required for operational support.
+  rule_description: The Red Hat Enterprise Linux operating system must not have the Trivial File Transfer Protocol (TFTP) server package installed if not required for operational support.
+  description: The Red Hat Enterprise Linux operating system must not have the Trivial File Transfer Protocol (TFTP) server package installed if not required for operational support.
+  category: CM-3
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify a TFTP server has not been installed on the system. Check to see if a TFTP server has been installed with the following command: # yum list installed tftp-server tftp-server-0.49-9.el7.x86\_64.rpm If TFTP is installed and the requirement for TFTP is not documented with the ISSO, this is a finding.'
+  remediation:
+    remediation_step: 'Remove the TFTP package from the system with the following command: # yum remove tftp-server'
+  tags:
+  - stig
+  - rhel7
+  - cm-3
+  - cci-000318
+- rule_id: STIG-040800
+  id: RHEL-07-040800
+  legacy_ids:
+  - V-204627
+  - SV-204627r991589_rule
+  rule_name: SNMP community strings on the Red Hat Enterprise Linux operating system must be changed from the default.
+  title: SNMP community strings on the Red Hat Enterprise Linux operating system must be changed from the default.
+  rule_description: SNMP community strings on the Red Hat Enterprise Linux operating system must be changed from the default.
+  description: SNMP community strings on the Red Hat Enterprise Linux operating system must be changed from the default.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify that a system using SNMP is not using default community strings. Check to see if the "/etc/snmp/snmpd.conf" file exists with the following command: # ls -al /etc/snmp/snmpd.conf -rw------- 1 root root 52640 Mar 12 11:08 snmpd.conf If the file does not exist, this is Not Applicable. If the file does exist, check for the default community strings with the following commands: # grep public /etc/snmp/snmpd.conf # grep private /etc/snmp/snmpd.conf If either of these commands returns any output, this is a finding.'
+  remediation:
+    remediation_step: If the "/etc/snmp/snmpd.conf" file exists, modify any lines that contain a community string value of "public" or "private" to another string value.
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
+- rule_id: STIG-010020
+  id: RHEL-07-010020
+  legacy_ids:
+  - V-214799
+  - SV-214799r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must be configured so that the cryptographic hash of system files and commands matches vendor values.
+  title: The Red Hat Enterprise Linux operating system must be configured so that the cryptographic hash of system files and commands matches vendor values.
+  rule_description: Without cryptographic integrity protections, system command and files can be altered by unauthorized users without detection. Cryptographic mechanisms used for protecting the integrity of information include, for example, signed hash functions using asymmetric cryptography enabling distribution of the public key to verify the hash information while maintaining the confidentiality of the key used to generate the hash.
+  description: Without cryptographic integrity protections, system command and files can be altered by unauthorized users without detection. Cryptographic mechanisms used for protecting the integrity of information include, for example, signed hash functions using asymmetric cryptography enabling distribution of the public key to verify the hash information while maintaining the confidentiality of the key used to generate the hash.
+  category: CM-5
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify the cryptographic hash of system files and commands match the vendor values. Check the cryptographic hash of system files and commands with the following command: Note: System configuration files (indicated by a "c" in the second column) are expected to change over time. Unusual modifications should be investigated through the system audit log. # rpm -Va --noconfig | grep ''^..5'' If there is any output from the command for system files or binaries, this is a finding.'
+  remediation:
+    remediation_step: 'Run the following command to determine which package owns the file: # rpm -qf <filename> The package can be reinstalled from a yum repository using the command: # sudo yum reinstall <packagename> Alternatively, the package can be reinstalled from trusted media using the command: # sudo rpm -Uvh <packagename>'
+  tags:
+  - stig
+  - rhel7
+  - cm-5
+  - cci-001749
+- rule_id: STIG-032000
+  id: RHEL-07-032000
+  legacy_ids:
+  - V-214801
+  - SV-214801r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must use a virus scan program.
+  title: The Red Hat Enterprise Linux operating system must use a virus scan program.
+  rule_description: Virus scanning software can be used to protect a system from penetration from computer viruses and to limit their spread through intermediate systems. The virus scanning software should be configured to perform scans dynamically on accessed files. If this capability is not available, the system must be configured to scan, at a minimum, all altered files on the system on a daily basis. If the system processes inbound SMTP mail, the virus scanner must be configured to scan all received mail.
+  description: Virus scanning software can be used to protect a system from penetration from computer viruses and to limit their spread through intermediate systems. The virus scanning software should be configured to perform scans dynamically on accessed files. If this capability is not available, the system must be configured to scan, at a minimum, all altered files on the system on a daily basis. If the system processes inbound SMTP mail, the virus scanner must be configured to scan all received mail.
+  category: SI-3
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify an anti-virus solution is installed on the system. The anti-virus solution may be bundled with an approved host-based security solution. If there is no anti-virus solution installed on the system, this is a finding.
+  remediation:
+    remediation_step: Install an antivirus solution on the system.
+  tags:
+  - stig
+  - rhel7
+  - si-3
+  - cci-001668
+- rule_id: STIG-010291
+  id: RHEL-07-010291
+  legacy_ids:
+  - V-251702
+  - SV-251702r991589_rule
+  rule_name: The Red Hat Enterprise Linux operating system must not have accounts configured with blank or null passwords.
+  title: The Red Hat Enterprise Linux operating system must not have accounts configured with blank or null passwords.
+  rule_description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  description: If an account has an empty password, anyone could log on and run commands with the privileges of that account. Accounts with empty passwords should never be used in operational environments.
+  category: CM-6
+  severity: High
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the "/etc/shadow" file for blank passwords with the following command: $ sudo awk -F: ''!$2 {print $1}'' /etc/shadow If the command returns any results, this is a finding.'
+  remediation:
+    remediation_step: 'Configure all accounts on the system to have a password or lock the account with the following commands: Perform a password reset: $ sudo passwd \[username\] Lock an account: $ sudo passwd -l \[username\]'
+  tags:
+  - stig
+  - rhel7
+  - cm-6
+  - cci-000366
