@@ -1,0 +1,1265 @@
+schema_version: "1.0.0"
+metadata:
+  name: Oracle HTTP Server 12c Security
+  version: "1.0.0"
+  description: Security rules for Oracle HTTP Server 12c based on Oracle security documentation
+  platform: Oracle HTTP Server 12c
+  benchmark: Oracle HTTP Server Security Best Practices
+  author: Compliance Rules Team
+  created: "2026-03-13T00:00:00Z"
+  modified: "2026-03-13T00:00:00Z"
+  compatible_platforms:
+    - Oracle HTTP Server 12.1.2
+    - Oracle HTTP Server 12.1.3
+    - Oracle HTTP Server 12.2.1
+  references:
+    - type: Oracle Documentation
+      reference: "https://docs.oracle.com/middleware/1212/webtier/HSADM/toc.htm"
+    - type: Oracle Documentation
+      reference: "Oracle Fusion Middleware Administering Oracle HTTP Server 12c (12.1.2)"
+
+compliance_info:
+  framework: Oracle Security
+  version: "1.0.0"
+  profile: Production
+
+rules:
+  - rule_id: OHS12-001
+    rule_name: Disable SSLv2 and SSLv3 Protocols
+    rule_description: |
+      SSLv2 and SSLv3 protocols must be disabled due to known security vulnerabilities
+      including POODLE, DROWN, and other attacks. Only TLS protocols should be enabled.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Locate the ssl.conf file in DOMAIN_HOME/config/fmwconfig/components/OHS/componentName
+        2. Check the SSLProtocol directive
+        3. Verify SSLv2 and SSLv3 are disabled
+      check_command: |
+        grep -E "SSLProtocol" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf file
+        2. Set SSLProtocol to disable SSLv3:
+           SSLProtocol -SSLv3
+        3. Or use the nzos syntax for TLS only:
+           SSLProtocol nzos_Version_1_0 nzos_Version_1_1 nzos_Version_1_2
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+      service_impact: Requires server restart
+    context:
+      rationale: "SSLv2 and SSLv3 have known vulnerabilities including POODLE attack (CVE-2014-3566)"
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle HTTP Server 12c Security Guide - Section 8.5"
+    tags:
+      - ssl
+      - tls
+      - encryption
+
+  - rule_id: OHS12-002
+    rule_name: Configure Strong Cipher Suites
+    rule_description: |
+      Configure SSL cipher suites to use only strong encryption algorithms.
+      Weak ciphers such as NULL, anonymous DH, export grade, and MD5 must be disabled.
+    category: Encryption
+    subcategory: Cipher Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the SSLCipherSuite directive in ssl.conf
+        2. Verify weak ciphers are excluded
+      check_command: |
+        grep -E "SSLCipherSuite" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf file
+        2. Configure SSLCipherSuite to exclude weak ciphers:
+           SSLCipherSuite HIGH:!aNULL:!MD5:!3DES:!RC4
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Weak ciphers allow attackers to decrypt sensitive traffic"
+    tags:
+      - ssl
+      - cipher
+      - encryption
+
+  - rule_id: OHS12-003
+    rule_name: Enable TLS 1.2 as Minimum Protocol
+    rule_description: |
+      Configure Oracle HTTP Server to use TLS 1.2 as the minimum protocol version
+      for secure communications.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the SSLProtocol directive in ssl.conf
+        2. Verify TLS 1.2 is enabled and older versions disabled
+      check_command: |
+        grep -E "SSLProtocol" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf file
+        2. Configure SSLProtocol for TLS 1.2 only:
+           SSLProtocol nzos_Version_1_2
+        3. Or for compatibility:
+           SSLProtocol nzos_Version_1_1 nzos_Version_1_2
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "TLS 1.2 provides stronger security than older protocol versions"
+    tags:
+      - ssl
+      - tls
+      - encryption
+
+  - rule_id: OHS12-004
+    rule_name: Configure SSL Wallet Location
+    rule_description: |
+      Configure the SSL wallet location using the SSLWallet directive.
+      The wallet contains the server certificate and private key.
+    category: Encryption
+    subcategory: Certificate Management
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the SSLWallet directive in ssl.conf
+        2. Verify the wallet path exists and is accessible
+      check_command: |
+        grep -E "SSLWallet" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Create or obtain SSL wallet with valid certificate
+        2. Edit ssl.conf file
+        3. Configure SSLWallet:
+           SSLWallet "${ORACLE_INSTANCE}/config/fmwconfig/components/${COMPONENT_TYPE}/instances/${COMPONENT_NAME}/keystores/default"
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "SSL wallet is required for HTTPS connections"
+    tags:
+      - ssl
+      - certificate
+      - wallet
+
+  - rule_id: OHS12-005
+    rule_name: Enable SSL Engine
+    rule_description: |
+      Enable the SSL/TLS protocol engine for secure communications.
+      SSLEngine must be set to 'on' in the ssl.conf file.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the SSLEngine directive in ssl.conf
+        2. Verify it is set to 'on'
+      check_command: |
+        grep -E "SSLEngine" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf file
+        2. Set SSLEngine on:
+           SSLEngine on
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - ssl
+      - tls
+      - encryption
+
+  - rule_id: OHS12-006
+    rule_name: Enable mod_security Web Application Firewall
+    rule_description: |
+      Enable mod_security module to protect against common web attacks
+      including SQL injection, cross-site scripting (XSS), and other threats.
+    category: Application Security
+    subcategory: Web Application Firewall
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if mod_security2.so is loaded in httpd.conf or mod_security.conf
+        2. Verify SecRuleEngine is enabled
+      check_command: |
+        grep -r "LoadModule security2_module" . 2>/dev/null
+        grep -r "SecRuleEngine" . 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Create or edit mod_security.conf file
+        2. Add the following:
+           LoadModule security2_module "${PRODUCT_HOME}/modules/mod_security2.so"
+           SecRuleEngine On
+        3. Include the file in httpd.conf:
+           Include mod_security.conf
+        4. Configure appropriate security rules
+        5. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "mod_security provides protection against web application attacks"
+    tags:
+      - waf
+      - mod_security
+      - application-security
+
+  - rule_id: OHS12-007
+    rule_name: Configure mod_security Request Body Access
+    rule_description: |
+      Enable mod_security request body inspection to detect attacks
+      in POST data and other request bodies.
+    category: Application Security
+    subcategory: Web Application Firewall
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SecRequestBodyAccess directive in mod_security.conf
+        2. Verify it is set to 'On'
+      check_command: |
+        grep -E "SecRequestBodyAccess" mod_security.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit mod_security.conf
+        2. Set SecRequestBodyAccess On:
+           SecRequestBodyAccess On
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Request body inspection detects attacks in POST data"
+    tags:
+      - waf
+      - mod_security
+
+  - rule_id: OHS12-008
+    rule_name: Configure mod_security Response Body Access
+    rule_description: |
+      Enable mod_security response body inspection to detect data leakage
+      and error messages in responses.
+    category: Application Security
+    subcategory: Web Application Firewall
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SecResponseBodyAccess directive in mod_security.conf
+        2. Verify it is set to 'On'
+      check_command: |
+        grep -E "SecResponseBodyAccess" mod_security.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit mod_security.conf
+        2. Set SecResponseBodyAccess On:
+           SecResponseBodyAccess On
+        3. Configure SecResponseBodyMimeType for relevant types
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Response body inspection helps detect data leakage"
+    tags:
+      - waf
+      - mod_security
+
+  - rule_id: OHS12-009
+    rule_name: Configure Secure mod_security Temporary Directory
+    rule_description: |
+      Configure SecTmpDir and SecDataDir to use a secure location
+      instead of the default /tmp directory.
+    category: Application Security
+    subcategory: Web Application Firewall
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SecTmpDir and SecDataDir in mod_security.conf
+        2. Verify they point to secure, non-public locations
+      check_command: |
+        grep -E "SecTmpDir|SecDataDir" mod_security.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Create secure directories for mod_security
+        2. Edit mod_security.conf
+        3. Set secure paths:
+           SecTmpDir /path/to/secure/tmp/
+           SecDataDir /path/to/secure/data/
+        4. Set appropriate permissions (restricted access)
+        5. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Using /tmp allows other users to access mod_security data"
+    tags:
+      - waf
+      - mod_security
+
+  - rule_id: OHS12-010
+    rule_name: Enable mod_security Audit Logging
+    rule_description: |
+      Enable mod_security audit logging to record security events
+      and attack attempts.
+    category: Auditing
+    subcategory: Security Logging
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SecAuditEngine directive in mod_security.conf
+        2. Verify it is set to 'RelevantOnly' or 'On'
+      check_command: |
+        grep -E "SecAuditEngine" mod_security.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit mod_security.conf
+        2. Configure audit logging:
+           SecAuditEngine RelevantOnly
+           SecAuditLogRelevantStatus "^(?:5|4(?!04))"
+           SecAuditLogParts ABIJDEFHZ
+           SecAuditLogType Serial
+           SecAuditLog "${ORACLE_INSTANCE}/servers/${COMPONENT_NAME}/logs/modsec_audit.log"
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Audit logging is essential for security monitoring and forensics"
+    tags:
+      - waf
+      - mod_security
+      - logging
+      - auditing
+
+  - rule_id: OHS12-011
+    rule_name: Configure Error Log Level
+    rule_description: |
+      Configure appropriate error log level for security monitoring.
+      LogLevel should be set to 'warn' or higher for production.
+    category: Auditing
+    subcategory: Logging Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LogLevel directive in httpd.conf
+        2. Verify appropriate level is set
+      check_command: |
+        grep -E "^LogLevel" httpd.conf
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Set appropriate log level:
+           LogLevel warn
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - logging
+      - monitoring
+
+  - rule_id: OHS12-012
+    rule_name: Configure Access Logging
+    rule_description: |
+      Configure access logging to record all HTTP requests
+      for security monitoring and forensics.
+    category: Auditing
+    subcategory: Logging Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LogFormat and CustomLog directives in httpd.conf
+        2. Verify access logging is configured
+      check_command: |
+        grep -E "LogFormat|CustomLog" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Configure access logging:
+           LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+           CustomLog logs/access_log combined
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - logging
+      - monitoring
+
+  - rule_id: OHS12-013
+    rule_name: Enable FMW Audit Framework
+    rule_description: |
+      Enable Oracle Fusion Middleware Audit Framework for authentication
+      and authorization auditing.
+    category: Auditing
+    subcategory: Security Auditing
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check OraAuditEnable directive in httpd.conf or ssl.conf
+        2. Verify audit is enabled
+      check_command: |
+        grep -E "OraAuditEnable" httpd.conf ssl.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf or ssl.conf
+        2. Enable audit:
+           OraAuditEnable On
+        3. Configure audit events in auditconfig.xml
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle HTTP Server Security Guide - Section 8.4.3"
+    tags:
+      - auditing
+      - compliance
+
+  - rule_id: OHS12-014
+    rule_name: Configure Client Certificate Verification
+    rule_description: |
+      Configure SSL client certificate verification for mutual TLS authentication
+      when required for sensitive applications.
+    category: Authentication
+    subcategory: Certificate Authentication
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSLVerifyClient directive in ssl.conf
+        2. Verify appropriate level is set for the application
+      check_command: |
+        grep -E "SSLVerifyClient" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf
+        2. Set client verification level:
+           SSLVerifyClient require
+        3. Configure CA certificates for verification
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - ssl
+      - authentication
+      - certificate
+
+  - rule_id: OHS12-015
+    rule_name: Configure SSL Session Cache
+    rule_description: |
+      Configure SSL session cache to improve performance while
+      maintaining security of session data.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSLSessionCache directive in ssl.conf
+        2. Verify cache is configured appropriately
+      check_command: |
+        grep -E "SSLSessionCache" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf
+        2. Configure session cache:
+           SSLSessionCache "shmcb:${ORACLE_INSTANCE}/servers/${COMPONENT_NAME}/logs/ssl_scache(512000)"
+           SSLSessionCacheTimeout 300
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - ssl
+      - performance
+
+  - rule_id: OHS12-016
+    rule_name: Disable Insecure SSL Renegotiation
+    rule_description: |
+      Disable insecure SSL renegotiation to prevent CVE-2009-3555
+      man-in-the-middle attack.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSLInsecureRenegotiation directive in ssl.conf
+        2. Verify it is set to 'OFF' or not present (default is secure)
+      check_command: |
+        grep -E "SSLInsecureRenegotiation" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf
+        2. Ensure insecure renegotiation is disabled:
+           SSLInsecureRenegotiation OFF
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Insecure renegotiation allows MITM prefix attacks (CVE-2009-3555)"
+    tags:
+      - ssl
+      - tls
+
+  - rule_id: OHS12-017
+    rule_name: Configure SSL Mutex
+    rule_description: |
+      Configure appropriate SSL mutex for the platform to prevent
+      session cache corruption.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSLMutex directive in ssl.conf
+        2. Verify appropriate mutex type is configured
+      check_command: |
+        grep -E "SSLMutex" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf
+        2. Configure SSL mutex (Unix/Linux):
+           SSLMutex sem
+        3. Or use pthread:
+           SSLMutex pthread
+        4. Avoid 'none' on non-Windows platforms
+        5. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - ssl
+      - configuration
+
+  - rule_id: OHS12-018
+    rule_name: Configure ServerTokens to Hide Version
+    rule_description: |
+      Configure ServerTokens directive to hide server version information
+      from HTTP responses.
+    category: Configuration
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ServerTokens directive in httpd.conf
+        2. Verify it is set to 'Prod' or 'Minimal'
+      check_command: |
+        grep -E "ServerTokens" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Set ServerTokens:
+           ServerTokens Prod
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Hiding version information reduces attack surface"
+    tags:
+      - information-disclosure
+      - hardening
+
+  - rule_id: OHS12-019
+    rule_name: Disable ServerSignature
+    rule_description: |
+      Disable ServerSignature to prevent server version information
+      from appearing in error pages.
+    category: Configuration
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ServerSignature directive in httpd.conf
+        2. Verify it is set to 'Off'
+      check_command: |
+        grep -E "ServerSignature" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Set ServerSignature:
+           ServerSignature Off
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - information-disclosure
+      - hardening
+
+  - rule_id: OHS12-020
+    rule_name: Disable OPTIONS Method
+    rule_description: |
+      Disable the HTTP OPTIONS method unless specifically required
+      to reduce information disclosure.
+    category: Network Security
+    subcategory: HTTP Methods
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for OPTIONS method restrictions
+        2. Verify OPTIONS is disabled or restricted
+      check_command: |
+        grep -A5 "<Location" httpd.conf | grep -i "options"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Add restriction for OPTIONS method:
+           <Location />
+             <Limit OPTIONS>
+               Order deny,allow
+               Deny from all
+             </Limit>
+           </Location>
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "OPTIONS method can reveal server configuration"
+    tags:
+      - http-methods
+      - hardening
+
+  - rule_id: OHS12-021
+    rule_name: Restrict TRACE Method
+    rule_description: |
+      Disable the HTTP TRACE method to prevent cross-site tracing (XST) attacks.
+    category: Network Security
+    subcategory: HTTP Methods
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for TRACE method restrictions
+        2. Verify TRACE is disabled
+      check_command: |
+        grep -E "TraceEnable" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Disable TRACE:
+           TraceEnable Off
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "TRACE method can be used for XST attacks to steal cookies"
+    tags:
+      - http-methods
+      - xss
+
+  - rule_id: OHS12-022
+    rule_name: Configure Access Control by IP
+    rule_description: |
+      Configure IP-based access control to restrict access to
+      administrative interfaces and sensitive resources.
+    category: Network Security
+    subcategory: Access Control
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for access control directives
+        2. Verify administrative paths are restricted
+      check_command: |
+        grep -E "(Allow|Deny|Require)" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Add access control for sensitive locations:
+           <Location /admin>
+             Require ip 10.0.0.0/8
+             Require ip 192.168.0.0/16
+           </Location>
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - access-control
+      - network-security
+
+  - rule_id: OHS12-023
+    rule_name: Remove Default Content and Examples
+    rule_description: |
+      Remove or restrict access to default content, examples, and
+      documentation that ship with Oracle HTTP Server.
+    category: Configuration
+    subcategory: Default Content
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check DocumentRoot for default content
+        2. Verify example applications are removed or restricted
+      check_command: |
+        ls -la ${ORACLE_INSTANCE}/config/fmwconfig/components/OHS/instances/*/htdocs/
+    remediation:
+      remediation_step: |
+        1. Remove or restrict access to default content:
+           - Remove sample applications
+           - Remove default documentation
+           - Remove cgi-bin examples
+        2. Edit httpd.conf to disable unneeded sections
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - hardening
+      - default-content
+
+  - rule_id: OHS12-024
+    rule_name: Configure Virtual Host Security
+    rule_description: |
+      Configure security settings for each virtual host including
+      SSL certificates, access controls, and logging.
+    category: Configuration
+    subcategory: Virtual Hosts
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check VirtualHost configurations in httpd.conf
+        2. Verify security settings are applied
+      check_command: |
+        grep -A20 "<VirtualHost" httpd.conf
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Configure security for each VirtualHost:
+           <VirtualHost *:443>
+             SSLEngine on
+             SSLProtocol nzos_Version_1_2
+             SSLCipherSuite HIGH:!aNULL:!MD5
+             SSLWallet "path/to/wallet"
+           </VirtualHost>
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - virtual-host
+      - ssl
+
+  - rule_id: OHS12-025
+    rule_name: Configure mod_wl_ohs Security
+    rule_description: |
+      Configure security settings for mod_wl_ohs (WebLogic proxy plugin)
+      including secure communication with WebLogic Server.
+    category: Application Security
+    subcategory: Proxy Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check mod_wl_ohs.conf for security settings
+        2. Verify SSL is configured for backend connections
+      check_command: |
+        grep -E "WebLogicHost|WebLogicPort|SecureProxy" mod_wl_ohs.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit mod_wl_ohs.conf
+        2. Configure secure proxy settings:
+           <Location /weblogic>
+             SetHandler weblogic-handler
+             WebLogicHost wls-host.example.com
+             WebLogicPort 7002
+             SecureProxy ON
+           </Location>
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - proxy
+      - weblogic
+
+  - rule_id: OHS12-026
+    rule_name: Configure SSL Proxy Settings
+    rule_description: |
+      Configure SSL proxy settings for secure backend connections
+      including proxy wallet and cipher suites.
+    category: Encryption
+    subcategory: Proxy SSL
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ssl.conf for SSLProxy directives
+        2. Verify proxy SSL is configured
+      check_command: |
+        grep -E "SSLProxy" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf
+        2. Configure proxy SSL:
+           SSLProxyEngine on
+           SSLProxyProtocol nzos_Version_1_2
+           SSLProxyCipherSuite HIGH:!aNULL:!MD5
+           SSLProxyWallet "path/to/proxy/wallet"
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - ssl
+      - proxy
+
+  - rule_id: OHS12-027
+    rule_name: Configure Certificate Revocation
+    rule_description: |
+      Configure certificate revocation checking using CRLs
+      to reject revoked client certificates.
+    category: Authentication
+    subcategory: Certificate Management
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ssl.conf for SSLCARevocation directives
+        2. Verify CRL checking is configured
+      check_command: |
+        grep -E "SSLCARevocation" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf
+        2. Configure CRL checking:
+           SSLCARevocationPath "${ORACLE_INSTANCE}/config/fmwconfig/components/${COMPONENT_TYPE}/instances/${COMPONENT_NAME}/keystores/crl"
+        3. Regularly update CRL files
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - ssl
+      - certificate
+      - crl
+
+  - rule_id: OHS12-028
+    rule_name: Configure mod_plsql Authentication
+    rule_description: |
+      Configure authentication mode for mod_plsql Database Access Descriptors
+      appropriately for the application security requirements.
+    category: Authentication
+    subcategory: Database Access
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check dads.conf for PlsqlAuthenticationMode
+        2. Verify appropriate authentication is configured
+      check_command: |
+        grep -E "PlsqlAuthenticationMode" dads.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit dads.conf
+        2. Configure appropriate authentication:
+           PlsqlAuthenticationMode Basic
+        3. For SSO-enabled applications:
+           PlsqlAuthenticationMode SingleSignOn
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - authentication
+      - plsql
+
+  - rule_id: OHS12-029
+    rule_name: Configure mod_plsql Exclusion List
+    rule_description: |
+      Configure PlsqlExclusionList to prevent access to sensitive
+      PL/SQL packages and procedures.
+    category: Application Security
+    subcategory: Database Access
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check dads.conf for PlsqlExclusionList
+        2. Verify sensitive procedures are excluded
+      check_command: |
+        grep -E "PlsqlExclusionList" dads.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit dads.conf
+        2. Configure exclusion list:
+           PlsqlExclusionList mdsys.sdo_geo_addr, mdsys.sdo_cs, wpg_session
+        3. Add application-specific exclusions
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - plsql
+      - database-security
+
+  - rule_id: OHS12-030
+    rule_name: Disable mod_plsql Debug Logging
+    rule_description: |
+      Disable mod_plsql debug logging in production environments
+      to prevent information disclosure.
+    category: Auditing
+    subcategory: Logging Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check plsql.conf for PlsqlLogEnable
+        2. Verify it is set to 'Off' in production
+      check_command: |
+        grep -E "PlsqlLogEnable" plsql.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit plsql.conf
+        2. Disable debug logging:
+           PlsqlLogEnable Off
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "Debug logging can expose sensitive information"
+    tags:
+      - plsql
+      - logging
+
+  - rule_id: OHS12-031
+    rule_name: Configure Request Limits
+    rule_description: |
+      Configure appropriate limits for request body size, timeout,
+      and other request parameters to prevent DoS attacks.
+    category: Network Security
+    subcategory: DoS Protection
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for LimitRequestBody, Timeout directives
+        2. Verify appropriate limits are set
+      check_command: |
+        grep -E "LimitRequestBody|Timeout|LimitRequestFields" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Configure request limits:
+           LimitRequestBody 10485760
+           Timeout 60
+           LimitRequestFields 50
+           LimitRequestFieldSize 8190
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - dos-protection
+      - hardening
+
+  - rule_id: OHS12-032
+    rule_name: Configure KeepAlive Settings
+    rule_description: |
+      Configure KeepAlive settings appropriately to balance
+      performance and resource usage.
+    category: Configuration
+    subcategory: Connection Management
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for KeepAlive directives
+        2. Verify settings are appropriate
+      check_command: |
+        grep -E "KeepAlive|MaxKeepAliveRequests|KeepAliveTimeout" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Configure KeepAlive:
+           KeepAlive On
+           MaxKeepAliveRequests 100
+           KeepAliveTimeout 5
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - performance
+      - configuration
+
+  - rule_id: OHS12-033
+    rule_name: Configure Admin Port Security
+    rule_description: |
+      Secure the Oracle HTTP Server administration port with
+      appropriate access controls and SSL.
+    category: Management
+    subcategory: Administrative Access
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check admin.conf for administration port configuration
+        2. Verify access is restricted and SSL is enabled
+      check_command: |
+        grep -E "Listen|<Location" admin.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit admin.conf
+        2. Configure admin port with SSL:
+           Listen 9999
+           <VirtualHost *:9999>
+             SSLEngine on
+             <Location />
+               Require ip 127.0.0.1
+               Require ip 10.0.0.0/8
+             </Location>
+           </VirtualHost>
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - admin
+      - access-control
+
+  - rule_id: OHS12-034
+    rule_name: Enable FIPS Mode for SSL
+    rule_description: |
+      Enable FIPS 140-2 compliant mode for SSL operations
+      when required for compliance.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ssl.conf for SSLFIPS directive
+        2. Verify FIPS mode is enabled if required
+      check_command: |
+        grep -E "SSLFIPS" ssl.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit ssl.conf (Unix/Linux only)
+        2. Enable FIPS mode:
+           SSLFIPS ON
+        3. Use only FIPS-compliant cipher suites
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    context:
+      rationale: "FIPS mode ensures compliance with federal security standards"
+    tags:
+      - ssl
+      - compliance
+      - fips
+
+  - rule_id: OHS12-035
+    rule_name: Configure Log Rotation
+    rule_description: |
+      Configure log rotation to manage log file sizes and
+      ensure logs are retained appropriately.
+    category: Auditing
+    subcategory: Logging Configuration
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check log rotation configuration
+        2. Verify logs are rotated appropriately
+      check_command: |
+        ls -la ${ORACLE_INSTANCE}/servers/${COMPONENT_NAME}/logs/*.log
+    remediation:
+      remediation_step: |
+        1. Configure log rotation using:
+           - Oracle Diagnostic Logging rotation
+           - External log rotation tools (logrotate)
+        2. Set appropriate retention policies
+        3. Monitor log file sizes
+      reboot_required: false
+    tags:
+      - logging
+      - maintenance
+
+  - rule_id: OHS12-036
+    rule_name: Restrict Directory Listing
+    rule_description: |
+      Disable directory listing (Indexes) to prevent disclosure
+      of directory contents.
+    category: Configuration
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for Options directive
+        2. Verify Indexes is disabled
+      check_command: |
+        grep -E "Options.*Indexes" httpd.conf | grep -v "^#"
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Disable directory listing:
+           Options -Indexes
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - information-disclosure
+      - hardening
+
+  - rule_id: OHS12-037
+    rule_name: Configure Request Validation Function
+    rule_description: |
+      Configure PlsqlRequestValidationFunction for mod_plsql to
+      validate incoming requests for security.
+    category: Application Security
+    subcategory: Database Access
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check dads.conf for PlsqlRequestValidationFunction
+        2. Verify request validation is configured
+      check_command: |
+        grep -E "PlsqlRequestValidationFunction" dads.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Create validation function in database
+        2. Edit dads.conf
+        3. Configure validation:
+           PlsqlRequestValidationFunction schema.validation_function
+        4. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - plsql
+      - input-validation
+
+  - rule_id: OHS12-038
+    rule_name: Secure Wallet File Permissions
+    rule_description: |
+      Set appropriate file permissions on SSL wallet files
+      to prevent unauthorized access.
+    category: Encryption
+    subcategory: Certificate Management
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check wallet directory permissions
+        2. Verify only authorized users have access
+      check_command: |
+        ls -la ${ORACLE_INSTANCE}/config/fmwconfig/components/OHS/*/keystores/
+    remediation:
+      remediation_step: |
+        1. Set wallet directory permissions:
+           chmod 700 keystores/
+        2. Set wallet file permissions:
+           chmod 600 keystores/default/*
+        3. Ensure owner is the OHS process owner
+      reboot_required: false
+    tags:
+      - certificate
+      - file-permissions
+
+  - rule_id: OHS12-039
+    rule_name: Configure Security Headers
+    rule_description: |
+      Configure HTTP security headers including X-Frame-Options,
+      X-Content-Type-Options, and X-XSS-Protection.
+    category: Application Security
+    subcategory: HTTP Headers
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for Header directives
+        2. Verify security headers are configured
+      check_command: |
+        grep -E "Header.*X-Frame-Options|Header.*X-Content-Type|Header.*X-XSS" httpd.conf
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Add security headers:
+           Header always set X-Frame-Options "SAMEORIGIN"
+           Header always set X-Content-Type-Options "nosniff"
+           Header always set X-XSS-Protection "1; mode=block"
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - security-headers
+      - xss
+
+  - rule_id: OHS12-040
+    rule_name: Configure mod_certheaders
+    rule_description: |
+      Configure mod_certheaders appropriately when using
+      a load balancer or reverse proxy that terminates SSL.
+    category: Network Security
+    subcategory: Proxy Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for mod_certheaders directives
+        2. Verify configuration is appropriate for deployment
+      check_command: |
+        grep -E "AddCertHeader|SimulateHttps" httpd.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf
+        2. Configure mod_certheaders if behind SSL-terminating proxy:
+           AddCertHeader SSL_CLIENT_CERT
+           SimulateHttps on
+        3. Restart Oracle HTTP Server
+      reboot_required: false
+    tags:
+      - proxy
+      - ssl

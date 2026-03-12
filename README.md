@@ -21,6 +21,7 @@
 <img src="https://img.shields.io/badge/Oracle_WebLogic-12c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic 12c"/>
 <img src="https://img.shields.io/badge/Oracle_WebLogic-14c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic 14c"/>
 <img src="https://img.shields.io/badge/Oracle_WebLogic-15c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic 15c"/>
+<img src="https://img.shields.io/badge/Oracle_HTTP_Server-12c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle HTTP Server 12c"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -563,6 +564,37 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 ---
 
+### 🌐 Oracle HTTP Server 12c
+
+#### Oracle Security
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Oracle Security](ora/http-server-12c/ora/ora-http-server-12c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Category | Rules | Description |
+|----------|-------|-------------|
+| Encryption | 10 | SSL/TLS, cipher suites, certificate management |
+| Application Security | 6 | Web Application Firewall, mod_security, proxy |
+| Auditing | 5 | Logging, audit framework, monitoring |
+| Authentication | 3 | Certificate authentication, mod_plsql auth |
+| Network Security | 4 | Access control, HTTP methods, DoS protection |
+| Configuration | 6 | Information disclosure, virtual hosts, hardening |
+| Management | 2 | Admin port security, maintenance |
+| Database Access | 4 | mod_plsql security, DAD configuration |
+| **Total** | **40** | |
+
+</details>
+
+#### CIS Benchmarks & DISA STIG
+
+> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle HTTP Server 12c. The rules in this repository are based on Oracle's official security documentation.
+
+---
+
 ## 🏛️ Supported Frameworks
 
 <table>
@@ -891,20 +923,21 @@ generate_ansible_playbook(
 | WebLogic 12c Security | - | - | - | - | - | 40 | **40** |
 | WebLogic 14c Security | - | - | - | - | - | 45 | **45** |
 | WebLogic 15c Security | - | - | - | - | - | 43 | **43** |
+| HTTP Server 12c Security | - | - | - | - | - | 40 | **40** |
 | RHEL 10 Server | 225 | 77 | - | - | - | - | **302** |
 | RHEL 10 Workstation | 219 | 78 | - | - | - | - | **297** |
 | RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | - | **485** |
 | RHEL 9 Workstation | 6 | 3 | - | - | - | - | **9** |
 | RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | - | **376** |
 | RHEL 8 Workstation | 2 | 2 | - | - | - | - | **4** |
-| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **128** | **5644** |
+| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **168** | **5684** |
 
 ### Severity Distribution
 
 ```
-High (Critical):   657 rules (11.6%) ████████████░░░░░░░░░░░░░░░
-Medium:           4521 rules (80.1%) ████████████████████████████
-Low:               156 rules (2.8%)  ███░░░░░░░░░░░░░░░░░░░░░░░░
+High (Critical):   661 rules (11.6%) ████████████░░░░░░░░░░░░░░░
+Medium:           4543 rules (79.9%) ████████████████████████████
+Low:               161 rules (2.8%)  ███░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ### Automation Coverage
@@ -940,6 +973,7 @@ Manual:             21 rules (0.5%)  ░░░░░░░░░░░░░░�
 | **Oracle** | [Oracle WebLogic Server 12c Security Documentation](https://docs.oracle.com/middleware/1212/wls/SECMG/toc.htm) | v1.0.0 | 2026 |
 | **Oracle** | [Oracle WebLogic Server 14c Security Documentation](https://docs.oracle.com/en/middleware/standalone/weblogic-server/14.1.1.0/secmg/toc.htm) | v1.0.0 | 2026 |
 | **Oracle** | [Oracle WebLogic Server 15c Security Documentation](https://docs.oracle.com/en/middleware/standalone/weblogic-server/15.1.1/secmg/toc.htm) | v1.0.0 | 2026 |
+| **Oracle** | [Oracle HTTP Server 12c Security Documentation](https://docs.oracle.com/middleware/1212/webtier/HSADM/toc.htm) | v1.0.0 | 2026 |
 
 ### Community Resources
 
