@@ -17,7 +17,7 @@ metadata:
       reference: "Oracle WebLogic Server 15c (15.1.1.0) Security Administration Guide"
 
 compliance_info:
-  framework: Oracle Security Best Practices
+  framework: Oracle Security
   version: "1.0.0"
   profile: Production
 

@@ -18,7 +18,7 @@ metadata:
       reference: "Oracle Fusion Middleware Administering Security for Oracle WebLogic Server 14c (14.1.1.0)"
 
 compliance_info:
-  framework: Oracle Security Best Practices
+  framework: Oracle Security
   version: "1.0.0"
   profile: Production
 

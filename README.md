@@ -461,7 +461,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Security Hardening](ora/weblogic-12c/security/ora-weblogic-12c-security-hardening-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
+| [Oracle Security](ora/weblogic-12c/ora/ora-weblogic-12c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -483,7 +483,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 #### CIS Benchmarks & DISA STIG
 
-> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 12c. The rules in this repository are based on Oracle's official security documentation and best practices.
+> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 12c. The rules in this repository are based on Oracle's official security documentation.
 
 ---
 
@@ -493,7 +493,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Security Hardening](ora/weblogic-14c/security/ora-weblogic-14c-security-hardening-1.0.0.yaml) | 🟢 Production | Server | 45 | Security hardening based on Oracle documentation | ✅ Verified |
+| [Oracle Security](ora/weblogic-14c/ora/ora-weblogic-14c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 45 | Security hardening based on Oracle documentation | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -521,7 +521,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 #### CIS Benchmarks & DISA STIG
 
-> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 14c. The rules in this repository are based on Oracle's official security documentation and best practices.
+> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 14c. The rules in this repository are based on Oracle's official security documentation.
 
 ---
 
@@ -531,7 +531,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Security Hardening](ora/weblogic-15c/security/ora-weblogic-15c-security-hardening-1.0.0.yaml) | 🟢 Production | Server | 43 | Security hardening based on Oracle documentation | ✅ Verified |
+| [Oracle Security](ora/weblogic-15c/ora/ora-weblogic-15c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 43 | Security hardening based on Oracle documentation | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -559,7 +559,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 #### CIS Benchmarks & DISA STIG
 
-> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 15c. The rules in this repository are based on Oracle's official security documentation and best practices.
+> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 15c. The rules in this repository are based on Oracle's official security documentation.
 
 ---
 
