@@ -485,6 +485,44 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 ---
 
+### 🔧 Oracle WebLogic Server 14c
+
+#### Oracle Security Best Practices
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Security Hardening](ora/weblogic-14c/security/ora-weblogic-14c-security-hardening-1.0.0.yaml) | 🟢 Production | Server | 45 | Security hardening based on Oracle documentation | ✅ Verified |
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Category | Rules | Description |
+|----------|-------|-------------|
+| Authentication | 6 | User authentication, password policies, SAML, OAuth |
+| Encryption | 7 | SSL/TLS, certificate management, HSTS |
+| Auditing | 3 | Logging, configuration auditing, request logging |
+| Network Security | 3 | Connection filtering, ports, virtual hosts |
+| Session Management | 2 | Session timeout and cookie security |
+| Application Security | 9 | EJB, REST, Web Services, security headers, error handling |
+| Configuration | 4 | Production mode, boot identity, classloading |
+| Management | 2 | JMX, Node Manager security |
+| Cluster Security | 1 | Cluster communication security |
+| Coherence Security | 1 | Coherence cluster security |
+| Resource Management | 1 | Work Manager constraints |
+| Monitoring | 1 | SNMP security |
+| Domain Security | 1 | Cross-domain security |
+| Database Security | 1 | JDBC security |
+| Messaging Security | 1 | JMS security |
+| **Total** | **45** | |
+
+</details>
+
+#### CIS Benchmarks & DISA STIG
+
+> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 14c. The rules in this repository are based on Oracle's official security documentation and best practices.
+
+---
+
 ## 🏛️ Supported Frameworks
 
 <table>
@@ -811,13 +849,14 @@ generate_ansible_playbook(
 | Solaris 11.4 X86 STIG | - | - | 14 | 152 | 50 | - | **216** |
 | Solaris 11.4 SPARC STIG | - | - | 14 | 154 | 49 | - | **217** |
 | WebLogic 12c Security | - | - | - | - | - | 40 | **40** |
+| WebLogic 14c Security | - | - | - | - | - | 45 | **45** |
 | RHEL 10 Server | 225 | 77 | - | - | - | - | **302** |
 | RHEL 10 Workstation | 219 | 78 | - | - | - | - | **297** |
 | RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | - | **485** |
 | RHEL 9 Workstation | 6 | 3 | - | - | - | - | **9** |
 | RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | - | **376** |
 | RHEL 8 Workstation | 2 | 2 | - | - | - | - | **4** |
-| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **40** | **5556** |
+| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **85** | **5601** |
 
 ### Severity Distribution
 
@@ -858,6 +897,7 @@ Manual:             21 rules (0.5%)  ░░░░░░░░░░░░░░�
 | **STIG** | [DISA STIG Solaris 11 SPARC](https://www.stigviewer.com/stigs/solaris_11_sparc) | V3R2 | May 2025 |
 | **CIS** | [CIS Oracle Solaris 11.4 Benchmark](https://www.cisecurity.org/benchmark/oracle_solaris) | v1.1.0 | 2024 |
 | **Oracle** | [Oracle WebLogic Server 12c Security Documentation](https://docs.oracle.com/middleware/1212/wls/SECMG/toc.htm) | v1.0.0 | 2026 |
+| **Oracle** | [Oracle WebLogic Server 14c Security Documentation](https://docs.oracle.com/en/middleware/standalone/weblogic-server/14.1.1.0/secmg/toc.htm) | v1.0.0 | 2026 |
 
 ### Community Resources
 
