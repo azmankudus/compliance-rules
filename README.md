@@ -18,6 +18,7 @@
 <img src="https://img.shields.io/badge/Windows_Server-2022-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2022"/>
 <img src="https://img.shields.io/badge/Windows_Server-2025-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2025"/>
 <img src="https://img.shields.io/badge/Oracle_Solaris-11.4-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle Solaris 11.4"/>
+<img src="https://img.shields.io/badge/Oracle_WebLogic-12c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic 12c"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -452,6 +453,38 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 ---
 
+### 🔧 Oracle WebLogic Server 12c
+
+#### Oracle Security Best Practices
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Security Hardening](ora/weblogic-12c/security/ora-weblogic-12c-security-hardening-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Category | Rules | Description |
+|----------|-------|-------------|
+| Authentication | 7 | User authentication and password policies |
+| Encryption | 7 | SSL/TLS and certificate management |
+| Auditing | 2 | Logging and configuration auditing |
+| Network Security | 3 | Connection filtering and ports |
+| Session Management | 2 | Session timeout and cookie security |
+| Application Security | 6 | EJB, REST, Web Services security |
+| Configuration | 4 | Production mode and default applications |
+| Management | 3 | JMX, Node Manager, SNMP security |
+| Cluster Security | 2 | Cluster and Coherence security |
+| **Total** | **40** | |
+
+</details>
+
+#### CIS Benchmarks & DISA STIG
+
+> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 12c. The rules in this repository are based on Oracle's official security documentation and best practices.
+
+---
+
 ## 🏛️ Supported Frameworks
 
 <table>
@@ -763,40 +796,41 @@ generate_ansible_playbook(
 
 ### Rule Coverage
 
-| Product | CIS L1 | CIS L2 | STIG CAT I | STIG CAT II | STIG CAT III | **Total** |
-|---------|--------|--------|------------|-------------|--------------|-----------|
-| WS 2025 DC | 247 | 198 | - | - | - | **445** |
-| WS 2025 MS | 247 | 198 | - | - | - | **445** |
-| WS 2022 DC | 247 | 198 | - | - | - | **445** |
-| WS 2022 MS | 247 | 198 | - | - | - | **445** |
-| WS 2022 STIG | - | - | 31 | 232 | 12 | **275** |
-| WS 2019 DC | 243 | 177 | - | - | - | **420** |
-| WS 2019 MS | 243 | 177 | - | - | - | **420** |
-| WS 2019 STIG | - | - | 34 | 227 | 14 | **275** |
-| WS 2016 DC | 256 | 55 | - | - | - | **311** |
-| WS 2016 MS | 264 | 59 | - | - | - | **323** |
-| Solaris 11.4 X86 STIG | - | - | 14 | 152 | 50 | **216** |
-| Solaris 11.4 SPARC STIG | - | - | 14 | 154 | 49 | **217** |
-| RHEL 10 Server | 225 | 77 | - | - | - | **302** |
-| RHEL 10 Workstation | 219 | 78 | - | - | - | **297** |
-| RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | **485** |
-| RHEL 9 Workstation | 6 | 3 | - | - | - | **9** |
-| RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | **376** |
-| RHEL 8 Workstation | 2 | 2 | - | - | - | **4** |
-| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **5516** |
+| Product | CIS L1 | CIS L2 | STIG CAT I | STIG CAT II | STIG CAT III | Oracle Sec | **Total** |
+|---------|--------|--------|------------|-------------|--------------|------------|-----------|
+| WS 2025 DC | 247 | 198 | - | - | - | - | **445** |
+| WS 2025 MS | 247 | 198 | - | - | - | - | **445** |
+| WS 2022 DC | 247 | 198 | - | - | - | - | **445** |
+| WS 2022 MS | 247 | 198 | - | - | - | - | **445** |
+| WS 2022 STIG | - | - | 31 | 232 | 12 | - | **275** |
+| WS 2019 DC | 243 | 177 | - | - | - | - | **420** |
+| WS 2019 MS | 243 | 177 | - | - | - | - | **420** |
+| WS 2019 STIG | - | - | 34 | 227 | 14 | - | **275** |
+| WS 2016 DC | 256 | 55 | - | - | - | - | **311** |
+| WS 2016 MS | 264 | 59 | - | - | - | - | **323** |
+| Solaris 11.4 X86 STIG | - | - | 14 | 152 | 50 | - | **216** |
+| Solaris 11.4 SPARC STIG | - | - | 14 | 154 | 49 | - | **217** |
+| WebLogic 12c Security | - | - | - | - | - | 40 | **40** |
+| RHEL 10 Server | 225 | 77 | - | - | - | - | **302** |
+| RHEL 10 Workstation | 219 | 78 | - | - | - | - | **297** |
+| RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | - | **485** |
+| RHEL 9 Workstation | 6 | 3 | - | - | - | - | **9** |
+| RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | - | **376** |
+| RHEL 8 Workstation | 2 | 2 | - | - | - | - | **4** |
+| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **40** | **5556** |
 
 ### Severity Distribution
 
 ```
-High (Critical):   617 rules (15.0%) ███████████████░░░░░░░░░░░░░
-Medium:           3438 rules (83.6%) █████████████████████████████
-Low:                57 rules (1.4%)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+High (Critical):   657 rules (11.8%) ████████████░░░░░░░░░░░░░░░
+Medium:           4478 rules (80.7%) ████████████████████████████
+Low:               156 rules (2.8%)  ███░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
 ### Automation Coverage
 
 ```
-Fully Automated:  3906 rules (95.0%) ████████████████████████████
+Fully Automated:  3946 rules (95.0%) ████████████████████████████
 Partially Auto:    185 rules (4.5%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░
 Manual:             21 rules (0.5%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
@@ -823,6 +857,7 @@ Manual:             21 rules (0.5%)  ░░░░░░░░░░░░░░�
 | **STIG** | [DISA STIG Solaris 11 X86](https://www.stigviewer.com/stigs/solaris_11_x86) | V3R2 | May 2025 |
 | **STIG** | [DISA STIG Solaris 11 SPARC](https://www.stigviewer.com/stigs/solaris_11_sparc) | V3R2 | May 2025 |
 | **CIS** | [CIS Oracle Solaris 11.4 Benchmark](https://www.cisecurity.org/benchmark/oracle_solaris) | v1.1.0 | 2024 |
+| **Oracle** | [Oracle WebLogic Server 12c Security Documentation](https://docs.oracle.com/middleware/1212/wls/SECMG/toc.htm) | v1.0.0 | 2026 |
 
 ### Community Resources
 
