@@ -96,6 +96,66 @@ cat docs/stig-*.json | jq -r '.returnValue[] | select(.FileName | contains("RHEL
 
 ## CIS Benchmark Sources
 
+## CIS Search Workflow
+
+### Step 0: Check Local CIS Cache (FIRST)
+**File:** `docs/cis-yyyyMMdd.json`
+
+**Workflow:**
+1. Check if `docs/cis-*.json` exists
+2. Compare date in filename with current date
+3. If dates differ, run: `./scripts/download-cis-json.sh`
+4. Search the JSON for required CIS benchmark information
+
+**Script:**
+```bash
+./scripts/download-cis-json.sh
+# Output: docs/cis-YYYYMMDD.json
+```
+
+**JSON Structure:**
+The downloaded JSON contains CIS benchmarks from cisecurity.org:
+```json
+{
+  "generated": "2026-03-13T...",
+  "source": "cis_security",
+  "count": 482,
+  "benchmarks": [
+    {
+      "id": 82902,
+      "title": "CIS Red Hat Enterprise Linux 9 Benchmark",
+      "version": "2.0.0",
+      "technology_version": "RHEL 9",
+      "published": "2024-09-25 00:37:45",
+      "documents": [
+        {
+          "title": "CIS Red Hat Enterprise Linux 9 Benchmark v2.0.0 - PDF",
+          "filename": "CIS_Red_Hat_Enterprise_Linux_9_Benchmark_v2.0.0.pdf",
+          "location": "https://workbench.cisecurity.org/..."
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Search Examples:**
+```bash
+# Search for a specific product
+cat docs/cis-*.json | jq '.benchmarks[] | select(.title | test("RHEL"; "i")) | {title, version, published}'
+
+# List all benchmark titles
+cat docs/cis-*.json | jq '.benchmarks[].title' | sort
+
+# Get latest version of a benchmark
+cat docs/cis-*.json | jq '.benchmarks[] | select(.title | contains("Windows Server 2022")) | {title, version, published}'
+
+# Get download link for a benchmark
+cat docs/cis-*.json | jq '.benchmarks[] | select(.title | contains("RHEL 9")) | .documents[0].location'
+```
+
+---
+
 ### Official CIS Benchmarks
 **URL:** https://www.cisecurity.org/benchmark/
 

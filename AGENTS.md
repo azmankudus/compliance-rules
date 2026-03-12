@@ -14,6 +14,7 @@ This repository contains machine-readable compliance rules in YAML format for au
 - `docs/schema.json` - Authoritative schema definition
 - `docs/schema.yaml` - YAML schema reference
 - `scripts/download-stig-json.sh` - Download latest STIG catalog
+- `scripts/download-cis-json.sh` - Download latest CIS catalog
 
 ## STIG Lookup Workflow
 
@@ -34,6 +35,27 @@ cat docs/stig-*.json | jq '.returnValue[] | select(.FileName | test("WebLogic"; 
 
 # Get download link for specific STIG
 cat docs/stig-*.json | jq -r '.returnValue[] | select(.FileName | contains("RHEL 9")) | .DownloadLink'
+```
+
+## CIS Lookup Workflow
+
+When searching for CIS benchmark information:
+
+1. **Check local cache:** `docs/cis-yyyyMMdd.json`
+2. **If cache outdated (date != today):** Run `./scripts/download-cis-json.sh`
+3. **Search JSON:** Use `jq` to find relevant CIS benchmarks
+4. **Download benchmark:** Get the PDF from location in JSON
+
+Example:
+```bash
+# Refresh cache if needed
+./scripts/download-cis-json.sh
+
+# Search for product
+cat docs/cis-*.json | jq '.benchmarks[] | select(.title | test("RHEL"; "i")) | {title, version, published}'
+
+# Get download link for specific benchmark
+cat docs/cis-*.json | jq '.benchmarks[] | select(.title | contains("Windows Server 2022")) | .documents[0].location'
 ```
 
 ## Before Creating Rules
