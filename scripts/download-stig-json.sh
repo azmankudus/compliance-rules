@@ -1,0 +1,21 @@
+curl -sSL 'https://www.cyber.mil/webruntime/api/apex/execute?language=en-US&asGuest=true&htmlEncode=false' \
+  -H 'Accept: */*' \
+  -H 'Accept-Language: en-GB,en-US;q=0.9,en;q=0.8' \
+  -H 'Cache-Control: no-cache' \
+  -H 'Connection: keep-alive' \
+  -H 'Content-Type: application/json; charset=utf-8' \
+  -b 'CookieConsentPolicy=0:1; LSKey-c$CookieConsentPolicy=0:1' \
+  -H 'DNT: 1' \
+  -H 'Origin: https://www.cyber.mil' \
+  -H 'Pragma: no-cache' \
+  -H 'Referer: https://www.cyber.mil/stigs/downloads/' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36' \
+  -H 'X-SFDC-Request-Id: 17733460356229fe64' \
+  -H 'sec-ch-ua: "Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  --data-raw '{"namespace":"","classname":"@udd/01pRw0000002mOj","method":"getCyberDocumentCatalogByDocumentLibrary","isContinuation":false,"params":{"documentLibrary":"STIGs"},"cacheable":false}' \
+| jq > "$(dirname "$0")/../docs/stig-$(date '+%Y%m%d').json"

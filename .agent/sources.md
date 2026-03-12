@@ -1,8 +1,64 @@
 # Compliance Information Sources
 
+## STIG Search Workflow
+
+### Step 0: Check Local STIG Cache (FIRST)
+**File:** `docs/stig-yyyyMMdd.json`
+
+**Workflow:**
+1. Check if `docs/stig-*.json` exists
+2. Compare date in filename with current date
+3. If dates differ, run: `./scripts/download-stig-json.sh`
+4. Search the JSON for required STIG information
+
+**Script:**
+```bash
+./scripts/download-stig-json.sh
+# Output: docs/stig-YYYYMMDD.json
+```
+
+**JSON Structure:**
+The downloaded JSON contains STIG catalog from DISA Cyber.mil:
+```json
+{
+  "returnValue": [
+    {
+      "Name": "File-XXXX",
+      "FileName": "STIG Name - Version",
+      "DownloadLink": "https://dl.dod.cyber.mil/...",
+      "UploadDate": "YYYY-MM-DD",
+      "Classification": "U",
+      "Topic": "Security Technical Implementation Guides (STIG)"
+    }
+  ]
+}
+```
+
+**Search Examples:**
+```bash
+# Search for a specific product
+cat docs/stig-*.json | jq '.returnValue[] | select(.FileName | test("WebLogic"; "i")) | {FileName, DownloadLink}'
+
+# List all STIG names
+cat docs/stig-*.json | jq '.returnValue[].FileName' | sort
+
+# Get download link for specific STIG
+cat docs/stig-*.json | jq -r '.returnValue[] | select(.FileName | contains("RHEL 9")) | .DownloadLink'
+```
+
+---
+
 ## STIG Search Sequence (MUST FOLLOW ORDER)
 
-### 1. Official DISA Cyber.mil (PRIMARY)
+### 1. Local STIG Cache (PRIMARY - AUTOMATED)
+**File:** `docs/stig-yyyyMMdd.json`
+
+**Usage:**
+- Run `./scripts/download-stig-json.sh` if cache is outdated
+- Search JSON for STIG information
+- Get download URLs and version info
+
+### 2. Official DISA Cyber.mil (SECONDARY - MANUAL)
 **URL:** https://www.cyber.mil/stigs/downloads/
 
 **Usage:**

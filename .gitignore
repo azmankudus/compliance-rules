@@ -1,26 +1,18 @@
 # Ignore everything
 *
 
-# Allow all directories (needed for git to traverse)
-!*/
-
 # Allow specific files
-!.gitignore
-!LICENSE
-!README.md
-!AGENTS.md
+!/.gitignore
+!/LICENSE
+!/README.md
+!/AGENTS.md
 
-# Allow docs directory
-!docs/
-!docs/**
-
-# Allow rules directory
-!rules/
-!rules/**
-
-# Allow agent configuration
-!.agent/
-!.agent/**
-
-# Allow .gitkeep files
-!.gitkeep
+# Allow directories
+!/docs/
+!/docs/**
+!/rules/
+!/rules/**
+!/scripts/
+!/scripts/**
+!/.agent/
+!/.agent/**

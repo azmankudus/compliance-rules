@@ -13,6 +13,28 @@ This repository contains machine-readable compliance rules in YAML format for au
 - `.agent/` - Agent configuration files (READ THESE FIRST)
 - `docs/schema.json` - Authoritative schema definition
 - `docs/schema.yaml` - YAML schema reference
+- `scripts/download-stig-json.sh` - Download latest STIG catalog
+
+## STIG Lookup Workflow
+
+When searching for STIG information:
+
+1. **Check local cache:** `docs/stig-yyyyMMdd.json`
+2. **If cache outdated (date != today):** Run `./scripts/download-stig-json.sh`
+3. **Search JSON:** Use `jq` to find relevant STIG entries
+4. **Download STIG:** Get the ZIP file from URL in JSON
+
+Example:
+```bash
+# Refresh cache if needed
+./scripts/download-stig-json.sh
+
+# Search for product (use FileName field)
+cat docs/stig-*.json | jq '.returnValue[] | select(.FileName | test("WebLogic"; "i")) | {FileName, DownloadLink}'
+
+# Get download link for specific STIG
+cat docs/stig-*.json | jq -r '.returnValue[] | select(.FileName | contains("RHEL 9")) | .DownloadLink'
+```
 
 ## Before Creating Rules
 
