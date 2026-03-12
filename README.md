@@ -114,11 +114,19 @@ compliance-rules/
 │   ├── schema.json              # JSON Schema definition
 │   └── schema.yaml              # YAML Schema (original)
 │
-├── 🏢 <vendor_abbr>/
-│   └── 📦 <product_abbr>-<product_version>/
-│       ├── 📋 <compliance_body>/
-│       │   └── 📄 <vendor>-<product>-<version>-<body>-<level>-<version>.yaml
-│       └── 📄 README.md
+├── 📁 rules/
+│   └── 🏢 <vendor_abbr>/
+│       └── 📦 <product_abbr>-<product_version>/
+│           ├── 📋 <compliance_body>/
+│           │   └── 📄 <vendor>-<product>-<version>-<body>-<level>-<version>.yaml
+│           └── 📄 README.md
+│
+├── 📁 .agent/                   # Agent configuration files
+│   ├── skill.md                 # Agent skill definition
+│   ├── context.md               # Project context
+│   ├── sources.md               # Information sources
+│   ├── prompt.md                # Output templates
+│   └── guidelines.md            # Creation guidelines
 │
 └── 📄 README.md
 ```
@@ -128,10 +136,12 @@ compliance-rules/
 | Directory | Purpose | Example |
 |-----------|---------|---------|
 | `docs/` | Schema definitions | `schema.json`, `schema.yaml` |
-| `rh/` | Red Hat products | Red Hat vendor |
-| `rh/rhel-9/` | RHEL version 9 | Product version |
-| `rh/rhel-9/cis/` | CIS framework | Compliance body |
-| `rh/rhel-9/stig/` | STIG framework | Compliance body |
+| `rules/` | Compliance rules root | All vendor rules |
+| `rules/rh/` | Red Hat products | Red Hat vendor |
+| `rules/rh/rhel-9/` | RHEL version 9 | Product version |
+| `rules/rh/rhel-9/cis/` | CIS framework | Compliance body |
+| `rules/rh/rhel-9/stig/` | STIG framework | Compliance body |
+| `.agent/` | Agent configuration | AI agent instructions |
 
 ---
 
@@ -196,18 +206,18 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Level 1 Server](rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml) | 🟢 Baseline | Server | 31 | Practical security for servers | ✅ Verified |
-| [Level 2 Server](rh/rhel-9/cis/rh-rhel-9-cis-level2-server-v2.0.0.yaml) | 🟡 Enhanced | Server | 4 | Additional hardening | ✅ Verified |
-| [Level 1 Workstation](rh/rhel-9/cis/rh-rhel-9-cis-level1-workstation-v2.0.0.yaml) | 🟢 Baseline | Workstation | 6 | Desktop security baseline | ✅ Verified |
-| [Level 2 Workstation](rh/rhel-9/cis/rh-rhel-9-cis-level2-workstation-v2.0.0.yaml) | 🟡 Enhanced | Workstation | 3 | Enhanced desktop security | ✅ Verified |
+| [Level 1 Server](rules/rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml) | 🟢 Baseline | Server | 31 | Practical security for servers | ✅ Verified |
+| [Level 2 Server](rules/rh/rhel-9/cis/rh-rhel-9-cis-level2-server-v2.0.0.yaml) | 🟡 Enhanced | Server | 4 | Additional hardening | ✅ Verified |
+| [Level 1 Workstation](rules/rh/rhel-9/cis/rh-rhel-9-cis-level1-workstation-v2.0.0.yaml) | 🟢 Baseline | Workstation | 6 | Desktop security baseline | ✅ Verified |
+| [Level 2 Workstation](rules/rh/rhel-9/cis/rh-rhel-9-cis-level2-workstation-v2.0.0.yaml) | 🟡 Enhanced | Workstation | 3 | Enhanced desktop security | ✅ Verified |
 
 #### DISA STIG
 
 | Document | Category | Severity | Rules | Description | Status |
 |----------|----------|----------|-------|-------------|--------|
-| [CAT I](rh/rhel-9/stig/rh-rhel-9-stig-cat1-v2r7.yaml) | 🔴 CAT I | High | 20 | Critical controls - Immediate action | ✅ Verified |
-| [CAT II](rh/rhel-9/stig/rh-rhel-9-stig-cat2-v2r7.yaml) | 🟡 CAT II | Medium | 414 | Standard controls - Required | ✅ Verified |
-| [CAT III](rh/rhel-9/stig/rh-rhel-9-stig-cat3-v2r7.yaml) | 🟢 CAT III | Low | 16 | Best practices - Recommended | ✅ Verified |
+| [CAT I](rules/rh/rhel-9/stig/rh-rhel-9-stig-cat1-v2r7.yaml) | 🔴 CAT I | High | 20 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](rules/rh/rhel-9/stig/rh-rhel-9-stig-cat2-v2r7.yaml) | 🟡 CAT II | Medium | 414 | Standard controls - Required | ✅ Verified |
+| [CAT III](rules/rh/rhel-9/stig/rh-rhel-9-stig-cat3-v2r7.yaml) | 🟢 CAT III | Low | 16 | Best practices - Recommended | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -239,18 +249,18 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Level 1 Server](rh/rhel-8/cis/rh-rhel-8-cis-level1-server-v4.0.0.yaml) | 🟢 Baseline | Server | 5 | Practical security for servers | ✅ Verified |
-| [Level 2 Server](rh/rhel-8/cis/rh-rhel-8-cis-level2-server-v4.0.0.yaml) | 🟡 Enhanced | Server | 2 | Additional hardening | ✅ Verified |
-| [Level 1 Workstation](rh/rhel-8/cis/rh-rhel-8-cis-level1-workstation-v4.0.0.yaml) | 🟢 Baseline | Workstation | 2 | Desktop security baseline | ✅ Verified |
-| [Level 2 Workstation](rh/rhel-8/cis/rh-rhel-8-cis-level2-workstation-v4.0.0.yaml) | 🟡 Enhanced | Workstation | 2 | Enhanced desktop security | ✅ Verified |
+| [Level 1 Server](rules/rh/rhel-8/cis/rh-rhel-8-cis-level1-server-v4.0.0.yaml) | 🟢 Baseline | Server | 5 | Practical security for servers | ✅ Verified |
+| [Level 2 Server](rules/rh/rhel-8/cis/rh-rhel-8-cis-level2-server-v4.0.0.yaml) | 🟡 Enhanced | Server | 2 | Additional hardening | ✅ Verified |
+| [Level 1 Workstation](rules/rh/rhel-8/cis/rh-rhel-8-cis-level1-workstation-v4.0.0.yaml) | 🟢 Baseline | Workstation | 2 | Desktop security baseline | ✅ Verified |
+| [Level 2 Workstation](rules/rh/rhel-8/cis/rh-rhel-8-cis-level2-workstation-v4.0.0.yaml) | 🟡 Enhanced | Workstation | 2 | Enhanced desktop security | ✅ Verified |
 
 #### DISA STIG
 
 | Document | Category | Severity | Rules | Description | Status |
 |----------|----------|----------|-------|-------------|--------|
-| [CAT I](rh/rhel-8/stig/rh-rhel-8-stig-cat1-v2r2.yaml) | 🔴 CAT I | High | 22 | Critical controls - Immediate action | ✅ Verified |
-| [CAT II](rh/rhel-8/stig/rh-rhel-8-stig-cat2-v2r2.yaml) | 🟡 CAT II | Medium | 320 | Standard controls - Required | ✅ Verified |
-| [CAT III](rh/rhel-8/stig/rh-rhel-8-stig-cat3-v2r2.yaml) | 🟢 CAT III | Low | 27 | Best practices - Recommended | ✅ Verified |
+| [CAT I](rules/rh/rhel-8/stig/rh-rhel-8-stig-cat1-v2r2.yaml) | 🔴 CAT I | High | 22 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](rules/rh/rhel-8/stig/rh-rhel-8-stig-cat2-v2r2.yaml) | 🟡 CAT II | Medium | 320 | Standard controls - Required | ✅ Verified |
+| [CAT III](rules/rh/rhel-8/stig/rh-rhel-8-stig-cat3-v2r2.yaml) | 🟢 CAT III | Low | 27 | Best practices - Recommended | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -272,10 +282,10 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Level 1 Server](rh/rhel-10/cis/rh-rhel-10-cis-level1-server-v1.0.1.yaml) | 🟢 Baseline | Server | 225 | Practical security for servers | ✅ Verified |
-| [Level 2 Server](rh/rhel-10/cis/rh-rhel-10-cis-level2-server-v1.0.1.yaml) | 🟡 Enhanced | Server | 77 | Additional hardening | ✅ Verified |
-| [Level 1 Workstation](rh/rhel-10/cis/rh-rhel-10-cis-level1-workstation-v1.0.1.yaml) | 🟢 Baseline | Workstation | 219 | Desktop security baseline | ✅ Verified |
-| [Level 2 Workstation](rh/rhel-10/cis/rh-rhel-10-cis-level2-workstation-v1.0.1.yaml) | 🟡 Enhanced | Workstation | 78 | Enhanced desktop security | ✅ Verified |
+| [Level 1 Server](rules/rh/rhel-10/cis/rh-rhel-10-cis-level1-server-v1.0.1.yaml) | 🟢 Baseline | Server | 225 | Practical security for servers | ✅ Verified |
+| [Level 2 Server](rules/rh/rhel-10/cis/rh-rhel-10-cis-level2-server-v1.0.1.yaml) | 🟡 Enhanced | Server | 77 | Additional hardening | ✅ Verified |
+| [Level 1 Workstation](rules/rh/rhel-10/cis/rh-rhel-10-cis-level1-workstation-v1.0.1.yaml) | 🟢 Baseline | Workstation | 219 | Desktop security baseline | ✅ Verified |
+| [Level 2 Workstation](rules/rh/rhel-10/cis/rh-rhel-10-cis-level2-workstation-v1.0.1.yaml) | 🟡 Enhanced | Workstation | 78 | Enhanced desktop security | ✅ Verified |
 
 #### DISA STIG
 
@@ -301,10 +311,10 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Level 1 DC](ms/ws-2016/cis/ms-ws-2016-cis-level1-dc-v4.0.0.yaml) | 🟢 Baseline | Domain Controller | 256 | Baseline security for domain controllers | ✅ Verified |
-| [Level 1 MS](ms/ws-2016/cis/ms-ws-2016-cis-level1-ms-v4.0.0.yaml) | 🟢 Baseline | Member Server | 264 | Baseline security for member servers | ✅ Verified |
-| [Level 2 DC](ms/ws-2016/cis/ms-ws-2016-cis-level2-dc-v4.0.0.yaml) | 🟡 Enhanced | Domain Controller | 55 | Enhanced security for domain controllers | ✅ Verified |
-| [Level 2 MS](ms/ws-2016/cis/ms-ws-2016-cis-level2-ms-v4.0.0.yaml) | 🟡 Enhanced | Member Server | 59 | Enhanced security for member servers | ✅ Verified |
+| [Level 1 DC](rules/ms/ws-2016/cis/ms-ws-2016-cis-level1-dc-v4.0.0.yaml) | 🟢 Baseline | Domain Controller | 256 | Baseline security for domain controllers | ✅ Verified |
+| [Level 1 MS](rules/ms/ws-2016/cis/ms-ws-2016-cis-level1-ms-v4.0.0.yaml) | 🟢 Baseline | Member Server | 264 | Baseline security for member servers | ✅ Verified |
+| [Level 2 DC](rules/ms/ws-2016/cis/ms-ws-2016-cis-level2-dc-v4.0.0.yaml) | 🟡 Enhanced | Domain Controller | 55 | Enhanced security for domain controllers | ✅ Verified |
+| [Level 2 MS](rules/ms/ws-2016/cis/ms-ws-2016-cis-level2-ms-v4.0.0.yaml) | 🟡 Enhanced | Member Server | 59 | Enhanced security for member servers | ✅ Verified |
 
 #### DISA STIG
 
@@ -330,18 +340,18 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Level 1 DC](ms/ws-2022/cis/ms-ws-2022-cis-level1-dc-v3.0.0.yaml) | 🟢 Baseline | Domain Controller | 247 | Baseline security for domain controllers | ✅ Verified |
-| [Level 1 MS](ms/ws-2022/cis/ms-ws-2022-cis-level1-ms-v3.0.0.yaml) | 🟢 Baseline | Member Server | 247 | Baseline security for member servers | ✅ Verified |
-        [Level 2 DC](ms/ws-2022/cis/ms-ws-2022-cis-level2-dc-v3.0.0.yaml) | 🟡 Enhanced | Domain Controller | 198 | Enhanced security for domain controllers | ✅ Verified |
-        [Level 2 MS](ms/ws-2022/cis/ms-ws-2022-cis-level2-ms-v3.0.0.yaml) | 🟡 Enhanced | Member Server | 198 | Enhanced security for member servers | ✅ Verified |
+| [Level 1 DC](rules/ms/ws-2022/cis/ms-ws-2022-cis-level1-dc-v3.0.0.yaml) | 🟢 Baseline | Domain Controller | 247 | Baseline security for domain controllers | ✅ Verified |
+| [Level 1 MS](rules/ms/ws-2022/cis/ms-ws-2022-cis-level1-ms-v3.0.0.yaml) | 🟢 Baseline | Member Server | 247 | Baseline security for member servers | ✅ Verified |
+        [Level 2 DC](rules/ms/ws-2022/cis/ms-ws-2022-cis-level2-dc-v3.0.0.yaml) | 🟡 Enhanced | Domain Controller | 198 | Enhanced security for domain controllers | ✅ Verified |
+        [Level 2 MS](rules/ms/ws-2022/cis/ms-ws-2022-cis-level2-ms-v3.0.0.yaml) | 🟡 Enhanced | Member Server | 198 | Enhanced security for member servers | ✅ Verified |
 
 #### DISA STIG
 
 | Document | Category | Severity | Rules | Description | Status |
 |----------|----------|----------|-------|-------------|--------|
-| [CAT I](ms/ws-2022/stig/ms-ws-2022-stig-cat1-v2r3.yaml) | 🔴 CAT I | High | 31 | Critical controls - Immediate action | ✅ Verified |
-        [CAT II](ms/ws-2022/stig/ms-ws-2022-stig-cat2-v2r3.yaml) | 🟡 CAT II | Medium | 232 | Standard controls - Required | ✅ Verified |
-        [CAT III](ms/ws-2022/stig/ms-ws-2022-stig-cat3-v2r3.yaml) | 🟢 CAT III | Low | 12 | Best practices - Recommended | ✅ Verified |
+| [CAT I](rules/ms/ws-2022/stig/ms-ws-2022-stig-cat1-v2r3.yaml) | 🔴 CAT I | High | 31 | Critical controls - Immediate action | ✅ Verified |
+        [CAT II](rules/ms/ws-2022/stig/ms-ws-2022-stig-cat2-v2r3.yaml) | 🟡 CAT II | Medium | 232 | Standard controls - Required | ✅ Verified |
+        [CAT III](rules/ms/ws-2022/stig/ms-ws-2022-stig-cat3-v2r3.yaml) | 🟢 CAT III | Low | 12 | Best practices - Recommended | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -363,10 +373,10 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Level 1 DC](ms/ws-2025/cis/ms-ws-2025-cis-level1-dc-v2.0.0.yaml) | 🟢 Baseline | Domain Controller | 247 | Baseline security for domain controllers | ✅ Verified |
-| [Level 1 MS](ms/ws-2025/cis/ms-ws-2025-cis-level1-ms-v2.0.0.yaml) | 🟢 Baseline | Member Server | 247 | Baseline security for member servers | ✅ Verified |
-| [Level 2 DC](ms/ws-2025/cis/ms-ws-2025-cis-level2-dc-v2.0.0.yaml) | 🟡 Enhanced | Domain Controller | 198 | Enhanced security for domain controllers | ✅ Verified |
-| [Level 2 MS](ms/ws-2025/cis/ms-ws-2025-cis-level2-ms-v2.0.0.yaml) | 🟡 Enhanced | Member Server | 198 | Enhanced security for member servers | ✅ Verified |
+| [Level 1 DC](rules/ms/ws-2025/cis/ms-ws-2025-cis-level1-dc-v2.0.0.yaml) | 🟢 Baseline | Domain Controller | 247 | Baseline security for domain controllers | ✅ Verified |
+| [Level 1 MS](rules/ms/ws-2025/cis/ms-ws-2025-cis-level1-ms-v2.0.0.yaml) | 🟢 Baseline | Member Server | 247 | Baseline security for member servers | ✅ Verified |
+| [Level 2 DC](rules/ms/ws-2025/cis/ms-ws-2025-cis-level2-dc-v2.0.0.yaml) | 🟡 Enhanced | Domain Controller | 198 | Enhanced security for domain controllers | ✅ Verified |
+| [Level 2 MS](rules/ms/ws-2025/cis/ms-ws-2025-cis-level2-ms-v2.0.0.yaml) | 🟡 Enhanced | Member Server | 198 | Enhanced security for member servers | ✅ Verified |
 
 #### DISA STIG
 
@@ -392,18 +402,18 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Level 1 DC](ms/ws-2019/cis/ms-ws-2019-cis-level1-dc-v4.0.0.yaml) | 🟢 Baseline | Domain Controller | 243 | Baseline security for domain controllers | ✅ Verified |
-| [Level 1 MS](ms/ws-2019/cis/ms-ws-2019-cis-level1-ms-v4.0.0.yaml) | 🟢 Baseline | Member Server | 243 | Baseline security for member servers | ✅ Verified |
-| [Level 2 DC](ms/ws-2019/cis/ms-ws-2019-cis-level2-dc-v4.0.0.yaml) | 🟡 Enhanced | Domain Controller | 177 | Enhanced security for domain controllers | ✅ Verified |
-| [Level 2 MS](ms/ws-2019/cis/ms-ws-2019-cis-level2-ms-v4.0.0.yaml) | 🟡 Enhanced | Member Server | 177 | Enhanced security for member servers | ✅ Verified |
+| [Level 1 DC](rules/ms/ws-2019/cis/ms-ws-2019-cis-level1-dc-v4.0.0.yaml) | 🟢 Baseline | Domain Controller | 243 | Baseline security for domain controllers | ✅ Verified |
+| [Level 1 MS](rules/ms/ws-2019/cis/ms-ws-2019-cis-level1-ms-v4.0.0.yaml) | 🟢 Baseline | Member Server | 243 | Baseline security for member servers | ✅ Verified |
+| [Level 2 DC](rules/ms/ws-2019/cis/ms-ws-2019-cis-level2-dc-v4.0.0.yaml) | 🟡 Enhanced | Domain Controller | 177 | Enhanced security for domain controllers | ✅ Verified |
+| [Level 2 MS](rules/ms/ws-2019/cis/ms-ws-2019-cis-level2-ms-v4.0.0.yaml) | 🟡 Enhanced | Member Server | 177 | Enhanced security for member servers | ✅ Verified |
 
 #### DISA STIG
 
 | Document | Category | Severity | Rules | Description | Status |
 |----------|----------|----------|-------|-------------|--------|
-| [CAT I](ms/ws-2019/stig/ms-ws-2019-stig-cat1-v3r4.yaml) | 🔴 CAT I | High | 34 | Critical controls - Immediate action | ✅ Verified |
-| [CAT II](ms/ws-2019/stig/ms-ws-2019-stig-cat2-v3r4.yaml) | 🟡 CAT II | Medium | 227 | Standard controls - Required | ✅ Verified |
-| [CAT III](ms/ws-2019/stig/ms-ws-2019-stig-cat3-v3r4.yaml) | 🟢 CAT III | Low | 14 | Best practices - Recommended | ✅ Verified |
+| [CAT I](rules/ms/ws-2019/stig/ms-ws-2019-stig-cat1-v3r4.yaml) | 🔴 CAT I | High | 34 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](rules/ms/ws-2019/stig/ms-ws-2019-stig-cat2-v3r4.yaml) | 🟡 CAT II | Medium | 227 | Standard controls - Required | ✅ Verified |
+| [CAT III](rules/ms/ws-2019/stig/ms-ws-2019-stig-cat3-v3r4.yaml) | 🟢 CAT III | Low | 14 | Best practices - Recommended | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -427,17 +437,17 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Category | Severity | Rules | Description | Status |
 |----------|----------|----------|-------|-------------|--------|
-| [CAT I](ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat1.yaml) | 🔴 CAT I | High | 14 | Critical controls - Immediate action | ✅ Verified |
-| [CAT II](ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat2.yaml) | 🟡 CAT II | Medium | 152 | Standard controls - Required | ✅ Verified |
-| [CAT III](ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat3.yaml) | 🟢 CAT III | Low | 50 | Best practices - Recommended | ✅ Verified |
+| [CAT I](rules/ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat1.yaml) | 🔴 CAT I | High | 14 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](rules/ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat2.yaml) | 🟡 CAT II | Medium | 152 | Standard controls - Required | ✅ Verified |
+| [CAT III](rules/ora/solaris-11.4/stig/ora-solaris-114-x86-stig-cat3.yaml) | 🟢 CAT III | Low | 50 | Best practices - Recommended | ✅ Verified |
 
 ##### SPARC Architecture
 
 | Document | Category | Severity | Rules | Description | Status |
 |----------|----------|----------|-------|-------------|--------|
-| [CAT I](ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat1.yaml) | 🔴 CAT I | High | 14 | Critical controls - Immediate action | ✅ Verified |
-| [CAT II](ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat2.yaml) | 🟡 CAT II | Medium | 154 | Standard controls - Required | ✅ Verified |
-| [CAT III](ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat3.yaml) | 🟢 CAT III | Low | 49 | Best practices - Recommended | ✅ Verified |
+| [CAT I](rules/ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat1.yaml) | 🔴 CAT I | High | 14 | Critical controls - Immediate action | ✅ Verified |
+| [CAT II](rules/ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat2.yaml) | 🟡 CAT II | Medium | 154 | Standard controls - Required | ✅ Verified |
+| [CAT III](rules/ora/solaris-11.4/stig/ora-solaris-114-sparc-stig-cat3.yaml) | 🟢 CAT III | Low | 49 | Best practices - Recommended | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -462,7 +472,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Oracle Security](ora/weblogic-12c/ora/ora-weblogic-12c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
+| [Oracle Security](rules/ora/weblogic-12c/ora/ora-weblogic-12c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -494,7 +504,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Oracle Security](ora/weblogic-14c/ora/ora-weblogic-14c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 45 | Security hardening based on Oracle documentation | ✅ Verified |
+| [Oracle Security](rules/ora/weblogic-14c/ora/ora-weblogic-14c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 45 | Security hardening based on Oracle documentation | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -532,7 +542,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Oracle Security](ora/weblogic-15c/ora/ora-weblogic-15c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 43 | Security hardening based on Oracle documentation | ✅ Verified |
+| [Oracle Security](rules/ora/weblogic-15c/ora/ora-weblogic-15c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 43 | Security hardening based on Oracle documentation | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -570,7 +580,7 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 | Document | Level | Profile | Rules | Description | Status |
 |----------|------|---------|-------|-------------|--------|
-| [Oracle Security](ora/http-server-12c/ora/ora-http-server-12c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
+| [Oracle Security](rules/ora/http-server-12c/ora/ora-http-server-12c-ora-security-1.0.0.yaml) | 🟢 Production | Server | 40 | Security hardening based on Oracle documentation | ✅ Verified |
 
 <details>
 <summary>📊 View Coverage Summary</summary>
@@ -651,7 +661,7 @@ pip install pyyaml jsonschema
 import yaml
 
 # Load CIS Level 1 Server rules
-with open('rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml') as f:
+with open('rules/rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml') as f:
     rules = yaml.safe_load(f)
     
 print(f"Framework: {rules['compliance_info']['framework']}")
@@ -669,7 +679,7 @@ with open('docs/schema.json') as f:
     schema = json.load(f)
 
 # Load and validate rules
-with open('rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml') as f:
+with open('rules/rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml') as f:
     data = yaml.safe_load(f)
     validate(instance=data, schema=schema)
     print("✅ Valid!")
@@ -680,7 +690,7 @@ with open('rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml') as f:
 ```python
 import yaml
 
-with open('rh/rhel-9/stig/rh-rhel-9-stig-cat2-v2r7.yaml') as f:
+with open('rules/rh/rhel-9/stig/rh-rhel-9-stig-cat2-v2r7.yaml') as f:
     data = yaml.safe_load(f)
 
 # Get all high severity rules
@@ -891,7 +901,7 @@ def generate_ansible_playbook(yaml_file, output_file):
         yaml.dump(playbook, f)
 
 generate_ansible_playbook(
-    'rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml',
+    'rules/rh/rhel-9/cis/rh-rhel-9-cis-level1-server-v2.0.0.yaml',
     'compliance-scan.yml'
 )
 ```

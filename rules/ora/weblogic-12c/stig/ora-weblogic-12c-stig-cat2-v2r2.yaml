@@ -1,0 +1,1494 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: DISA STIG for Oracle WebLogic Server 12c - CAT II
+  version: "2.2"
+  description: DISA Security Technical Implementation Guide for Oracle WebLogic Server 12c - CAT II (Medium Severity)
+  platform: Oracle WebLogic Server 12c
+  benchmark: DISA STIG Oracle WebLogic Server 12c V2R2
+  author: Defense Information Systems Agency (DISA)
+  created: "2024-12-16T00:00:00Z"
+  modified: "2025-01-30T00:00:00Z"
+  compatible_platforms:
+    - WebLogic Server 12.1.3
+    - WebLogic Server 12.2.1
+
+compliance_info:
+  framework: STIG
+  version: "2.2"
+  profile: CAT II
+
+profile:
+  name: STIG CAT II
+  description: Standard controls - Action required
+  level: 2
+
+rules:
+  - rule_id: STIG-WBLC-01-000009
+    legacy_ids:
+      - V-235928
+      - SV-235928r960759_rule
+    rule_name: Oracle WebLogic must utilize cryptography to protect the confidentiality of remote access management sessions.
+    rule_description: Remote management access is accomplished by leveraging common communication protocols and establishing a remote connection to the application server via a network for the purposes of managing the application server. If cryptography is not used, then the session data traversing the remote connection could be intercepted and compromised.
+    category: Access Control
+    subcategory: Remote Access
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Environment' -> 'Servers'
+        3. From the list of servers, select one which needs check for SSL configuration verification
+        4. From 'Configuration' tab -> 'General' tab, ensure 'Listen Port Enabled' checkbox is deselected
+        5. Ensure 'SSL Listen Port Enabled' checkbox is selected and a valid port number is in 'SSL Listen Port' field
+        If 'Listen Port Enabled' is selected, this is a finding. If 'SSL Listen Port Enabled' is not selected, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Obtain an identity (private key and digital certificates) and trust (certificates of trusted certificate authorities)
+        2. Create Identity keystore and load private key and certificate using ImportPrivateKey java utility
+        3. Access AC and configure SSL on the server via 'Environment' -> 'Servers' -> SSL configuration
+        4. Restart SSL on all configured servers
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - ssl
+      - remote-access
+
+  - rule_id: STIG-WBLC-01-000010
+    legacy_ids:
+      - V-235929
+      - SV-235929r960762_rule
+    rule_name: Oracle WebLogic must use cryptography to protect the integrity of the remote access session.
+    rule_description: Encryption is critical for protection of remote access sessions. If encryption is not being used for integrity, malicious users may gain the ability to modify the application server configuration.
+    category: Access Control
+    subcategory: Remote Access
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Environment' -> 'Servers'
+        3. Verify SSL Listen Port is enabled and non-SSL Listen Port is disabled
+        If 'Listen Port Enabled' is selected, this is a finding. If 'SSL Listen Port Enabled' is not selected, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL/TLS for all servers requiring secure remote access via 'Environment' -> 'Servers' -> SSL configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - ssl
+      - integrity
+
+  - rule_id: STIG-WBLC-01-000011
+    legacy_ids:
+      - V-235930
+      - SV-235930r961863_rule
+    rule_name: Oracle WebLogic must employ automated mechanisms to facilitate the monitoring and control of remote access methods.
+    rule_description: Remote network access is accomplished by leveraging common communication protocols and establishing a remote connection. Application servers provide remote management access and need to provide the ability to facilitate the monitoring and control of remote user sessions.
+    category: Access Control
+    subcategory: Remote Access Monitoring
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'JDBC Data Sources'
+        3. Verify 'opss-audit-DBDS' data source exists and is configured for the IAU_APPEND schema
+        4. Verify 'wls-wldf-storeDS' data source exists and is configured for the WLS schema
+        If the data is not being stored for access by an external monitoring tool, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC and create data sources for audit data store using schema IAU_APPEND and WLS
+        2. Configure audit service to use the data sources via EM -> 'Security' -> 'Security Provider Configuration'
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    tags:
+      - monitoring
+      - remote-access
+      - auditing
+
+  - rule_id: STIG-WBLC-01-000013
+    legacy_ids:
+      - V-235931
+      - SV-235931r960765_rule
+    rule_name: Oracle WebLogic must ensure remote sessions for accessing security functions and security-relevant information are audited.
+    rule_description: Auditing must be utilized in order to track system activity, assist in diagnosing system issues and provide evidence needed for forensic investigations post security incident. Remote access by administrators requires that the admin activity be audited.
+    category: Auditing
+    subcategory: Remote Session Auditing
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'Security' -> 'Audit Policy'
+        3. Select 'Oracle Platform Security Services' from the 'Audit Component Name' dropdown
+        4. Ensure 'Audit Level' is set to 'Custom'
+        5. Ensure every checkbox is selected under the 'Select For Audit' column
+        If all auditable events are not selected, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'Security' -> 'Audit Policy'
+        3. Set 'Audit Level' to 'Custom'
+        4. Click 'Audit All Events' button and ensure every checkbox is selected
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - auditing
+      - remote-access
+      - security-functions
+
+  - rule_id: STIG-WBLC-01-000014
+    legacy_ids:
+      - V-235932
+      - SV-235932r1043177_rule
+    rule_name: Oracle WebLogic must support the capability to disable network protocols deemed by the organization to be non-secure.
+    rule_description: Some networking protocols may not meet organizational security requirements to protect data and components. The application server must have the capability to both reconfigure and disable the assigned ports without adversely impacting application server operation capabilities.
+    category: Configuration Management
+    subcategory: Network Protocols
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'Monitoring' -> 'Port Usage'
+        3. Ensure values in 'Port in Use' column match approved ports
+        4. Ensure values in 'Protocol' column match approved protocols
+        If ports or protocols are in use that the organization deems nonsecure, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Environment' -> 'Servers'
+        3. Modify port assignments and protocol configurations via 'Configuration' tab
+        4. Review the 'Port Usage' table in EM to verify changes
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Server restart may be required
+      estimated_time: "15 minutes"
+    tags:
+      - network
+      - protocols
+      - ports
+
+  - rule_id: STIG-WBLC-01-000018
+    legacy_ids:
+      - V-235933
+      - SV-235933r961842_rule
+    rule_name: Oracle WebLogic must automatically audit account creation.
+    rule_description: Application servers require user accounts for server management purposes, and if the creation of new accounts is not logged, there is limited or no capability to track or alarm on account creation.
+    category: Auditing
+    subcategory: Account Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select 'Providers' tab -> 'Auditing' tab
+        4. Ensure the list contains at least one Auditing Provider
+        5. Select the top-level domain link -> 'Advanced'
+        6. Ensure 'Configuration Audit Type' is set to 'Change Log and Audit'
+        If 'Configuration Audit Type' is not set to 'Change Log and Audit', this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. Add an Auditing Provider via 'Security Realms' -> 'Providers' -> 'Auditing'
+        3. Set 'Configuration Audit Type' to 'Change Log and Audit' at domain level
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - auditing
+      - account-management
+
+  - rule_id: STIG-WBLC-01-000019
+    legacy_ids:
+      - V-235934
+      - SV-235934r961842_rule
+    rule_name: Oracle WebLogic must automatically audit account modification.
+    rule_description: Once an attacker establishes initial access to a system, they often attempt to create a persistent method of reestablishing access. One way to accomplish this is for the attacker to simply modify an existing account.
+    category: Auditing
+    subcategory: Account Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select 'Providers' tab -> 'Auditing' tab
+        4. Ensure the list contains at least one Auditing Provider
+        5. Select the top-level domain link -> 'Advanced'
+        6. Ensure 'Configuration Audit Type' is set to 'Change Log and Audit'
+        If 'Configuration Audit Type' is not set to 'Change Log and Audit', this is a finding.
+    remediation:
+      remediation_step: |
+        Configure auditing providers and set 'Configuration Audit Type' to 'Change Log and Audit'.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - auditing
+      - account-management
+
+  - rule_id: STIG-WBLC-01-000030
+    legacy_ids:
+      - V-235935
+      - SV-235935r961827_rule
+    rule_name: Oracle WebLogic must provide access logging that ensures users who are granted a privileged role have their privileged activity logged.
+    rule_description: In order to be able to provide a forensic history of activity, the application server must ensure users who are granted a privileged role have their actions logged.
+    category: Auditing
+    subcategory: Privileged Access
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'Security' -> 'Audit Policy'
+        3. Select 'Oracle Platform Security Services' from the dropdown
+        4. Ensure comma-delimited list of privileged users is in 'Users to Always Audit' field
+        If all privileged users are not listed, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access EM
+        2. Navigate to 'Security' -> 'Audit Policy'
+        3. Enter comma-delimited list of privileged users in 'Users to Always Audit' field
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - auditing
+      - privileged-access
+
+  - rule_id: STIG-WBLC-01-000032
+    legacy_ids:
+      - V-235936
+      - SV-235936r961863_rule
+    rule_name: Oracle WebLogic must limit the number of failed login attempts.
+    rule_description: By limiting the number of failed login attempts that occur within a particular time period, the risk of unauthorized system access via user password guessing is reduced.
+    category: Access Control
+    subcategory: Login Attempts
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select realm -> 'Configuration' tab -> 'User Lockout' tab
+        4. Ensure: 'Lockout Threshold' = 3, 'Lockout Duration' = 15, 'Lockout Reset Duration' = 15
+        If values are not set correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. Navigate to 'Security Realms' -> 'Configuration' -> 'User Lockout'
+        3. Set: 'Lockout Threshold' = 3, 'Lockout Duration' = 15, 'Lockout Reset Duration' = 15
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - access-control
+      - lockout
+      - brute-force
+
+  - rule_id: STIG-WBLC-01-000033
+    legacy_ids:
+      - V-235937
+      - SV-235937r961863_rule
+    rule_name: Oracle WebLogic must enforce the organization-defined time period during which the limit of consecutive invalid access attempts is counted.
+    rule_description: By limiting the number of failed login attempts, the risk of unauthorized system access via automated password guessing is reduced.
+    category: Access Control
+    subcategory: Login Attempts
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify User Lockout settings: 'Lockout Threshold' = 3, 'Lockout Duration' = 15, 'Lockout Reset Duration' = 15
+        If values are not set correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure User Lockout settings in Security Realms -> Configuration -> User Lockout tab.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - access-control
+      - lockout
+
+  - rule_id: STIG-WBLC-01-000034
+    legacy_ids:
+      - V-235938
+      - SV-235938r961863_rule
+    rule_name: Oracle WebLogic must automatically lock accounts when the maximum number of unsuccessful login attempts is exceeded.
+    rule_description: By locking the account when the pre-defined number of failed login attempts has been exceeded, the risk of unauthorized system access via user password guessing is reduced.
+    category: Access Control
+    subcategory: Account Lockout
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify User Lockout settings: 'Lockout Threshold' = 3, 'Lockout Duration' = 15, 'Lockout Reset Duration' = 15
+        If values are not set correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure User Lockout settings in Security Realms -> Configuration -> User Lockout tab.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - access-control
+      - account-lockout
+
+  - rule_id: STIG-WBLC-02-000062
+    legacy_ids:
+      - V-235939
+      - SV-235939r960864_rule
+    rule_name: Oracle WebLogic must protect against an individual falsely denying having performed a particular action.
+    rule_description: Non-repudiation of actions taken is required in order to maintain application integrity. Application servers must ensure the user is part of audit events.
+    category: Auditing
+    subcategory: Non-repudiation
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Verify 'Audit Policy' is set to 'Custom' with all events selected
+        3. Verify log files contain 'User' column for audit events
+        If the user is not part of the audit events, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Configure 'Audit Policy' to 'Custom' and audit all events
+        2. Apply 'JRF Template' to servers if needed
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Server restart may be required
+      estimated_time: "15 minutes"
+    tags:
+      - auditing
+      - non-repudiation
+
+  - rule_id: STIG-WBLC-02-000080
+    legacy_ids:
+      - V-235949
+      - SV-235949r960906_rule
+    rule_name: Oracle WebLogic must produce audit records containing sufficient information to establish the identity of any user/subject or process associated with the event.
+    rule_description: Application servers must, at a minimum, be capable of establishing the identity of any user or process that is associated with any particular event.
+    category: Auditing
+    subcategory: Audit Records
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Verify log files contain 'User' column for audit events
+        If audit records do not contain user information, this is a finding.
+    remediation:
+      remediation_step: |
+        Apply 'JRF Template' to servers to ensure proper logging configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    tags:
+      - auditing
+      - audit-records
+
+  - rule_id: STIG-WBLC-02-000081
+    legacy_ids:
+      - V-235950
+      - SV-235950r961860_rule
+    rule_name: Oracle WebLogic must provide the ability to write specified audit record content to an audit log server.
+    rule_description: Centralized management of audit records and logs provides for efficiency in maintenance and management of records.
+    category: Auditing
+    subcategory: Audit Log Server
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Verify 'opss-audit-DBDS' data source is configured for IAU_APPEND schema
+        3. Verify 'wls-wldf-storeDS' data source is configured for WLS schema
+        If the location for audit data is not an audit log server, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Create data sources for audit data store using IAU_APPEND and WLS schemas
+        2. Configure audit service to use these data sources
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    tags:
+      - auditing
+      - log-server
+
+  - rule_id: STIG-WBLC-02-000098
+    legacy_ids:
+      - V-235957
+      - SV-235957r960939_rule
+    rule_name: Oracle WebLogic must protect audit tools from unauthorized access.
+    rule_description: Protecting audit data includes identifying and protecting the tools used to view and manipulate log data.
+    category: Auditing
+    subcategory: Audit Tools
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. Verify users without audit tool access do not have 'Admin' role
+        If unauthorized users have 'Admin' role, this is a finding.
+    remediation:
+      remediation_step: |
+        Remove 'Admin' role from users who should not have audit tool access.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - auditing
+      - audit-tools
+
+  - rule_id: STIG-WBLC-02-000099
+    legacy_ids:
+      - V-235958
+      - SV-235958r960942_rule
+    rule_name: Oracle WebLogic must protect audit tools from unauthorized modification.
+    rule_description: If an attacker were to modify audit tools, he could also manipulate logs to hide evidence of malicious activity.
+    category: Auditing
+    subcategory: Audit Tools
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify users without audit tool modification access do not have 'Admin' role.
+        If unauthorized users have 'Admin' role, this is a finding.
+    remediation:
+      remediation_step: |
+        Remove 'Admin' role from users who should not have audit tool modification access.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - auditing
+      - audit-tools
+
+  - rule_id: STIG-WBLC-02-000100
+    legacy_ids:
+      - V-235959
+      - SV-235959r960945_rule
+    rule_name: Oracle WebLogic must protect audit tools from unauthorized deletion.
+    rule_description: If an attacker were to delete audit tools, the application server administrators would have no way of managing or viewing the logs.
+    category: Auditing
+    subcategory: Audit Tools
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify users without audit tool deletion access do not have 'Admin' role.
+        If unauthorized users have 'Admin' role, this is a finding.
+    remediation:
+      remediation_step: |
+        Remove 'Admin' role from users who should not have audit tool deletion access.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - auditing
+      - audit-tools
+
+  - rule_id: STIG-WBLC-03-000125
+    legacy_ids:
+      - V-235960
+      - SV-235960r960960_rule
+    rule_name: Oracle WebLogic must limit privileges to change the software resident within software libraries.
+    rule_description: The application server must have a capability to divide roles based upon duties wherein one project user cannot modify the shared library code of another project user.
+    category: Configuration Management
+    subcategory: Shared Libraries
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify users without shared library modification access do not have 'Admin' or 'Deployer' roles.
+        If unauthorized users have these roles, this is a finding.
+    remediation:
+      remediation_step: |
+        Remove 'Admin' and 'Deployer' roles from users who should not have shared library modification access.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - configuration
+      - shared-libraries
+
+  - rule_id: STIG-WBLC-03-000127
+    legacy_ids:
+      - V-235961
+      - SV-235961r960963_rule
+    rule_name: Oracle WebLogic must adhere to the principles of least functionality by providing only essential capabilities.
+    rule_description: Application servers must provide the capability to disable or deactivate functionality and services that are deemed to be non-essential to the server mission.
+    category: Configuration Management
+    subcategory: Least Functionality
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Deployments', select a 'Web Application' type deployment
+        3. Verify 'JSP Page Check' field value is set to '-1'
+        If 'JSP Page Check' is not set to '-1', this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'JSP Page Check' field value to '-1' for all 'Web Application' type deployments.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - configuration
+      - least-functionality
+
+  - rule_id: STIG-WBLC-03-000128
+    legacy_ids:
+      - V-235962
+      - SV-235962r1043177_rule
+    rule_name: Oracle WebLogic must prohibit or restrict the use of unauthorized functions, ports, protocols, and/or services.
+    rule_description: The application server must provide the capability to disable or deactivate network-related services that are deemed to be non-essential.
+    category: Configuration Management
+    subcategory: Network Security
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'Monitoring' -> 'Port Usage'
+        3. Verify all ports and protocols are authorized
+        If any unauthorized ports or protocols are in use, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. Modify port assignments and protocol configurations
+        3. Review 'Port Usage' table to verify changes
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Server restart may be required
+      estimated_time: "15 minutes"
+    tags:
+      - configuration
+      - network
+      - ports
+
+  - rule_id: STIG-WBLC-05-000160
+    legacy_ids:
+      - V-235966
+      - SV-235966r961863_rule
+    rule_name: Oracle WebLogic must enforce minimum password length.
+    rule_description: Password length is one of several factors that helps to determine strength and how long it takes to crack a password.
+    category: Authentication
+    subcategory: Password Policy
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. Navigate to 'Security Realms' -> 'Providers' -> 'Password Validation'
+        3. Select 'SystemPasswordValidator' -> 'Configuration' -> 'Provider Specific'
+        4. Verify 'Minimum Password Length' is set to '15'
+        If not set to '15', this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'Minimum Password Length' field value to '15' in SystemPasswordValidator configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - authentication
+      - password-policy
+
+  - rule_id: STIG-WBLC-05-000162
+    legacy_ids:
+      - V-235967
+      - SV-235967r961863_rule
+    rule_name: Oracle WebLogic must enforce password complexity by the number of upper-case characters used.
+    rule_description: Application servers must enforce the organization's password complexity requirements, which includes the requirement to use a specific number of upper-case characters.
+    category: Authentication
+    subcategory: Password Policy
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify 'Minimum Number of Upper Case Characters' is set to '1' or higher in SystemPasswordValidator.
+        If not set to '1' or higher, this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'Minimum Number of Upper Case Characters' to '1' or higher.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - authentication
+      - password-policy
+
+  - rule_id: STIG-WBLC-05-000163
+    legacy_ids:
+      - V-235968
+      - SV-235968r961863_rule
+    rule_name: Oracle WebLogic must enforce password complexity by the number of lower-case characters used.
+    rule_description: Application servers must enforce password complexity requirements that include the requirement to use a specific number of lower-case characters.
+    category: Authentication
+    subcategory: Password Policy
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify 'Minimum Number of Lower Case Characters' is set to '1' or higher in SystemPasswordValidator.
+        If not set to '1' or higher, this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'Minimum Number of Lower Case Characters' to '1' or higher.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - authentication
+      - password-policy
+
+  - rule_id: STIG-WBLC-05-000164
+    legacy_ids:
+      - V-235969
+      - SV-235969r961863_rule
+    rule_name: Oracle WebLogic must enforce password complexity by the number of numeric characters used.
+    rule_description: Application servers must enforce password complexity requirements that include the requirement to use a specific number of numeric characters.
+    category: Authentication
+    subcategory: Password Policy
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify 'Minimum Number of Numeric Characters' is set to '1' or higher in SystemPasswordValidator.
+        If not set to '1' or higher, this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'Minimum Number of Numeric Characters' to '1' or higher.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - authentication
+      - password-policy
+
+  - rule_id: STIG-WBLC-05-000165
+    legacy_ids:
+      - V-235970
+      - SV-235970r961863_rule
+    rule_name: Oracle WebLogic must enforce password complexity by the number of special characters used.
+    rule_description: Application servers must enforce password complexity requirements that include the requirement to use a specific number of special characters.
+    category: Authentication
+    subcategory: Password Policy
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify 'Minimum Number of Non-Alphanumeric Characters' is set to '1' or higher in SystemPasswordValidator.
+        If not set to '1' or higher, this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'Minimum Number of Non-Alphanumeric Characters' to '1' or higher.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - authentication
+      - password-policy
+
+  - rule_id: STIG-WBLC-05-000172
+    legacy_ids:
+      - V-235973
+      - SV-235973r961038_rule
+    rule_name: Oracle WebLogic must validate certificates by constructing a certification path with status information to an accepted trust anchor.
+    rule_description: When utilizing PKI-based authentication, the application server must validate certificates by constructing a certification path to a trusted root certificate.
+    category: Authentication
+    subcategory: PKI
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify SSL Listen Port is enabled for servers utilizing PKI-based authentication.
+        If 'SSL Listen Port Enabled' is not selected, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL with proper keystore and truststore for PKI-based authentication.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - authentication
+      - pki
+      - ssl
+
+  - rule_id: STIG-WBLC-05-000174
+    legacy_ids:
+      - V-235974
+      - SV-235974r961044_rule
+    rule_name: Oracle WebLogic must map the PKI-based authentication identity to the user account.
+    rule_description: The application server must provide the capability to utilize and meet requirements of the DoD Enterprise PKI infrastructure for application authentication.
+    category: Authentication
+    subcategory: PKI
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify non-Default Authentication Provider is configured for PKI-based authentication.
+        If using PKI and no non-Default provider exists, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure non-Default Authentication Provider for PKI-based authentication.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    tags:
+      - authentication
+      - pki
+
+  - rule_id: STIG-WBLC-05-000176
+    legacy_ids:
+      - V-235975
+      - SV-235975r961050_rule
+    rule_name: Oracle WebLogic must use cryptographic modules that meet FIPS 140-2 requirements when encrypting stored data.
+    rule_description: FIPS 140-2 is the current standard for validating cryptographic modules. Application servers must provide FIPS-compliant encryption modules.
+    category: Encryption
+    subcategory: FIPS
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check AdminServer.log for FIPS-related log entries
+        2. Verify JAVA_OPTIONS and PRE_CLASSPATH variables are set correctly for FIPS
+        If FIPS is not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Set JAVA_OPTIONS to include FIPS java.security properties
+        2. Set PRE_CLASSPATH to include jcmFIPS.jar and sslj.jar
+        3. Restart servers
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - fips
+
+  - rule_id: STIG-WBLC-05-000177
+    legacy_ids:
+      - V-235976
+      - SV-235976r961050_rule
+    rule_name: Oracle WebLogic must utilize FIPS 140-2 approved encryption modules when authenticating users and processes.
+    rule_description: Application servers must provide FIPS-compliant encryption modules when authenticating users and processes.
+    category: Encryption
+    subcategory: FIPS
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify FIPS configuration in AdminServer.log and startup scripts.
+        If FIPS is not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure FIPS 140-2 approved encryption modules in startup scripts.
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - fips
+
+  - rule_id: STIG-WBLC-06-000190
+    legacy_ids:
+      - V-235977
+      - SV-235977r961635_rule
+    rule_name: Oracle WebLogic must employ cryptographic encryption to protect the integrity and confidentiality of nonlocal maintenance and diagnostic communications.
+    rule_description: Application servers need to ensure the communication channels used to remotely access the system utilize cryptographic mechanisms such as TLS.
+    category: Communications Security
+    subcategory: Remote Maintenance
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify SSL Listen Port is enabled and non-SSL Listen Port is disabled for all servers.
+        If not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL for all servers requiring secure remote maintenance access.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - ssl
+      - remote-maintenance
+
+  - rule_id: STIG-WBLC-06-000191
+    legacy_ids:
+      - V-235978
+      - SV-235978r960972_rule
+    rule_name: Oracle WebLogic must employ strong identification and authentication techniques when establishing nonlocal maintenance and diagnostic sessions.
+    rule_description: Application servers must utilize two-factor authentication via secured HTTPS connections for maintenance and diagnostic sessions.
+    category: Communications Security
+    subcategory: Remote Maintenance
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify SSL Listen Port is enabled for all servers requiring strong authentication.
+        If not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL with proper authentication for all servers.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - authentication
+      - ssl
+      - remote-maintenance
+
+  - rule_id: STIG-WBLC-08-000211
+    legacy_ids:
+      - V-235980
+      - SV-235980r961635_rule
+    rule_name: Oracle WebLogic must establish a trusted communications path between the user and security functions.
+    rule_description: Without a trusted communication path, the application server is vulnerable to a man-in-the-middle attack.
+    category: Communications Security
+    subcategory: Trusted Path
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify SSL Listen Port is enabled for all servers requiring trusted communications.
+        If not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL for all servers to establish trusted communications paths.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - ssl
+      - trusted-path
+
+  - rule_id: STIG-WBLC-08-000214
+    legacy_ids:
+      - V-235981
+      - SV-235981r961863_rule
+    rule_name: Oracle WebLogic must utilize NSA-approved cryptography when protecting classified compartmentalized data.
+    rule_description: The application server must employ NSA-approved cryptography to protect classified information from those individuals who have no need to know.
+    category: Encryption
+    subcategory: Classified Data
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify FIPS configuration in AdminServer.log and startup scripts.
+        If FIPS is not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure FIPS 140-2 approved encryption modules for protecting classified data.
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - fips
+      - classified
+
+  - rule_id: STIG-WBLC-08-000218
+    legacy_ids:
+      - V-235982
+      - SV-235982r961620_rule
+    rule_name: Oracle WebLogic must protect the integrity and availability of publicly available information and applications.
+    rule_description: Application servers must protect the integrity of publicly available information.
+    category: System Integrity
+    subcategory: Public Information
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify publicly available applications are deployed to clustered managed servers.
+        If not clustered, this is a finding.
+    remediation:
+      remediation_step: |
+        Deploy publicly available applications to clustered managed servers for high availability.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "15 minutes"
+    tags:
+      - availability
+      - clustering
+
+  - rule_id: STIG-WBLC-08-000222
+    legacy_ids:
+      - V-235983
+      - SV-235983r961095_rule
+    rule_name: Oracle WebLogic must separate hosted application functionality from management functionality.
+    rule_description: The separation of application server administration functionality from hosted application functionality is accomplished by using different servers or instances.
+    category: System Integrity
+    subcategory: Functionality Separation
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify no applications are deployed on the Admin server, only on Managed servers.
+        If applications are deployed on Admin server, this is a finding.
+    remediation:
+      remediation_step: |
+        Undeploy all non-management applications from Admin server and redeploy to Managed servers.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "15 minutes"
+    tags:
+      - separation
+      - admin-server
+
+  - rule_id: STIG-WBLC-08-000223
+    legacy_ids:
+      - V-235984
+      - SV-235984r1043178_rule
+    rule_name: Oracle WebLogic must ensure authentication of both client and server during the entire session.
+    rule_description: Application servers must provide the capability to perform mutual authentication.
+    category: Communications Security
+    subcategory: Mutual Authentication
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Verify SSL Listen Port is enabled
+        2. Verify 'Two Way Client Cert Behavior' is set to 'Client Certs Requested And Enforced'
+        If not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Import client certificates to truststore
+        2. Configure 'Two Way Client Cert Behavior' to 'Client Certs Requested And Enforced'
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - authentication
+      - mutual-auth
+      - ssl
+
+  - rule_id: STIG-WBLC-08-000224
+    legacy_ids:
+      - V-235985
+      - SV-235985r1043179_rule
+    rule_name: Oracle WebLogic must terminate user sessions upon user logout or session termination events.
+    rule_description: When a user management session becomes idle or when a user logs out, the application server must terminate the session.
+    category: Session Management
+    subcategory: Session Termination
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify 'Session Timeout' is set to organization-defined session idle time limit for all deployments.
+        If not set correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'Session Timeout' to organization-defined session idle time limit for all deployments.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - session-management
+      - timeout
+
+  - rule_id: STIG-WBLC-08-000229
+    legacy_ids:
+      - V-235986
+      - SV-235986r961122_rule
+    rule_name: Oracle WebLogic must be configured to perform complete application deployments.
+    rule_description: The application server must be able to perform complete application deployments. A partial deployment can leave the server in an inconsistent state.
+    category: Configuration Management
+    subcategory: Deployment
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify 'Production Mode' checkbox is selected at domain level.
+        If not selected, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. Select top-level domain -> 'Configuration' -> 'General'
+        3. Check 'Production Mode' checkbox
+        4. Restart all servers
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    tags:
+      - deployment
+      - production-mode
+
+  - rule_id: STIG-WBLC-08-000231
+    legacy_ids:
+      - V-235987
+      - SV-235987r961635_rule
+    rule_name: Oracle WebLogic must protect the confidentiality of applications and leverage transmission protection mechanisms during deployment.
+    rule_description: If the application server does not protect the application files during deployment, there is a risk that the application could be compromised.
+    category: Communications Security
+    subcategory: Deployment Security
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify SSL Listen Port is enabled and non-SSL Listen Port is disabled for AdminServer.
+        If not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL for AdminServer to protect application deployment traffic.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - ssl
+      - deployment
+
+  - rule_id: STIG-WBLC-08-000236
+    legacy_ids:
+      - V-235989
+      - SV-235989r961620_rule
+    rule_name: Oracle WebLogic must protect against or limit the effects of HTTP types of Denial of Service (DoS) attacks.
+    rule_description: The application server must be able to be configured to withstand or minimize the risk of DoS attacks.
+    category: System Protection
+    subcategory: DoS Protection
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify 'Maximum in-memory Session' field is set to an acceptable maximum number for all deployments.
+        If not set, this is a finding.
+    remediation:
+      remediation_step: |
+        Set 'Maximum in-memory Session' to an acceptable maximum number for all deployments.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - dos-protection
+      - session-management
+
+  - rule_id: STIG-WBLC-08-000237
+    legacy_ids:
+      - V-235990
+      - SV-235990r961620_rule
+    rule_name: Oracle WebLogic must limit the use of resources by priority and not impede the host from servicing higher-priority processes.
+    rule_description: The application server must be capable of managing application resource requests to prevent availability issues.
+    category: System Protection
+    subcategory: Resource Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify Work Managers are created to allow prioritization of resources.
+        If Work Managers are not created, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. Navigate to 'Environment' -> 'Work Managers'
+        3. Create Work Managers with thread and capacity constraints
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    tags:
+      - resource-management
+      - work-managers
+
+  - rule_id: STIG-WBLC-08-000238
+    legacy_ids:
+      - V-235991
+      - SV-235991r961122_rule
+    rule_name: Oracle WebLogic must fail securely in the event of an operational failure.
+    rule_description: Fail secure ensures that in the event of an operational failure, the system does not enter into an unsecure state.
+    category: System Protection
+    subcategory: Fail Secure
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'Monitoring' -> 'Port Usage'
+        3. Verify all protocols end with 's' (secure)
+        If protocols are not secure, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL for all protocols to ensure fail secure behavior.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - fail-secure
+      - ssl
+
+  - rule_id: STIG-WBLC-08-000239
+    legacy_ids:
+      - V-235992
+      - SV-235992r961635_rule
+    rule_name: Oracle WebLogic must employ approved cryptographic mechanisms when transmitting sensitive data.
+    rule_description: The application server must utilize approved encryption when transmitting sensitive data.
+    category: Encryption
+    subcategory: Data Transmission
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify SSL Listen Port is enabled for all servers requiring cryptographic mechanisms.
+        If not configured correctly, this is a finding.
+    remediation:
+      remediation_step: |
+        Configure SSL for all servers to protect sensitive data in transit.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: SSL restart required
+      estimated_time: "30 minutes"
+    tags:
+      - encryption
+      - ssl
+      - data-transmission
+
+  - rule_id: STIG-WBLC-09-000253
+    legacy_ids:
+      - V-235994
+      - SV-235994r961167_rule
+    rule_name: Oracle WebLogic must only generate error messages that provide information necessary for corrective actions without revealing sensitive information.
+    rule_description: The application server must not log sensitive information such as passwords, private keys, or other sensitive data.
+    category: Error Handling
+    subcategory: Error Messages
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select 'WebLogic Domain' -> 'Logs' -> 'View Log Messages'
+        3. Verify available fields do not contain sensitive data
+        If sensitive information is in error logs, this is a finding.
+    remediation:
+      remediation_step: |
+        Review and configure log fields to exclude sensitive information.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    tags:
+      - error-handling
+      - logging
+
+  - rule_id: STIG-WBLC-09-000254
+    legacy_ids:
+      - V-235995
+      - SV-235995r961170_rule
+    rule_name: Oracle WebLogic must restrict error messages so only authorized personnel may view them.
+    rule_description: The application server must restrict access to error messages so only authorized personnel may view them.
+    category: Error Handling
+    subcategory: Error Message Access
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Verify users without error message access do not have 'Admin', 'Deployer', 'Monitor', or 'Operator' roles.
+        If unauthorized users have these roles, this is a finding.
+    remediation:
+      remediation_step: |
+        Remove 'Admin', 'Deployer', 'Monitor', 'Operator' roles from users who should not view error messages.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    tags:
+      - error-handling
+      - access-control
+
+  - rule_id: STIG-WBLC-09-000257
+    legacy_ids:
+      - V-235996
+      - SV-235996r960912_rule
+    rule_name: Oracle WebLogic must provide system notifications to a list of response personnel who are identified by name and/or role.
+    rule_description: Application servers can act as a resource for incident responders by providing information and notifications.
+    category: Incident Response
+    subcategory: Notifications
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. Navigate to 'Diagnostics' -> 'Diagnostic Modules'
+        3. Verify 'ServerHealthWatch' and 'ServerHealthNotification' are enabled
+        If notifications are not configured, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Create diagnostic module with health watch
+        2. Configure SMTP notification with administrator email addresses
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "30 minutes"
+    tags:
+      - incident-response
+      - notifications
+
+  - rule_id: STIG-WBLC-10-000270
+    legacy_ids:
+      - V-235997
+      - SV-235997r961863_rule
+    rule_name: Oracle WebLogic must be integrated with a tool to monitor audit subsystem failure notification information.
+    rule_description: It is critical that when a system is at risk of failing to process audit logs, it detects and takes action to mitigate the failure.
+    category: Auditing
+    subcategory: Failure Monitoring
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Review if a tool such as Oracle Diagnostic Framework is in place to monitor audit subsystem failure notifications.
+        If no tool is in place, this is a finding.
+    remediation:
+      remediation_step: |
+        Install a tool such as Oracle Diagnostics Framework to monitor audit subsystem failure notifications.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 hour"
+    tags:
+      - auditing
+      - monitoring
+
+  - rule_id: STIG-WBLC-10-000271
+    legacy_ids:
+      - V-235998
+      - SV-235998r961863_rule
+    rule_name: Oracle WebLogic must be managed through a centralized enterprise tool.
+    rule_description: The application server must be integrated with a tool such as Oracle Enterprise Manager for centralized management.
+    category: Configuration Management
+    subcategory: Centralized Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Review if a tool such as Oracle Enterprise Manager is in place for centralized management.
+        If no tool is in place, this is a finding.
+    remediation:
+      remediation_step: |
+        Install a tool such as Oracle Enterprise Manager for centralized management.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "2 hours"
+    tags:
+      - configuration
+      - centralized-management
+
+  - rule_id: STIG-WBLC-10-000272
+    legacy_ids:
+      - V-235999
+      - SV-235999r961863_rule
+    rule_name: Oracle WebLogic must be integrated with a tool to implement multi-factor user authentication.
+    rule_description: Implementing a tool such as Oracle Access Manager will implement multi-factor authentication to the application server.
+    category: Authentication
+    subcategory: Multi-Factor Authentication
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Review if a tool such as Oracle Access Manager is in place for multi-factor authentication.
+        If no tool is in place, this is a finding.
+    remediation:
+      remediation_step: |
+        Install a tool such as Oracle Access Manager for multi-factor authentication.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "2 hours"
+    tags:
+      - authentication
+      - mfa

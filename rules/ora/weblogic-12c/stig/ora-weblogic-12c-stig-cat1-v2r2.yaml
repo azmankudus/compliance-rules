@@ -1,0 +1,234 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: DISA STIG for Oracle WebLogic Server 12c - CAT I
+  version: "2.2"
+  description: DISA Security Technical Implementation Guide for Oracle WebLogic Server 12c - CAT I (High Severity)
+  platform: Oracle WebLogic Server 12c
+  benchmark: DISA STIG Oracle WebLogic Server 12c V2R2
+  author: Defense Information Systems Agency (DISA)
+  created: "2024-12-16T00:00:00Z"
+  modified: "2025-01-30T00:00:00Z"
+  compatible_platforms:
+    - WebLogic Server 12.1.3
+    - WebLogic Server 12.2.1
+
+compliance_info:
+  framework: STIG
+  version: "2.2"
+  profile: CAT I
+
+profile:
+  name: STIG CAT I
+  description: Critical controls - Immediate action required
+  level: 1
+
+rules:
+  - rule_id: STIG-WBLC-05-000150
+    legacy_ids:
+      - V-235964
+      - SV-235964r1051118_rule
+    rule_name: Oracle WebLogic must uniquely identify and authenticate users (or processes acting on behalf of users).
+    rule_description: To assure accountability and prevent unauthorized access, application server users must be uniquely identified and authenticated. The application server must uniquely identify and authenticate application server users or processes acting on behalf of users. This is typically accomplished via the use of a user store which is either local (OS-based) or centralized (LDAP) in nature.
+    category: Authentication
+    subcategory: User Identification
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select realm to configure (default is 'myrealm')
+        4. Select 'Providers' tab -> 'Authentication' tab
+        5. Ensure the list of 'Authentication Providers' contains at least one non-Default Authentication Provider
+        6. If the Authentication Provider is perimeter-based, ensure the list contains at least one non-Default IdentityAsserter
+        If the list of 'Authentication Providers' does not contain at least one non-Default Authentication Provider, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select realm to configure (default is 'myrealm')
+        4. Select 'Providers' tab -> 'Authentication' tab
+        5. Utilize 'Change Center' to create a new change session
+        6. Click 'New'. Enter a value in 'Name' field and select a valid authentication provider type (e.g., LDAPAuthenticator) in the 'Type' dropdown. Click 'OK'
+        7. From the list, select the newly created authentication provider and select the 'Configuration' tab -> 'Provider Specific' tab
+        8. Set all provider specific values to configure the new authentication provider. Click 'Save'
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: "Without unique identification and authentication, there is no accountability for user actions."
+      impact: "Critical - Unauthorized access possible"
+      false_positive_risk: "None"
+    tags:
+      - authentication
+      - user-identification
+      - critical
+
+  - rule_id: STIG-WBLC-05-000153
+    legacy_ids:
+      - V-235965
+      - SV-235965r981680_rule
+    rule_name: Oracle WebLogic must authenticate users individually prior to using a group authenticator.
+    rule_description: To assure individual accountability and prevent unauthorized access, application server users (and any processes acting on behalf of application server users) must be individually identified and authenticated. A group authenticator is a generic account used by multiple individuals. Use of a group authenticator alone does not uniquely identify individual users. Application servers must ensure that individual users are authenticated prior to authenticating via role or group authentication. This is to ensure that there is non-repudiation for actions taken.
+    category: Authentication
+    subcategory: Group Authentication
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select realm to configure (default is 'myrealm')
+        4. Select 'Providers' tab -> 'Authentication' tab
+        5. Ensure the list of 'Authentication Providers' contains at least one non-Default Authentication Provider
+        6. If the Authentication Provider is perimeter-based, ensure the list contains at least one non-Default IdentityAsserter
+        If the list of 'Authentication Providers' does not contain at least one non-Default Authentication Provider, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select realm to configure (default is 'myrealm')
+        4. Select 'Providers' tab -> 'Authentication' tab
+        5. Utilize 'Change Center' to create a new change session
+        6. Click 'New'. Enter a value in 'Name' field and select a valid authentication provider type (e.g., LDAPAuthenticator) in the 'Type' dropdown. Click 'OK'
+        7. From the list, select the newly created authentication provider and select the 'Configuration' tab -> 'Provider Specific' tab
+        8. Set all provider specific values to configure the new authentication provider. Click 'Save'
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: "Group authenticators alone do not provide individual accountability."
+      impact: "Critical - No non-repudiation for actions"
+      false_positive_risk: "None"
+    tags:
+      - authentication
+      - group-authenticator
+      - critical
+
+  - rule_id: STIG-WBLC-05-000168
+    legacy_ids:
+      - V-235971
+      - SV-235971r961029_rule
+    rule_name: Oracle WebLogic must encrypt passwords during transmission.
+    rule_description: Passwords need to be protected at all times, and encryption is the standard method for protecting passwords during transmission. Application servers have the capability to utilize either certificates (tokens) or user IDs and passwords in order to authenticate. When the application server transmits or receives passwords, the passwords must be encrypted.
+    category: Authentication
+    subcategory: Password Protection
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select realm to configure (default is 'myrealm')
+        4. Select 'Providers' tab -> 'Authentication' tab
+        5. Ensure the list of 'Authentication Providers' contains at least one non-Default Authentication Provider
+        6. If the Authentication Provider is perimeter-based, ensure the list contains at least one non-Default IdentityAsserter
+        If the list of 'Authentication Providers' does not contain at least one non-Default Authentication Provider, this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Security Realms'
+        3. Select realm to configure (default is 'myrealm')
+        4. Select 'Providers' tab -> 'Authentication' tab
+        5. Utilize 'Change Center' to create a new change session
+        6. Click 'New'. Enter a value in 'Name' field and select a valid authentication provider type (e.g., LDAPAuthenticator) in the 'Type' dropdown. Click 'OK'
+        7. Configure SSL/TLS for encrypted transmission
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Server restart may be required
+      estimated_time: "15 minutes"
+    context:
+      rationale: "Unencrypted passwords can be intercepted during transmission."
+      impact: "Critical - Password exposure risk"
+      false_positive_risk: "None"
+    tags:
+      - authentication
+      - password-encryption
+      - critical
+
+  - rule_id: STIG-WBLC-05-000169
+    legacy_ids:
+      - V-235972
+      - SV-235972r961029_rule
+    rule_name: Oracle WebLogic must utilize encryption when using LDAP for authentication.
+    rule_description: Passwords need to be protected at all times, and encryption is the standard method for protecting passwords during transmission. Application servers have the capability to utilize LDAP directories for authentication. If LDAP connections are not protected during transmission, sensitive authentication credentials can be stolen. When the application server utilizes LDAP, the LDAP traffic must be encrypted.
+    category: Authentication
+    subcategory: LDAP Security
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Access EM
+        2. Select the domain from the navigation tree, and use the dropdown to select 'WebLogic Domain' -> 'Monitoring' -> 'Port Usage'
+        3. In the results table, ensure the 'Protocol' column does not contain the value 'LDAP' (only 'LDAPS')
+        If LDAP is being used and the 'Protocol' column contains the value 'LDAP', this is a finding.
+    remediation:
+      remediation_step: |
+        1. Access AC
+        2. From 'Domain Structure', select 'Environment' -> 'Servers'
+        3. From the list of servers, select one which is assigned 'LDAP' protocol
+        4. Utilize 'Change Center' to create a new change session
+        5. From 'Configuration' tab -> 'General' tab, deselect the 'Listen Port Enabled' checkbox
+        6. Select the 'SSL Listen Port Enabled checkbox
+        7. Enter a valid port value in the 'SSL Listen Port' field and click 'Save'
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Server restart may be required
+      estimated_time: "10 minutes"
+    context:
+      rationale: "Unencrypted LDAP traffic exposes authentication credentials."
+      impact: "Critical - Credential exposure risk"
+      false_positive_risk: "None"
+    tags:
+      - authentication
+      - ldap
+      - encryption
+      - critical
+
+  - rule_id: STIG-WBLC-10-000999
+    legacy_ids:
+      - V-270883
+      - SV-270883r1051416_rule
+    rule_name: The version of Oracle WebLogic running on the system must be a supported version.
+    rule_description: Security flaws with software applications are discovered daily. Vendors are constantly updating and patching their products to address newly discovered security vulnerabilities. Organizations (including any contractor to the organization) are required to promptly install security-relevant software updates (e.g., patches, service packs, and hot fixes). Flaws discovered during security assessments, continuous monitoring, incident response activities, or information system error handling must also be addressed expeditiously.
+    category: System Updates
+    subcategory: Version Support
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        Oracle WebLogic 12c is no longer supported by the vendor. If the system is running Oracle WebLogic 12c, this is a finding.
+    remediation:
+      remediation_step: |
+        Upgrade to a supported version.
+      rollback_supported: false
+      reboot_required: true
+      service_impact: Full system upgrade required
+      estimated_time: "2 hours"
+    context:
+      rationale: "Running unsupported software leaves the system vulnerable to known security issues."
+      impact: "Critical - No security patches available"
+      false_positive_risk: "None"
+    tags:
+      - system
+      - version
+      - support
+      - critical
