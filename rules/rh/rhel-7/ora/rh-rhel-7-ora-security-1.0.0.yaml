@@ -1,0 +1,2148 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: Red Hat Enterprise Linux 7 Security Hardening
+  version: 1.0.0
+  description: Security hardening rules from official Red Hat RHEL 7 Security Guide
+  platform: Red Hat Enterprise Linux 7
+  benchmark: Red Hat RHEL 7 Security Guide
+  author: Red Hat
+  created: '2026-03-13T00:00:00Z'
+  modified: '2026-03-13T00:00:00Z'
+  compatible_platforms:
+  - RHEL 7.x
+  references:
+  - type: Official Documentation
+    reference: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/security_guide
+compliance_info:
+  framework: Oracle Security
+  version: 1.0.0
+  profile: Production
+rules:
+- rule_id: RH7-SEC-001
+  rule_name: Set BIOS Password
+  rule_description: Configure a BIOS/UEFI password to prevent unauthorized changes
+    to boot settings and system configuration. BIOS passwords prevent attackers from
+    modifying boot sequences or booting from alternative media.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Restart system and enter BIOS/UEFI setup. Check if an administrator/supervisor
+      password is set. Alternatively, check for BIOS password status using dmidecode
+      if available.
+  remediation:
+    remediation_step: Enter BIOS/UEFI setup during boot (typically F2, Del, or F12).
+      Navigate to Security settings and set an administrator/supervisor password.
+      Document the password securely.
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-002
+  rule_name: Disable Boot from External Media in BIOS
+  rule_description: Configure BIOS to disable booting from external media (USB, CD/DVD,
+    network) to prevent unauthorized system access or booting from malicious media.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Enter BIOS/UEFI setup and verify boot order settings. Check that
+      external media (USB, optical, network boot) are disabled or set after internal
+      storage.
+  remediation:
+    remediation_step: In BIOS/UEFI setup, navigate to Boot settings. Disable boot
+      from USB, optical drive, and network (PXE). Set internal hard drive as first
+      boot device.
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-003
+  rule_name: Secure UEFI Boot Loader
+  rule_description: Enable Secure Boot in UEFI firmware to ensure only signed, trusted
+    boot loaders and kernels can be loaded during system startup.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: mokutil --sb-state. Verify Secure Boot is enabled. Check
+      UEFI setup for Secure Boot status.'
+  remediation:
+    remediation_step: Enter UEFI setup during boot. Navigate to Security or Boot settings.
+      Enable Secure Boot. Ensure system is running in UEFI mode (not legacy BIOS).
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-004
+  rule_name: Create Separate Partitions for Critical Directories
+  rule_description: Configure separate partitions for /boot, /home, /var, /tmp, /var/log,
+    and /var/log/audit to prevent disk space exhaustion attacks and contain potential
+    damage.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: df -h or cat /etc/fstab. Verify that /boot, /home, /var,
+      /tmp are mounted on separate filesystems.'
+  remediation:
+    remediation_step: During installation, use manual partitioning to create separate
+      partitions. For existing systems, use LVM to create logical volumes and migrate
+      data. Edit /etc/fstab to mount new partitions.
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-005
+  rule_name: Mount /tmp with nodev nosuid noexec Options
+  rule_description: Mount the /tmp directory with nodev, nosuid, and noexec options
+    to prevent execution of malicious binaries and exploitation of SUID binaries from
+    temporary files.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: mount | grep ''on /tmp''. Verify nodev,nosuid,noexec options
+      are present. Check /etc/fstab for persistent configuration.'
+  remediation:
+    remediation_step: 'Edit /etc/fstab and add nodev,nosuid,noexec options to the
+      /tmp mount entry. Run: mount -o remount /tmp to apply immediately. For systemd
+      tmpfs: cp /usr/share/systemd/tmp.mount /etc/systemd/system/ and edit Options
+      line.'
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-006
+  rule_name: Mount /var/tmp with nodev nosuid noexec Options
+  rule_description: Mount /var/tmp with nodev, nosuid, and noexec options to prevent
+    execution of malicious binaries from persistent temporary storage.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: mount | grep ''on /var/tmp''. Verify nodev,nosuid,noexec
+      options are present. Check /etc/fstab.'
+  remediation:
+    remediation_step: 'Edit /etc/fstab and add nodev,nosuid,noexec options to /var/tmp
+      mount. Run: mount -o remount /var/tmp to apply changes.'
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-007
+  rule_name: Mount /dev/shm with nodev nosuid noexec Options
+  rule_description: Mount /dev/shm with nodev, nosuid, and noexec options to prevent
+    privilege escalation attacks through shared memory.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: mount | grep ''on /dev/shm''. Verify nodev,nosuid,noexec
+      options are present.'
+  remediation:
+    remediation_step: 'Edit /etc/fstab and modify the /dev/shm entry to include nodev,nosuid,noexec
+      options. Run: mount -o remount /dev/shm.'
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-008
+  rule_name: Install Minimum Required Packages
+  rule_description: Install only the minimum required packages to reduce attack surface.
+    Avoid installing unnecessary services, development tools, or documentation on
+    production systems.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: yum list installed | wc -l to count packages. Review installed
+      package groups: yum grouplist. Identify unnecessary packages.'
+  remediation:
+    remediation_step: 'Remove unnecessary packages with: yum remove <package>. Remove
+      unused package groups: yum groupremove <group>. Use minimal installation profile
+      during initial setup.'
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-009
+  rule_name: Restrict Network Connectivity During Installation
+  rule_description: Limit network connectivity during installation to prevent potential
+    attacks. Disconnect from network or use isolated network segment until system
+    is hardened.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify installation was performed on an isolated network segment
+      or with network disconnected. Review installation documentation.
+  remediation:
+    remediation_step: During installation, disconnect network cable or disable network
+      interface. Configure firewall immediately after installation before connecting
+      to production network.
+  tags:
+  - rhel7
+  - security
+  - installation-security
+- rule_id: RH7-SEC-010
+  rule_name: Configure and Enable yum Security Updates
+  rule_description: Configure yum to automatically check for and apply security updates
+    to protect against known vulnerabilities.
+  category: System Updates
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: yum updateinfo list security all. Check if yum-security
+      is installed: rpm -q yum-plugin-security. Verify automatic updates configuration
+      in /etc/yum/yum-cron.conf.'
+  remediation:
+    remediation_step: 'Install yum-plugin-security: yum install yum-plugin-security.
+      Install yum-cron for automatic updates: yum install yum-cron. Edit /etc/yum/yum-cron.conf
+      and set update_cmd = security. Enable service: systemctl enable yum-cron &&
+      systemctl start yum-cron.'
+  tags:
+  - rhel7
+  - security
+  - system-updates
+- rule_id: RH7-SEC-011
+  rule_name: List Available Security Updates
+  rule_description: Regularly review available security updates to understand pending
+    patches and their severity levels.
+  category: System Updates
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: yum check-update --security to list available security updates.
+      Run: yum updateinfo list security all to see all security advisories.'
+  remediation:
+    remediation_step: Schedule regular checks for security updates. Document and track
+      security advisories. Establish a process for reviewing and applying security
+      updates.
+  tags:
+  - rhel7
+  - security
+  - system-updates
+- rule_id: RH7-SEC-012
+  rule_name: Apply Security Updates
+  rule_description: Apply all available security updates to address known vulnerabilities.
+    Prioritize Critical and Important severity updates.
+  category: System Updates
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: yum check-update --security. Check last update date: rpm
+      -qa --last | head. Review security advisory history.'
+  remediation:
+    remediation_step: 'Apply security updates: yum update --security. For minimal
+      updates: yum update-minimal --security -y. Reboot if kernel updates are applied.
+      Document changes.'
+  tags:
+  - rhel7
+  - security
+  - system-updates
+- rule_id: RH7-SEC-013
+  rule_name: Verify Package Signatures
+  rule_description: Verify GPG signatures on all installed packages to ensure package
+    integrity and authenticity from Red Hat repositories.
+  category: System Updates
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run: rpm -qa --qf ''%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH} %{SIGPGP:pgpsig}\n''
+      | head. Check for unsigned packages. Verify GPG keys: rpm -q gpg-pubkey.'
+  remediation:
+    remediation_step: 'Import Red Hat GPG keys: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release.
+      Enable gpgcheck in /etc/yum.conf: gpgcheck=1. Verify all repository configurations
+      have gpgcheck=1.'
+  tags:
+  - rhel7
+  - security
+  - system-updates
+- rule_id: RH7-SEC-014
+  rule_name: Configure Strong Password Requirements
+  rule_description: Configure password quality requirements using pam_pwquality to
+    enforce minimum length, complexity, and character class requirements.
+  category: Password Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check /etc/security/pwquality.conf for minlen, dcredit, ucredit,
+      lcredit, ocredit settings. Check /etc/pam.d/system-auth and password-auth for
+      pam_pwquality configuration.
+  remediation:
+    remediation_step: 'Edit /etc/security/pwquality.conf: Set minlen = 14 (or higher),
+      dcredit = -1, ucredit = -1, lcredit = -1, ocredit = -1, minclass = 4. Ensure
+      pam_pwquality.so is configured in /etc/pam.d/system-auth.'
+  tags:
+  - rhel7
+  - security
+  - password-security
+- rule_id: RH7-SEC-015
+  rule_name: Configure Password Aging Parameters
+  rule_description: Configure password aging to require regular password changes and
+    prevent stale credentials. Set maximum password age, minimum age, and warning
+    period.
+  category: Password Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/login.defs for PASS_MAX_DAYS, PASS_MIN_DAYS, PASS_WARN_AGE.
+      Check existing users: chage -l <username>. Check default aging: grep -E ''PASS_MAX_DAYS|PASS_MIN_DAYS|PASS_WARN_AGE''
+      /etc/login.defs.'
+  remediation:
+    remediation_step: 'Edit /etc/login.defs: Set PASS_MAX_DAYS 90, PASS_MIN_DAYS 7,
+      PASS_WARN_AGE 14. For existing users: chage -M 90 -m 7 -W 14 <username>. Apply
+      to all users: awk -F: ''$3 >= 1000 {print $1}'' /etc/passwd | xargs -I {} chage
+      -M 90 {}.'
+  tags:
+  - rhel7
+  - security
+  - password-security
+- rule_id: RH7-SEC-016
+  rule_name: Configure Account Lockout After Failed Login Attempts
+  rule_description: Configure account lockout to automatically lock accounts after
+    multiple failed authentication attempts to prevent brute force attacks.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/pam.d/system-auth and /etc/pam.d/password-auth for
+      pam_faillock configuration. Check /etc/security/faillock.conf. Verify faillock
+      command works: faillock --user root.'
+  remediation:
+    remediation_step: 'Add to /etc/pam.d/system-auth and password-auth in auth section:
+      auth required pam_faillock.so preauth silent deny=5 unlock_time=900. Add to
+      account section: account required pam_faillock.so. Alternatively configure /etc/security/faillock.conf
+      with deny=5 and unlock_time=900.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-017
+  rule_name: Lock Inactive User Accounts
+  rule_description: Automatically lock user accounts that have been inactive for a
+    specified period to reduce the risk of compromised stale accounts.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for inactive accounts: useradd -D | grep INACTIVE. Check
+      last login: lastlog. Review user inactivity: awk -F: ''$3 >= 1000 {print $1}''
+      /etc/passwd | while read user; do echo -n "$user: "; lastlog -u $user | tail
+      -1; done.'
+  remediation:
+    remediation_step: 'Set default inactivity period: useradd -D -f 35. For existing
+      users: usermod -f 35 <username>. Configure in /etc/default/useradd: INACTIVE=35.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-018
+  rule_name: Configure Session Timeout for Inactive Sessions
+  rule_description: Configure automatic session timeout to lock or terminate inactive
+    sessions after a defined period of inactivity.
+  category: Session Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check TMOUT variable: grep TMOUT /etc/profile /etc/bashrc ~/.bashrc.
+      Check /etc/profile.d/ for timeout scripts. Verify current setting: echo $TMOUT.'
+  remediation:
+    remediation_step: 'Add to /etc/profile or /etc/profile.d/timeout.sh: declare -xr
+      TMOUT=900 (15 minutes). For bash, add readonly TMOUT=900 to /etc/bashrc. Configure
+      screen or tmux lock on idle.'
+  tags:
+  - rhel7
+  - security
+  - session-security
+- rule_id: RH7-SEC-019
+  rule_name: Restrict Direct Root Login
+  rule_description: Disable direct root login and require users to use sudo or su
+    to gain root access. This provides accountability and audit trail.
+  category: Root Access Control
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/securetty for console entries. Check /etc/ssh/sshd_config
+      for PermitRootLogin setting. Verify sudo is configured: grep -E ''^%wheel|^%sudo''
+      /etc/sudoers.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config: PermitRootLogin no. For console,
+      clear /etc/securetty or set to only tty1. Configure sudo access: visudo and
+      add users to wheel group. Restart sshd: systemctl restart sshd.'
+  tags:
+  - rhel7
+  - security
+  - root-access-control
+- rule_id: RH7-SEC-020
+  rule_name: Configure sudo for Privileged Access
+  rule_description: Configure sudo to provide controlled, auditable privileged access.
+    Use sudoers to grant specific command permissions instead of full root access.
+  category: Root Access Control
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/sudoers and /etc/sudoers.d/: visudo -c. Verify sudo
+      logging is enabled. Check wheel group membership: getent group wheel.'
+  remediation:
+    remediation_step: 'Use visudo to edit /etc/sudoers. Add specific command permissions:
+      username ALL=(ALL) /usr/bin/systemctl restart httpd. Enable sudo logging: add
+      Defaults logfile=/var/log/sudo.log. Add users to wheel group: usermod -aG wheel
+      <username>.'
+  tags:
+  - rhel7
+  - security
+  - root-access-control
+- rule_id: RH7-SEC-021
+  rule_name: Secure GRUB2 Boot Loader
+  rule_description: Set a password for GRUB2 boot loader to prevent unauthorized modification
+    of boot parameters or single-user mode access.
+  category: Boot Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for GRUB password: grep -E ''password|GRUB2_PASSWORD''
+      /boot/grub2/grub.cfg /boot/efi/EFI/redhat/grub.cfg. Verify grub2-setpassword
+      was run: test -f /boot/grub2/user.cfg.'
+  remediation:
+    remediation_step: 'Run: grub2-setpassword. This creates /boot/grub2/user.cfg.
+      For UEFI: grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg. For BIOS: grub2-mkconfig
+      -o /boot/grub2/grub.cfg. Document password securely.'
+  tags:
+  - rhel7
+  - security
+  - boot-security
+- rule_id: RH7-SEC-022
+  rule_name: Disable Interactive Startup
+  rule_description: Disable interactive startup mode to prevent users from interrupting
+    the boot process and modifying service startup.
+  category: Boot Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/sysconfig/init for PROMPT setting. Verify: grep PROMPT
+      /etc/sysconfig/init.'
+  remediation:
+    remediation_step: 'Edit /etc/sysconfig/init and set: PROMPT=no. This prevents
+      the ''Press I for interactive startup'' prompt.'
+  tags:
+  - rhel7
+  - security
+  - boot-security
+- rule_id: RH7-SEC-023
+  rule_name: Protect Hard and Symbolic Links
+  rule_description: Configure kernel parameters to restrict following symbolic links
+    and hard links to prevent privilege escalation attacks.
+  category: Filesystem Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current settings: sysctl fs.protected_hardlinks fs.protected_symlinks.
+      Check /etc/sysctl.conf or /etc/sysctl.d/ for persistent settings.'
+  remediation:
+    remediation_step: 'Add to /etc/sysctl.conf or /etc/sysctl.d/99-security.conf:
+      fs.protected_hardlinks = 1, fs.protected_symlinks = 1. Apply: sysctl -p or sysctl
+      --system.'
+  tags:
+  - rhel7
+  - security
+  - filesystem-security
+- rule_id: RH7-SEC-024
+  rule_name: Disable Unnecessary Services
+  rule_description: Identify and disable unnecessary network services to reduce attack
+    surface. Only enable services required for system functionality.
+  category: Service Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List active services: systemctl list-unit-files --type=service
+      | grep enabled. List listening services: ss -tulpn. Check open ports: netstat
+      -tulpn or ss -tulpn.'
+  remediation:
+    remediation_step: 'Disable unnecessary services: systemctl disable --now <service>.
+      Mask services that should never run: systemctl mask <service>. Review and remove
+      unused software: yum remove <package>.'
+  tags:
+  - rhel7
+  - security
+  - service-security
+- rule_id: RH7-SEC-025
+  rule_name: Disable Insecure Legacy Services
+  rule_description: Disable insecure legacy services like telnet, rsh, rlogin, rexec,
+    and ftp that transmit credentials in cleartext.
+  category: Service Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for insecure services: systemctl status telnet.socket rsh.socket
+      rlogin.socket rexec.socket vsftpd proftpd. Check installed packages: rpm -qa
+      | grep -E ''telnet|rsh|ftp''.'
+  remediation:
+    remediation_step: 'Disable services: systemctl disable --now telnet.socket rsh.socket.
+      Remove packages: yum remove telnet-server rsh-server. Use SSH instead of telnet/rsh.
+      Use SFTP/SCP instead of FTP.'
+  tags:
+  - rhel7
+  - security
+  - service-security
+- rule_id: RH7-SEC-026
+  rule_name: Configure SSH Protocol 2 Only
+  rule_description: Configure SSH to use only Protocol 2 as Protocol 1 has known cryptographic
+    weaknesses and vulnerabilities.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config for Protocol setting: grep -E ''^Protocol''
+      /etc/ssh/sshd_config. Note: In RHEL7, Protocol 2 is default and Protocol 1 is
+      removed.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config and ensure Protocol 2 is set (or
+      not specified as it''s the default). Remove any Protocol 1 configuration. Restart
+      sshd: systemctl restart sshd.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-027
+  rule_name: Disable SSH Root Login
+  rule_description: Disable direct root login via SSH to enforce accountability and
+    prevent brute force attacks on root account.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config: grep -E ''^PermitRootLogin'' /etc/ssh/sshd_config.
+      Verify setting is ''no''.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config: PermitRootLogin no. Restart SSH:
+      systemctl restart sshd. Ensure alternative admin access via sudo is configured
+      before applying.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-028
+  rule_name: Configure SSH Key-Based Authentication
+  rule_description: Configure SSH for public key authentication and consider disabling
+    password authentication for improved security.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config: grep -E ''PubkeyAuthentication|PasswordAuthentication''
+      /etc/ssh/sshd_config. Verify user keys exist: ls -la ~/.ssh/authorized_keys.'
+  remediation:
+    remediation_step: 'Generate SSH key pair: ssh-keygen -t ed25519 or ssh-keygen
+      -t rsa -b 4096. Copy key to server: ssh-copy-id user@host. Edit /etc/ssh/sshd_config:
+      PubkeyAuthentication yes, PasswordAuthentication no. Restart sshd.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-029
+  rule_name: Disable SSH Empty Passwords
+  rule_description: Disable SSH authentication for accounts with empty passwords to
+    prevent unauthorized access.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config: grep -E ''^PermitEmptyPasswords''
+      /etc/ssh/sshd_config. Verify setting is ''no''.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config: PermitEmptyPasswords no. Also verify
+      no accounts have empty passwords: awk -F: ''($2 == "") {print $1}'' /etc/passwd.
+      Lock accounts with empty passwords: passwd -l <username>.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-030
+  rule_name: Configure SSH Client Alive Interval
+  rule_description: Configure SSH to automatically disconnect inactive sessions after
+    a timeout period to prevent unauthorized access to unattended sessions.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config: grep -E ''ClientAliveInterval|ClientAliveCountMax''
+      /etc/ssh/sshd_config.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config: ClientAliveInterval 300 (5 minutes),
+      ClientAliveCountMax 3. This will disconnect after 15 minutes of inactivity.
+      Restart sshd: systemctl restart sshd.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-031
+  rule_name: Limit SSH User Access
+  rule_description: Configure SSH to restrict which users or groups can connect via
+    SSH to limit attack surface.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config: grep -E ''AllowUsers|AllowGroups|DenyUsers|DenyGroups''
+      /etc/ssh/sshd_config.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config. Add AllowUsers user1 user2 or AllowGroups
+      ssh-users. Alternatively use DenyUsers or DenyGroups to exclude specific accounts.
+      Restart sshd: systemctl restart sshd.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-032
+  rule_name: Configure SSH Banner
+  rule_description: Configure SSH to display a warning banner before authentication
+    to support legal compliance and deter unauthorized access.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config: grep -E ''^Banner'' /etc/ssh/sshd_config.
+      Verify banner file exists: cat /etc/issue.net.'
+  remediation:
+    remediation_step: 'Create banner file /etc/issue.net with authorized access warning.
+      Edit /etc/ssh/sshd_config: Banner /etc/issue.net. Restart sshd: systemctl restart
+      sshd.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-033
+  rule_name: Use Strong SSH Ciphers and MACs
+  rule_description: Configure SSH to use only strong cryptographic ciphers and message
+    authentication codes (MACs).
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/ssh/sshd_config: grep -E ''Ciphers|MACs|KexAlgorithms''
+      /etc/ssh/sshd_config. Review current algorithms: sshd -T | grep -E ''ciphers|macs|kexalgorithms''.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config. Add: Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes128-gcm@openssh.com,aes128-ctr.
+      Add: MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256.
+      Restart sshd.'
+  tags:
+  - rhel7
+  - security
+  - ssh-security
+- rule_id: RH7-SEC-034
+  rule_name: Enable and Configure firewalld
+  rule_description: Enable firewalld and configure appropriate default zone and rules
+    to protect the system from network-based attacks.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check firewalld status: systemctl status firewalld. Check default
+      zone: firewall-cmd --get-default-zone. List active rules: firewall-cmd --list-all.'
+  remediation:
+    remediation_step: 'Install if needed: yum install firewalld. Enable and start:
+      systemctl enable --now firewalld. Set default zone: firewall-cmd --set-default-zone=public.
+      Configure rules as needed. Save: firewall-cmd --runtime-to-permanent.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-035
+  rule_name: Configure firewalld Default Zone to Deny All
+  rule_description: Configure firewalld default zone to deny all incoming traffic
+    and only allow explicitly permitted services and ports.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check zone target: firewall-cmd --get-default-zone | xargs firewall-cmd
+      --zone=target --query-target. Check zone settings: firewall-cmd --list-all.'
+  remediation:
+    remediation_step: 'Set zone target to DROP or REJECT: firewall-cmd --zone=public
+      --set-target=DROP --permanent. Only allow necessary services: firewall-cmd --add-service=ssh
+      --permanent. Reload: firewall-cmd --reload.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-036
+  rule_name: Configure firewalld to Allow Only Required Services
+  rule_description: Configure firewalld to only allow network services that are required
+    for system operation. Deny all other incoming connections.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List allowed services: firewall-cmd --list-services. List open
+      ports: firewall-cmd --list-ports. Compare against documented requirements.'
+  remediation:
+    remediation_step: 'Remove unnecessary services: firewall-cmd --remove-service=<service>
+      --permanent. Remove unnecessary ports: firewall-cmd --remove-port=<port>/tcp
+      --permanent. Add required services: firewall-cmd --add-service=<service> --permanent.
+      Reload: firewall-cmd --reload.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-037
+  rule_name: Configure firewalld Zone for Network Interfaces
+  rule_description: Assign appropriate firewalld zones to network interfaces based
+    on trust level and network segment.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check interface zones: firewall-cmd --get-active-zones. List
+      interfaces: nmcli device status. Verify zone assignments: nmcli connection show
+      | grep zone.'
+  remediation:
+    remediation_step: 'Assign zone to interface: nmcli connection modify <connection>
+      connection.zone <zone>. Or use firewall-cmd: firewall-cmd --zone=<zone> --change-interface=<interface>
+      --permanent. Reload: firewall-cmd --reload.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-038
+  rule_name: Configure firewalld Logging for Denied Packets
+  rule_description: Configure firewalld to log denied packets for security monitoring
+    and incident response purposes.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for logging configuration: firewall-cmd --list-all | grep
+      LogDenied. Check /etc/firewalld/firewalld.conf for LogDenied setting.'
+  remediation:
+    remediation_step: 'Edit /etc/firewalld/firewalld.conf: LogDenied=all or LogDenied=unicast.
+      Or use command: firewall-cmd --set-log-denied=all --permanent. Reload: firewall-cmd
+      --reload. Monitor logs: journalctl -k | grep REJECT.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-039
+  rule_name: Configure firewalld ICMP Rate Limiting
+  rule_description: Configure ICMP rate limiting in firewalld to protect against ICMP-based
+    denial of service attacks.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check ICMP handling: firewall-cmd --list-icmp-blocks. Check rich
+      rules for ICMP: firewall-cmd --list-rich-rules.'
+  remediation:
+    remediation_step: 'Block specific ICMP types: firewall-cmd --add-icmp-block=echo-request
+      --permanent. Use rich rules for rate limiting: firewall-cmd --add-rich-rule=''rule
+      icmp-type name=echo-request limit value=1/s accept'' --permanent. Reload: firewall-cmd
+      --reload.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-040
+  rule_name: Disable firewalld Direct Interface Unless Required
+  rule_description: Avoid using firewalld direct interface (direct rules) unless absolutely
+    necessary as it bypasses firewalld's abstraction layer.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for direct rules: firewall-cmd --direct --get-all-rules.
+      Check /etc/firewalld/direct.xml.'
+  remediation:
+    remediation_step: 'Remove direct rules if not needed: firewall-cmd --direct --remove-rule
+      <rule>. Prefer firewalld zones, services, and rich rules over direct iptables
+      rules. Document any necessary direct rules.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-041
+  rule_name: Configure firewalld Lockdown Mode
+  rule_description: Enable firewalld lockdown mode to prevent unauthorized applications
+    from modifying firewall rules.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check lockdown status: firewall-cmd --query-lockdown. Check /etc/firewalld/firewalld.conf
+      for Lockdown setting.'
+  remediation:
+    remediation_step: 'Enable lockdown: firewall-cmd --lockdown-on --permanent. Configure
+      whitelist in /etc/firewalld/lockdown-whitelist.xml. Add authorized commands
+      and users. Reload: firewall-cmd --reload.'
+  tags:
+  - rhel7
+  - security
+  - firewall
+- rule_id: RH7-SEC-042
+  rule_name: Verify Open Network Ports
+  rule_description: Regularly audit open network ports to identify unauthorized services
+    or potential security issues.
+  category: Network Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List listening ports: ss -tulpn. List established connections:
+      ss -tunap. Use nmap for external scan: nmap -sT -O localhost. Check service
+      status: systemctl list-units --type=service --state=running.'
+  remediation:
+    remediation_step: 'Identify and document required services. Stop unauthorized
+      services: systemctl stop <service>. Disable at boot: systemctl disable <service>.
+      Configure firewall to block unnecessary ports. Remove unused software.'
+  tags:
+  - rhel7
+  - security
+  - network-security
+- rule_id: RH7-SEC-043
+  rule_name: Disable IPv6 If Not Required
+  rule_description: Disable IPv6 networking if not required by the environment to
+    reduce attack surface.
+  category: Network Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check IPv6 status: sysctl net.ipv6.conf.all.disable_ipv6. Check
+      interface IPv6: ip -6 addr. Check if IPv6 services are running.'
+  remediation:
+    remediation_step: 'Add to /etc/sysctl.conf or /etc/sysctl.d/99-sysctl.conf: net.ipv6.conf.all.disable_ipv6
+      = 1, net.ipv6.conf.default.disable_ipv6 = 1. Apply: sysctl -p. Disable IPv6
+      in grub: add ipv6.disable=1 to kernel parameters.'
+  tags:
+  - rhel7
+  - security
+  - network-security
+- rule_id: RH7-SEC-044
+  rule_name: Disable Source Routing
+  rule_description: Disable IP source routing to prevent attackers from redirecting
+    network traffic through unauthorized paths.
+  category: Network Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check settings: sysctl net.ipv4.conf.all.accept_source_route
+      net.ipv4.conf.default.accept_source_route. For IPv6: sysctl net.ipv6.conf.all.accept_source_route.'
+  remediation:
+    remediation_step: 'Add to /etc/sysctl.conf or /etc/sysctl.d/99-security.conf:
+      net.ipv4.conf.all.accept_source_route = 0, net.ipv4.conf.default.accept_source_route
+      = 0, net.ipv6.conf.all.accept_source_route = 0. Apply: sysctl -p.'
+  tags:
+  - rhel7
+  - security
+  - network-security
+- rule_id: RH7-SEC-045
+  rule_name: Enable TCP SYN Cookies
+  rule_description: Enable TCP SYN cookies to protect against SYN flood denial of
+    service attacks.
+  category: Network Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current setting: sysctl net.ipv4.tcp_syncookies. Verify
+      value is 1.'
+  remediation:
+    remediation_step: 'Add to /etc/sysctl.conf or /etc/sysctl.d/99-security.conf:
+      net.ipv4.tcp_syncookies = 1. Apply: sysctl -p or sysctl --system.'
+  tags:
+  - rhel7
+  - security
+  - network-security
+- rule_id: RH7-SEC-046
+  rule_name: Disable ICMP Redirect Acceptance
+  rule_description: Disable acceptance of ICMP redirects to prevent man-in-the-middle
+    attacks and route manipulation.
+  category: Network Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check settings: sysctl net.ipv4.conf.all.accept_redirects net.ipv4.conf.default.accept_redirects.
+      For IPv6: sysctl net.ipv6.conf.all.accept_redirects.'
+  remediation:
+    remediation_step: 'Add to /etc/sysctl.conf or /etc/sysctl.d/99-security.conf:
+      net.ipv4.conf.all.accept_redirects = 0, net.ipv4.conf.default.accept_redirects
+      = 0, net.ipv6.conf.all.accept_redirects = 0. Apply: sysctl -p.'
+  tags:
+  - rhel7
+  - security
+  - network-security
+- rule_id: RH7-SEC-047
+  rule_name: Enable Reverse Path Filtering
+  rule_description: Enable reverse path filtering to validate source addresses and
+    prevent IP spoofing attacks.
+  category: Network Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check settings: sysctl net.ipv4.conf.all.rp_filter net.ipv4.conf.default.rp_filter.'
+  remediation:
+    remediation_step: 'Add to /etc/sysctl.conf or /etc/sysctl.d/99-security.conf:
+      net.ipv4.conf.all.rp_filter = 1, net.ipv4.conf.default.rp_filter = 1. Apply:
+      sysctl -p.'
+  tags:
+  - rhel7
+  - security
+  - network-security
+- rule_id: RH7-SEC-048
+  rule_name: Configure TCP Wrappers for Service Access Control
+  rule_description: Use TCP wrappers (/etc/hosts.allow and /etc/hosts.deny) to provide
+    additional access control for network services.
+  category: Network Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check /etc/hosts.allow and /etc/hosts.deny contents. Verify service
+      support for TCP wrappers: ldd /usr/sbin/<daemon> | grep libwrap.'
+  remediation:
+    remediation_step: 'Edit /etc/hosts.deny: ALL: ALL. Edit /etc/hosts.allow to permit
+      specific access: sshd: 192.168.1.0/24, ALL: localhost. Note: TCP wrappers is
+      deprecated; prefer firewalld.'
+  tags:
+  - rhel7
+  - security
+  - network-security
+- rule_id: RH7-SEC-049
+  rule_name: Install and Configure AIDE for File Integrity
+  rule_description: Install and configure AIDE (Advanced Intrusion Detection Environment)
+    to monitor file system changes and detect unauthorized modifications.
+  category: Integrity Monitoring
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if AIDE is installed: rpm -q aide. Check database exists:
+      ls -la /var/lib/aide/aide.db*. Check configuration: ls -la /etc/aide.conf.'
+  remediation:
+    remediation_step: 'Install AIDE: yum install aide. Initialize database: aide --init.
+      Copy database: cp /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz. Schedule
+      regular checks via cron: echo ''0 5 * * * /usr/sbin/aide --check'' | crontab
+      -.'
+  tags:
+  - rhel7
+  - security
+  - integrity-monitoring
+- rule_id: RH7-SEC-050
+  rule_name: Configure LUKS Disk Encryption
+  rule_description: Encrypt sensitive data partitions using LUKS (Linux Unified Key
+    Setup) to protect data at rest.
+  category: Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for encrypted partitions: lsblk -f, cryptsetup luksDump
+      /dev/<device>. Check /etc/crypttab for configured encrypted volumes.'
+  remediation:
+    remediation_step: 'For new partitions: cryptsetup luksFormat /dev/<device>. Open
+      encrypted volume: cryptsetup luksOpen /dev/<device> <name>. Create filesystem:
+      mkfs.ext4 /dev/mapper/<name>. Add to /etc/crypttab and /etc/fstab.'
+  tags:
+  - rhel7
+  - security
+  - encryption
+- rule_id: RH7-SEC-051
+  rule_name: Configure Strong TLS Configuration
+  rule_description: Configure system-wide TLS settings to use only strong protocols
+    (TLS 1.2+) and secure cipher suites.
+  category: Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check OpenSSL configuration: openssl ciphers -v ''HIGH:!aNULL:!MD5:!3DES''.
+      Review application-specific TLS configs. Check for deprecated protocols.'
+  remediation:
+    remediation_step: 'Update crypto policies: update-crypto-policies --set FUTURE
+      or FIPS. For applications, configure specific TLS versions and ciphers. Disable
+      SSLv2, SSLv3, TLS 1.0, TLS 1.1. Use only TLS 1.2 or higher.'
+  tags:
+  - rhel7
+  - security
+  - encryption
+- rule_id: RH7-SEC-052
+  rule_name: Configure System-wide Trust Store
+  rule_description: Use the system-wide certificate trust store for consistent certificate
+    management across applications.
+  category: Certificate Management
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check trust store: trust list. List CA certificates: ls /etc/pki/ca-trust/source/anchors/.
+      Check update status: update-ca-trust check.'
+  remediation:
+    remediation_step: 'Add certificates to trust: cp <cert>.crt /etc/pki/ca-trust/source/anchors/.
+      Update trust store: update-ca-trust. Remove untrusted certificates from /etc/pki/ca-trust/source/.'
+  tags:
+  - rhel7
+  - security
+  - certificate-management
+- rule_id: RH7-SEC-053
+  rule_name: Install and Configure USBGuard
+  rule_description: Install and configure USBGuard to enforce USB device authorization
+    policies and prevent unauthorized USB device access.
+  category: Device Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if USBGuard is installed: rpm -q usbguard. Check service
+      status: systemctl status usbguard. List rules: usbguard list-rules.'
+  remediation:
+    remediation_step: 'Install USBGuard: yum install usbguard. Generate initial policy:
+      usbguard generate-policy > /etc/usbguard/rules.conf. Enable service: systemctl
+      enable --now usbguard. Configure rules as needed.'
+  tags:
+  - rhel7
+  - security
+  - device-security
+- rule_id: RH7-SEC-054
+  rule_name: Disable Uncommon Filesystem Types
+  rule_description: Disable uncommon filesystem types (cramfs, freevxfs, jffs2, hfs,
+    hfsplus, squashfs, udf) that are rarely needed but could be exploited.
+  category: Filesystem Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check loaded filesystem modules: lsmod | grep -E ''cramfs|freevxfs|jffs2|hfs|squashfs|udf''.
+      Check if modules are blacklisted: grep -r <filesystem> /etc/modprobe.d/.'
+  remediation:
+    remediation_step: 'Create /etc/modprobe.d/uncommon-fs.conf with: install cramfs
+      /bin/true, install freevxfs /bin/true, install jffs2 /bin/true, install hfs
+      /bin/true, install hfsplus /bin/true, install squashfs /bin/true, install udf
+      /bin/true.'
+  tags:
+  - rhel7
+  - security
+  - filesystem-security
+- rule_id: RH7-SEC-055
+  rule_name: Disable USB Mass Storage If Not Required
+  rule_description: Disable USB mass storage driver if not required to prevent data
+    exfiltration and malware introduction via USB drives.
+  category: Device Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if module is loaded: lsmod | grep usb-storage. Check if
+      blacklisted: grep -r usb-storage /etc/modprobe.d/.'
+  remediation:
+    remediation_step: 'Add to /etc/modprobe.d/no-usb.conf: install usb-storage /bin/true.
+      Or use USBGuard for more granular control. Remove module: modprobe -r usb-storage.'
+  tags:
+  - rhel7
+  - security
+  - device-security
+- rule_id: RH7-SEC-056
+  rule_name: Configure Secure Permissions for Key Files
+  rule_description: Set appropriate permissions on critical system files and directories
+    to prevent unauthorized access or modification.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check permissions: ls -la /etc/passwd /etc/shadow /etc/gshadow
+      /etc/group /etc/sudoers. Check /boot permissions: ls -la /boot. Verify SUID/SGID
+      files: find / -perm /6000 -type f.'
+  remediation:
+    remediation_step: 'Set correct permissions: chmod 644 /etc/passwd, chmod 000 /etc/shadow,
+      chmod 000 /etc/gshadow, chmod 644 /etc/group, chmod 440 /etc/sudoers. For /boot:
+      chmod 700 /boot. Review and justify SUID/SGID files.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-057
+  rule_name: Configure Secure Permissions for Home Directories
+  rule_description: Set restrictive permissions on user home directories to prevent
+    unauthorized access to user data.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check home directory permissions: ls -ld /home/*. Verify umask
+      setting: grep -r umask /etc/profile /etc/bashrc /etc/login.defs.'
+  remediation:
+    remediation_step: 'Set home directory permissions: chmod 750 /home/<username>
+      or chmod 700 /home/<username>. Set default umask in /etc/profile and /etc/bashrc:
+      umask 027 or umask 077.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-058
+  rule_name: Enable and Configure Audit Daemon
+  rule_description: Enable and configure auditd to log security-relevant events for
+    compliance and forensic analysis.
+  category: Auditing
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check auditd status: systemctl status auditd. Check configuration:
+      cat /etc/audit/auditd.conf. List audit rules: auditctl -l. Check logs: ls -la
+      /var/log/audit/.'
+  remediation:
+    remediation_step: 'Install if needed: yum install audit. Enable service: systemctl
+      enable auditd. Configure rules in /etc/audit/rules.d/audit.rules. Examples:
+      -w /etc/passwd -p wa -k identity, -a always,exit -F arch=b64 -S chmod -S chown
+      -S fchmod -S fchown -F auid>=1000 -F auid!=4294967295 -k perm_mod.'
+  tags:
+  - rhel7
+  - security
+  - auditing
+- rule_id: RH7-SEC-059
+  rule_name: Configure Audit Rules for Login Events
+  rule_description: Configure audit rules to monitor login events, both successful
+    and failed, for security monitoring.
+  category: Auditing
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check existing rules: auditctl -l | grep -E ''login|auth''. Check
+      /etc/audit/rules.d/ for login-related rules.'
+  remediation:
+    remediation_step: 'Add to /etc/audit/rules.d/login.rules: -w /var/log/faillog
+      -p wa -k logins, -w /var/log/lastlog -p wa -k logins, -w /var/log/tallylog -p
+      wa -k logins, -a always,exit -F arch=b64 -S adjtimex -S settimeofday -k time-change.
+      Restart auditd: service auditd restart.'
+  tags:
+  - rhel7
+  - security
+  - auditing
+- rule_id: RH7-SEC-060
+  rule_name: Configure Audit Rules for File System Changes
+  rule_description: Configure audit rules to monitor critical file system changes
+    including configuration files and privilege escalation paths.
+  category: Auditing
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check file watch rules: auditctl -l | grep ''\-w''. Review /etc/audit/rules.d/
+      for file system rules.'
+  remediation:
+    remediation_step: 'Add to /etc/audit/rules.d/file-system.rules: -w /etc/sudoers
+      -p wa -k scope, -w /etc/sudoers.d/ -p wa -k scope, -w /etc/passwd -p wa -k identity,
+      -w /etc/shadow -p wa -k identity, -w /etc/group -p wa -k identity, -w /etc/gshadow
+      -p wa -k identity, -w /etc/ssh/sshd_config -p wa -k openssh-server. Restart
+      auditd.'
+  tags:
+  - rhel7
+  - security
+  - auditing
+- rule_id: RH7-SEC-061
+  rule_name: Configure Audit Rules for Module Loading
+  rule_description: Configure audit rules to monitor kernel module loading and unloading
+    for detecting rootkit installation.
+  category: Auditing
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check module rules: auditctl -l | grep -E ''init_module|finit_module|delete_module''.
+      Check /etc/audit/rules.d/.'
+  remediation:
+    remediation_step: 'Add to /etc/audit/rules.d/modules.rules: -a always,exit -F
+      arch=b64 -S init_module -S finit_module -S delete_module -F auid>=1000 -F auid!=4294967295
+      -k modules. Restart auditd: service auditd restart.'
+  tags:
+  - rhel7
+  - security
+  - auditing
+- rule_id: RH7-SEC-062
+  rule_name: Enable SELinux in Enforcing Mode
+  rule_description: Enable SELinux in enforcing mode to provide mandatory access control
+    and protect against privilege escalation and exploitation.
+  category: SELinux
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check SELinux status: sestatus, getenforce. Check configuration:
+      grep -E ''^SELINUX='' /etc/selinux/config.'
+  remediation:
+    remediation_step: 'Edit /etc/selinux/config: SELINUX=enforcing, SELINUXTYPE=targeted.
+      If changing from disabled, use: fixfiles relabel or touch /.autorelabel and
+      reboot. Verify with: sestatus.'
+  tags:
+  - rhel7
+  - security
+  - selinux
+- rule_id: RH7-SEC-063
+  rule_name: Configure SELinux Targeted Policy
+  rule_description: Use SELinux targeted policy which provides protection for specific
+    daemons while leaving other processes unconfined.
+  category: SELinux
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current policy: sestatus | grep ''Policy from config''.
+      Check /etc/selinux/config for SELINUXTYPE.'
+  remediation:
+    remediation_step: 'Edit /etc/selinux/config: SELINUXTYPE=targeted. Ensure targeted
+      policy is installed: yum install selinux-policy-targeted. Reboot if changing
+      policy type.'
+  tags:
+  - rhel7
+  - security
+  - selinux
+- rule_id: RH7-SEC-064
+  rule_name: Configure Postfix to Accept Local Mail Only
+  rule_description: Configure Postfix to only accept local mail if the system does
+    not need to receive external mail to reduce attack surface.
+  category: Mail Server Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check Postfix configuration: postconf inet_interfaces. Check
+      main.cf: grep inet_interfaces /etc/postfix/main.cf.'
+  remediation:
+    remediation_step: 'Edit /etc/postfix/main.cf: inet_interfaces = loopback-only.
+      Or: inet_interfaces = localhost. Restart Postfix: systemctl restart postfix.'
+  tags:
+  - rhel7
+  - security
+  - mail-server-security
+- rule_id: RH7-SEC-065
+  rule_name: Configure Postfix SMTP Banner
+  rule_description: Configure Postfix SMTP banner to not reveal version information
+    that could aid attackers in identifying vulnerabilities.
+  category: Mail Server Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check banner: postconf smtpd_banner. Test banner: telnet localhost
+      25. Check /etc/postfix/main.cf for smtpd_banner.'
+  remediation:
+    remediation_step: 'Edit /etc/postfix/main.cf: smtpd_banner = $myhostname ESMTP.
+      Avoid including version information. Restart Postfix: systemctl restart postfix.'
+  tags:
+  - rhel7
+  - security
+  - mail-server-security
+- rule_id: RH7-SEC-066
+  rule_name: Configure NFS to Use NFSv4
+  rule_description: Configure NFS to use version 4 or higher which includes built-in
+    security features like strong authentication and encryption.
+  category: NFS Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check NFS version: nfsstat -s, mount | grep nfs. Check /etc/sysconfig/nfs
+      for version settings.'
+  remediation:
+    remediation_step: 'Edit /etc/sysconfig/nfs: RPCNFSDARGS=''-N 2 -N 3'' to disable
+      NFSv2 and v3. Configure /etc/exports with sec=sys options or better. Use NFSv4
+      with Kerberos: sec=krb5. Restart NFS: systemctl restart nfs-server.'
+  tags:
+  - rhel7
+  - security
+  - nfs-security
+- rule_id: RH7-SEC-067
+  rule_name: Disable NFS no_root_squash Option
+  rule_description: Ensure the no_root_squash option is not used in NFS exports as
+    it allows remote root users to access files with local root privileges.
+  category: NFS Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check exports: cat /etc/exports. Look for no_root_squash option.
+      Check active exports: exportfs -v.'
+  remediation:
+    remediation_step: 'Edit /etc/exports and remove no_root_squash from all entries.
+      Ensure root_squash (default) is in effect. Re-export: exportfs -ra. Verify:
+      exportfs -v.'
+  tags:
+  - rhel7
+  - security
+  - nfs-security
+- rule_id: RH7-SEC-068
+  rule_name: Configure Apache HTTP Server Security
+  rule_description: Configure Apache HTTP Server with security hardening including
+    disabling server signature, limiting request size, and restricting access.
+  category: Web Server Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check Apache config: apachectl -V, grep -E ''ServerTokens|ServerSignature|LimitRequestBody''
+      /etc/httpd/conf/httpd.conf /etc/httpd/conf.d/*.conf.'
+  remediation:
+    remediation_step: 'Edit /etc/httpd/conf/httpd.conf: ServerTokens Prod, ServerSignature
+      Off, LimitRequestBody 10485760 (10MB). Disable unnecessary modules. Configure
+      directory options: Options -Indexes -FollowSymLinks. Restart: systemctl restart
+      httpd.'
+  tags:
+  - rhel7
+  - security
+  - web-server-security
+- rule_id: RH7-SEC-069
+  rule_name: Configure FTP Server Security
+  rule_description: Configure FTP server (vsftpd) securely by disabling anonymous
+    access, restricting user access, and using TLS for data encryption.
+  category: FTP Server Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check vsftpd config: grep -E ''anonymous_enable|local_enable|chroot_local_user|ssl_enable''
+      /etc/vsftpd/vsftpd.conf.'
+  remediation:
+    remediation_step: 'Edit /etc/vsftpd/vsftpd.conf: anonymous_enable=NO, local_enable=YES,
+      write_enable=YES, chroot_local_user=YES, ssl_enable=YES. Configure TLS certificates.
+      Consider using SFTP instead of FTP. Restart: systemctl restart vsftpd.'
+  tags:
+  - rhel7
+  - security
+  - ftp-server-security
+- rule_id: RH7-SEC-070
+  rule_name: Enable FIPS Mode for Cryptographic Modules
+  rule_description: Enable FIPS 140-2 mode to ensure all cryptographic operations
+    use FIPS-validated modules for compliance requirements.
+  category: Compliance
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check FIPS mode: cat /proc/sys/crypto/fips_enabled. Check kernel
+      command line: cat /proc/cmdline | grep fips. Check dracut config: lsinitrd /boot/initramfs-$(uname
+      -r).img | grep fips.'
+  remediation:
+    remediation_step: 'Enable FIPS: dracut -f. Edit /etc/default/grub: add fips=1
+      to GRUB_CMDLINE_LINUX. Update grub2 config: grub2-mkconfig -o /boot/grub2/grub.cfg
+      (BIOS) or /boot/efi/EFI/redhat/grub.cfg (UEFI). Reboot. Verify: cat /proc/sys/crypto/fips_enabled
+      should return 1.'
+  tags:
+  - rhel7
+  - security
+  - compliance
+- rule_id: RH7-SEC-071
+  rule_name: Remove Unnecessary SUID and SGID Binaries
+  rule_description: Identify and remove SUID and SGID binaries that are not required,
+    as they can be exploited for privilege escalation.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find SUID files: find / -xdev -perm /4000 -type f -ls. Find SGID
+      files: find / -xdev -perm /2000 -type f -ls. Compare against baseline of required
+      binaries.'
+  remediation:
+    remediation_step: 'Review each SUID/SGID binary for necessity. Remove unnecessary
+      packages: yum remove <package>. Remove SUID bit if appropriate: chmod -s /path/to/binary.
+      Document remaining SUID/SGID binaries and justification.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-072
+  rule_name: Configure Secure umask Default
+  rule_description: Set a secure default umask to ensure newly created files and directories
+    have appropriate permissions by default.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check system umask: grep -r umask /etc/profile /etc/bashrc /etc/login.defs
+      /etc/csh.cshrc. Check current umask: umask.'
+  remediation:
+    remediation_step: 'Edit /etc/profile: set umask 027 or umask 077. Edit /etc/bashrc:
+      set umask 027 or umask 077. Edit /etc/login.defs: UMASK 027. Users may need
+      to logout/login for changes to take effect.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-073
+  rule_name: Disable Core Dumps
+  rule_description: Disable core dumps to prevent sensitive information disclosure
+    and potential denial of service through disk space consumption.
+  category: System Hardening
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check limits: grep -E ''core|soft|hard'' /etc/security/limits.conf.
+      Check sysctl: sysctl fs.suid_dumpable. Check ulimit: ulimit -c.'
+  remediation:
+    remediation_step: 'Edit /etc/security/limits.conf: * soft core 0, * hard core
+      0. Set sysctl: echo ''fs.suid_dumpable = 0'' >> /etc/sysctl.d/99-security.conf.
+      Apply: sysctl -p. For systemd, edit /etc/systemd/coredump.conf: Storage=none.'
+  tags:
+  - rhel7
+  - security
+  - system-hardening
+- rule_id: RH7-SEC-074
+  rule_name: Enable ExecShield (ASLR)
+  rule_description: Enable Address Space Layout Randomization (ASLR) to make exploitation
+    of memory corruption vulnerabilities more difficult.
+  category: System Hardening
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check ASLR status: sysctl kernel.randomize_va_space. Value should
+      be 2 (full randomization).'
+  remediation:
+    remediation_step: 'Add to /etc/sysctl.conf or /etc/sysctl.d/99-security.conf:
+      kernel.randomize_va_space = 2. Apply: sysctl -p. Note: Default in RHEL 7 is
+      already 2.'
+  tags:
+  - rhel7
+  - security
+  - system-hardening
+- rule_id: RH7-SEC-075
+  rule_name: Disable Prelink
+  rule_description: Disable prelink as it can interfere with file integrity monitoring
+    and create confusion during security investigations.
+  category: System Hardening
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if prelink is installed: rpm -q prelink. Check if prelink
+      is enabled: grep -E ''^PRELINKING'' /etc/sysconfig/prelink 2>/dev/null.'
+  remediation:
+    remediation_step: 'Disable prelinking: sed -i ''s/PRELINKING=yes/PRELINKING=no/''
+      /etc/sysconfig/prelink. Restore binaries: prelink -ua. Remove package: yum remove
+      prelink. Rebuild AIDE database if used.'
+  tags:
+  - rhel7
+  - security
+  - system-hardening
+- rule_id: RH7-SEC-076
+  rule_name: Configure Login Banner
+  rule_description: Configure appropriate login banners (/etc/motd, /etc/issue, /etc/issue.net)
+    to display authorized use warnings.
+  category: System Hardening
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check banners: cat /etc/motd, cat /etc/issue, cat /etc/issue.net.
+      Verify appropriate legal warning is present.'
+  remediation:
+    remediation_step: 'Edit /etc/motd, /etc/issue, /etc/issue.net with authorized
+      access warning. Example: ''Authorized uses only. All activity may be monitored
+      and reported.'' Ensure banner is appropriate for organizational policy.'
+  tags:
+  - rhel7
+  - security
+  - system-hardening
+- rule_id: RH7-SEC-077
+  rule_name: Remove Legacy Services Entries from inetd
+  rule_description: Remove or disable unused services from inetd/xinetd configuration
+    as these legacy services are rarely needed.
+  category: Service Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check xinetd services: chkconfig --list (if xinetd is installed).
+      Check /etc/xinetd.d/ for enabled services: grep -r disable /etc/xinetd.d/.'
+  remediation:
+    remediation_step: 'Disable xinetd services: edit files in /etc/xinetd.d/ and set
+      disable = yes. Or remove xinetd entirely: yum remove xinetd. Verify no services
+      are listening: ss -tulpn.'
+  tags:
+  - rhel7
+  - security
+  - service-security
+- rule_id: RH7-SEC-078
+  rule_name: Configure NTP for Time Synchronization
+  rule_description: Configure NTP or chrony for accurate time synchronization which
+    is essential for log correlation and security auditing.
+  category: System Configuration
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check chrony status: systemctl status chronyd, chronyc tracking.
+      Check NTP status: ntpstat. Check time sync: timedatectl status.'
+  remediation:
+    remediation_step: 'Install chrony: yum install chrony. Configure /etc/chrony.conf
+      with appropriate NTP servers. Enable: systemctl enable --now chronyd. Verify:
+      chronyc sources, chronyc tracking.'
+  tags:
+  - rhel7
+  - security
+  - system-configuration
+- rule_id: RH7-SEC-079
+  rule_name: Verify No Accounts Have Empty Passwords
+  rule_description: Ensure no user accounts have empty passwords as this allows login
+    without authentication.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for empty passwords: awk -F: ''($2 == "") {print $1}''
+      /etc/shadow. Check for empty password fields: grep ''^[^:]*::'' /etc/shadow.'
+  remediation:
+    remediation_step: 'Lock accounts with empty passwords: passwd -l <username>. Or
+      set a password: passwd <username>. Ensure all accounts have valid password hashes
+      in /etc/shadow.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-080
+  rule_name: Verify No Legacy Password Hashes
+  rule_description: Ensure password hashes are stored in /etc/shadow (not /etc/passwd)
+    and use strong hashing algorithms.
+  category: Password Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for hashes in /etc/passwd: awk -F: ''($2 != "x") {print
+      $1}'' /etc/passwd. Check shadow file: pwck -r. Verify hash algorithm: awk -F:
+      ''{print $2}'' /etc/shadow | head -1 (should start with $6$ for SHA-512).'
+  remediation:
+    remediation_step: 'Ensure password hashes are in shadow: pwconv. Update hash algorithm
+      in /etc/login.defs: ENCRYPT_METHOD SHA512. Force password change to update hash:
+      chage -d 0 <username>.'
+  tags:
+  - rhel7
+  - security
+  - password-security
+- rule_id: RH7-SEC-081
+  rule_name: Verify All Groups in /etc/passwd Exist
+  rule_description: Ensure all groups referenced in /etc/passwd exist in /etc/group
+    to prevent permission issues and potential security problems.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for non-existent groups: pwck -r 2>&1 | grep ''group''.
+      Verify group IDs exist: awk -F: ''{print $4}'' /etc/passwd | sort -u | while
+      read gid; do getent group $gid || echo "Missing GID: $gid"; done.'
+  remediation:
+    remediation_step: 'Create missing groups: groupadd -g <gid> <groupname>. Or correct
+      the GID in /etc/passwd. Run pwck to verify: pwck.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-082
+  rule_name: Verify No Duplicate UIDs
+  rule_description: Ensure no user accounts share the same UID as this breaks accountability
+    and access control.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for duplicate UIDs: awk -F: ''{print $3}'' /etc/passwd
+      | sort | uniq -d | while read uid; do echo "Duplicate UID: $uid"; awk -F: -v
+      uid=$uid ''$3 == uid {print $1}'' /etc/passwd; done.'
+  remediation:
+    remediation_step: 'Assign unique UIDs to affected accounts: usermod -u <new_uid>
+      <username>. Fix file ownership: find / -user <old_uid> -exec chown -h <username>
+      {} \;. Document and justify any intentional UID sharing.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-083
+  rule_name: Verify No Duplicate GIDs
+  rule_description: Ensure no groups share the same GID as this can cause confusion
+    in access control.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for duplicate GIDs: awk -F: ''{print $3}'' /etc/group |
+      sort | uniq -d | while read gid; do echo "Duplicate GID: $gid"; awk -F: -v gid=$gid
+      ''$3 == gid {print $1}'' /etc/group; done.'
+  remediation:
+    remediation_step: 'Assign unique GIDs to affected groups: groupmod -g <new_gid>
+      <groupname>. Fix file group ownership if needed. Document and justify any intentional
+      GID sharing.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-084
+  rule_name: Verify No Duplicate User Names
+  rule_description: Ensure no duplicate user names exist in /etc/passwd as this can
+    cause authentication and authorization issues.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for duplicate usernames: awk -F: ''{print $1}'' /etc/passwd
+      | sort | uniq -d. Also check: pwck -r.'
+  remediation:
+    remediation_step: 'Rename or remove duplicate accounts: usermod -l <new_name>
+      <old_name>. Or remove: userdel <username>. Verify /etc/passwd is correct: pwck.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-085
+  rule_name: Verify No Duplicate Group Names
+  rule_description: Ensure no duplicate group names exist in /etc/group to prevent
+    confusion in group management.
+  category: Account Security
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for duplicate group names: awk -F: ''{print $1}'' /etc/group
+      | sort | uniq -d. Also check: grpck.'
+  remediation:
+    remediation_step: 'Rename or remove duplicate groups: groupmod -n <new_name> <old_name>.
+      Or remove: groupdel <groupname>. Verify: grpck.'
+  tags:
+  - rhel7
+  - security
+  - account-security
+- rule_id: RH7-SEC-086
+  rule_name: Verify Root Path Integrity
+  rule_description: Ensure root's PATH variable does not include the current directory
+    (.) or world-writable directories to prevent command hijacking.
+  category: Root Access Control
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check root PATH: sudo -H su -c ''echo $PATH''. Verify no ''.''
+      or empty entries: sudo -H su -c ''echo $PATH'' | tr '':'' ''\n'' | grep -E ''(^\.?$|^$)''.
+      Check /root/.bashrc and /root/.bash_profile.'
+  remediation:
+    remediation_step: 'Edit /root/.bashrc or /root/.bash_profile to set secure PATH:
+      PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin. Remove any
+      ''.'' or world-writable directories from PATH.'
+  tags:
+  - rhel7
+  - security
+  - root-access-control
+- rule_id: RH7-SEC-087
+  rule_name: Verify Root is the Only UID 0 Account
+  rule_description: Ensure root is the only account with UID 0 as this grants full
+    administrative access.
+  category: Root Access Control
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for UID 0 accounts: awk -F: ''($3 == 0) {print $1}'' /etc/passwd.
+      Only ''root'' should be listed.'
+  remediation:
+    remediation_step: 'Change UID of any non-root account with UID 0: usermod -u <new_uid>
+      <username>. Or remove the account: userdel <username>. Verify only root has
+      UID 0.'
+  tags:
+  - rhel7
+  - security
+  - root-access-control
+- rule_id: RH7-SEC-088
+  rule_name: Remove netrc Files
+  rule_description: Remove .netrc files as they may contain cleartext passwords for
+    FTP/POP3 auto-login.
+  category: File Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find .netrc files: find / -name .netrc -type f. Check home directories:
+      awk -F: ''{print $6}'' /etc/passwd | xargs -I {} find {} -name .netrc 2>/dev/null.'
+  remediation:
+    remediation_step: 'Remove .netrc files: find / -name .netrc -type f -exec rm {}
+      \;. Educate users about the security risks. Use more secure authentication methods.'
+  tags:
+  - rhel7
+  - security
+  - file-security
+- rule_id: RH7-SEC-089
+  rule_name: Set Permissions on User netrc Files
+  rule_description: If .netrc files must exist, set restrictive permissions to prevent
+    unauthorized access to credentials.
+  category: File Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find .netrc with loose permissions: find / -name .netrc -type
+      f \( -perm /g+r -o -perm /o+r -o -perm /g+w -o -perm /o+w \) -ls.'
+  remediation:
+    remediation_step: 'Set correct permissions on .netrc files: find / -name .netrc
+      -type f -exec chmod 600 {} \;. Or remove the files entirely as they contain
+      cleartext passwords.'
+  tags:
+  - rhel7
+  - security
+  - file-security
+- rule_id: RH7-SEC-090
+  rule_name: Remove rhosts Files
+  rule_description: Remove .rhosts files from user home directories as they enable
+    insecure trust relationships for rsh/rlogin.
+  category: File Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find .rhosts files: find / -name .rhosts -type f. Check home
+      directories: awk -F: ''{print $6}'' /etc/passwd | xargs -I {} find {} -name
+      .rhosts 2>/dev/null.'
+  remediation:
+    remediation_step: 'Remove .rhosts files: find / -name .rhosts -type f -exec rm
+      {} \;. Disable rsh/rlogin services: systemctl disable --now rsh.socket rlogin.socket.
+      Use SSH instead.'
+  tags:
+  - rhel7
+  - security
+  - file-security
+- rule_id: RH7-SEC-091
+  rule_name: Remove hosts.equiv File
+  rule_description: Remove /etc/hosts.equiv file as it enables insecure trust relationships
+    between systems.
+  category: File Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for /etc/hosts.equiv: ls -la /etc/hosts.equiv.'
+  remediation:
+    remediation_step: 'Remove the file: rm -f /etc/hosts.equiv. Use SSH with key-based
+      authentication instead of r-commands trust relationships.'
+  tags:
+  - rhel7
+  - security
+  - file-security
+- rule_id: RH7-SEC-092
+  rule_name: Set Sticky Bit on World-Writable Directories
+  rule_description: Set the sticky bit on all world-writable directories to prevent
+    users from deleting files owned by other users.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find world-writable directories without sticky bit: find / -xdev
+      -type d \( -perm /o=w \) ! -perm /o=t -ls 2>/dev/null.'
+  remediation:
+    remediation_step: 'Set sticky bit on world-writable directories: find / -xdev
+      -type d \( -perm /o=w \) ! -perm /o=t -exec chmod +t {} \;. Common directories
+      that should have sticky bit: /tmp, /var/tmp.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-093
+  rule_name: Find Unauthorized World-Writable Files
+  rule_description: Identify and remediate world-writable files that may allow unauthorized
+    modification of system or application data.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find world-writable files: find / -xdev -type f -perm /o=w -ls
+      2>/dev/null | grep -v ''/proc\|/sys''. Focus on system directories: find /etc
+      /usr /var -type f -perm /o=w -ls.'
+  remediation:
+    remediation_step: 'Remove world-writable permission: chmod o-w <file>. Review
+      and justify any legitimate world-writable files. Document exceptions.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-094
+  rule_name: Find Unauthorized World-Writable Directories
+  rule_description: Identify and remediate world-writable directories that may allow
+    unauthorized file creation or modification.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find world-writable directories: find / -xdev -type d -perm /o=w
+      -ls 2>/dev/null | grep -v ''/proc\|/sys''. Exclude expected directories like
+      /tmp.'
+  remediation:
+    remediation_step: 'Remove world-writable permission: chmod o-w <directory>. Add
+      sticky bit if world-writable is necessary: chmod +t <directory>. Document exceptions.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-095
+  rule_name: Find Files with Unauthorized Ownership
+  rule_description: Identify files owned by users that do not exist in /etc/passwd
+    or by unauthorized users.
+  category: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Find files with non-existent owners: find / -xdev \( -nouser
+      -o -nogroup \) -ls 2>/dev/null.'
+  remediation:
+    remediation_step: 'Change ownership of orphaned files: find / -xdev -nouser -exec
+      chown root {} \;. find / -xdev -nogroup -exec chgrp root {} \;. Or delete if
+      no longer needed.'
+  tags:
+  - rhel7
+  - security
+  - file-permissions
+- rule_id: RH7-SEC-096
+  rule_name: Configure rsyslog for Remote Logging
+  rule_description: Configure rsyslog to send logs to a central log server for centralized
+    monitoring and tamper-resistant log storage.
+  category: Logging
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check rsyslog config: grep -E ''@@|@'' /etc/rsyslog.conf /etc/rsyslog.d/*.conf.
+      Check rsyslog status: systemctl status rsyslog.'
+  remediation:
+    remediation_step: 'Edit /etc/rsyslog.conf: Add ''*.* @@logserver.example.com:514''
+      for TCP or ''*.* @logserver.example.com:514'' for UDP. Configure TLS for secure
+      transport. Restart: systemctl restart rsyslog.'
+  tags:
+  - rhel7
+  - security
+  - logging
+- rule_id: RH7-SEC-097
+  rule_name: Enable journald Persistent Storage
+  rule_description: Configure systemd journal for persistent storage to ensure logs
+    survive reboots.
+  category: Logging
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check journald config: grep Storage /etc/systemd/journald.conf.
+      Check if persistent: ls -la /var/log/journal/.'
+  remediation:
+    remediation_step: 'Edit /etc/systemd/journald.conf: Storage=persistent. Create
+      directory: mkdir -p /var/log/journal. Set permissions: systemd-tmpfiles --create
+      --prefix /var/log/journal. Restart: systemctl restart systemd-journald.'
+  tags:
+  - rhel7
+  - security
+  - logging
+- rule_id: RH7-SEC-098
+  rule_name: Configure journald Forwarding to rsyslog
+  rule_description: Configure journald to forward messages to rsyslog for compatibility
+    with existing log infrastructure.
+  category: Logging
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check journald config: grep ForwardToSyslog /etc/systemd/journald.conf.
+      Check rsyslog is receiving messages: tail -f /var/log/messages.'
+  remediation:
+    remediation_step: 'Edit /etc/systemd/journald.conf: ForwardToSyslog=yes. Restart
+      journald: systemctl restart systemd-journald. Verify logs appear in /var/log/messages.'
+  tags:
+  - rhel7
+  - security
+  - logging
+- rule_id: RH7-SEC-099
+  rule_name: Set Permissions on Log Files
+  rule_description: Ensure log files have appropriate permissions to prevent unauthorized
+    access to sensitive log data.
+  category: Logging
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check log permissions: ls -la /var/log/*. Check for world-readable
+      logs: find /var/log -type f -perm /o=r -ls.'
+  remediation:
+    remediation_step: 'Set appropriate permissions: chmod 640 /var/log/*. Set directory
+      permissions: chmod 750 /var/log. Configure rsyslog to set permissions: $FileCreateMode
+      0640 in /etc/rsyslog.conf.'
+  tags:
+  - rhel7
+  - security
+  - logging
+- rule_id: RH7-SEC-100
+  rule_name: Verify System is Not Running in Rescue Mode
+  rule_description: Verify the system is running in the appropriate target (multi-user
+    or graphical) and not in rescue or emergency mode.
+  category: System Configuration
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current target: systemctl get-default, systemctl get-default.
+      Check current state: systemctl is-system-running.'
+  remediation:
+    remediation_step: 'Set default target: systemctl set-default multi-user.target
+      (for servers) or graphical.target (for workstations). Verify: systemctl get-default.'
+  tags:
+  - rhel7
+  - security
+  - system-configuration
