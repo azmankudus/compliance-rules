@@ -1,0 +1,2329 @@
+schema_version: "1.0.0"
+metadata:
+  name: Oracle WebLogic Server 15c Security Hardening
+  version: "1.0.0"
+  description: Security hardening rules for Oracle WebLogic Server 15c (15.1.1.0) based on Oracle security documentation
+  platform: Oracle WebLogic Server 15c
+  benchmark: Oracle WebLogic Server Security Best Practices
+  author: Compliance Rules Team
+  created: "2026-03-13T00:00:00Z"
+  modified: "2026-03-13T00:00:00Z"
+  compatible_platforms:
+    - WebLogic Server 15.1.1.0
+  references:
+    - type: Oracle Documentation
+      reference: "https://docs.oracle.com/en/middleware/standalone/weblogic-server/15.1.1/secmg/toc.htm"
+    - type: Oracle Documentation
+      reference: "Oracle WebLogic Server 15c (15.1.1.0) Security Administration Guide"
+
+compliance_info:
+  framework: Oracle Security Best Practices
+  version: "1.0.0"
+  profile: Production
+
+rules:
+  - rule_id: OWLS15-001
+    rule_name: Disable Default Administrative Credentials
+    rule_description: |
+      The default administrative user credentials must be changed from the default values.
+      WebLogic Server is installed with a default administrative user (weblogic) that must be
+      changed before deploying to production.
+    category: Authentication
+    subcategory: Administrative Access
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console or Administration Console
+        2. Navigate to Security Realms > myrealm > Users and Groups
+        3. Verify the weblogic user password has been changed from default
+        4. Check that no users have default passwords
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cmo.getSecurityConfiguration().getDefaultRealm().getAuthenticationProvider().listUsers('*')
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console or Administration Console
+        2. Navigate to Security Realms > myrealm > Users and Groups
+        3. Select the weblogic user
+        4. Enter a new strong password (minimum 14 characters with complexity)
+        5. Click Save
+        6. Restart WebLogic Server for changes to take effect
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Default credentials are widely known and can be used by attackers to gain
+        unauthorized administrative access to the WebLogic Server.
+      impact: |
+        Unauthorized administrative access could lead to complete system compromise,
+        data breach, or denial of service.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Protecting User Accounts"
+    tags:
+      - authentication
+      - administrative
+      - credentials
+      - critical
+
+  - rule_id: OWLS15-002
+    rule_name: Enable SSL/TLS for Administration Console
+    rule_description: |
+      The WebLogic Administration Console must be configured to use SSL/TLS encryption
+      to protect administrative credentials and session data during transmission.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > AdminServer > Configuration > General
+        3. Verify "SSL Listen Port Enabled" is checked
+        4. Navigate to Servers > AdminServer > Configuration > SSL
+        5. Verify SSL is properly configured with valid certificates
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('Servers/AdminServer')
+        print('SSL Enabled:', cmo.isSSLEnabled())
+        print('SSL Port:', cmo.getSSL().getListenPort())
+    remediation:
+      remediation_step: |
+        1. Obtain SSL certificates from a trusted Certificate Authority
+        2. Create or configure a keystore with the SSL certificate
+        3. Log in to WebLogic Remote Console
+        4. Navigate to Servers > AdminServer > Configuration > Keystores
+        5. Configure Custom Identity and Custom Trust keystores
+        6. Navigate to Servers > AdminServer > Configuration > SSL
+        7. Enable SSL and configure the SSL listen port (default 7002)
+        8. Configure hostname verification
+        9. Restart the AdminServer
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Without SSL/TLS encryption, administrative credentials and sensitive data
+        are transmitted in clear text, making them vulnerable to interception.
+      impact: |
+        Credentials interception could lead to unauthorized administrative access
+        and complete system compromise.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Configuring SSL"
+    tags:
+      - ssl
+      - tls
+      - encryption
+      - administrative
+
+  - rule_id: OWLS15-003
+    rule_name: Configure Minimum TLS Protocol Version 1.3
+    rule_description: |
+      WebLogic Server 15c must be configured to use TLS 1.2 as minimum with TLS 1.3
+      preferred. SSLv2, SSLv3, TLS 1.0, and TLS 1.1 must be disabled due to
+      known security vulnerabilities.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Check the "Minimum SSL Protocol Version" setting
+        4. Verify it is set to TLSv1.2 or TLSv1.3
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('Servers/AdminServer/SSL/AdminServer')
+        print('Minimum Protocol:', cmo.getMinimumProtocolVersion())
+      expected_value: TLSv1.2
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Set "Minimum SSL Protocol Version" to TLSv1.2 (TLSv1.3 preferred)
+        4. Click Save
+        5. Restart the server for changes to take effect
+        6. Alternatively, set the system property:
+           -Dweblogic.security.SSL.minimumProtocolVersion=TLSv1.2
+        7. For TLS 1.3 support, ensure JDK 11+ is used
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        SSLv2, SSLv3, TLS 1.0, and TLS 1.1 have known security vulnerabilities.
+        TLS 1.2 is the minimum secure version, with TLS 1.3 preferred for
+        improved performance and security.
+      impact: |
+        Use of deprecated SSL protocols exposes communications to man-in-the-middle
+        attacks and data interception.
+      false_positive_risk: Low
+      cve_references:
+        - CVE-2014-3566
+        - CVE-2014-8730
+        - CVE-2016-0800
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - SSL Protocol Version"
+    tags:
+      - ssl
+      - tls
+      - encryption
+      - protocol
+
+  - rule_id: OWLS15-004
+    rule_name: Disable Weak Cipher Suites
+    rule_description: |
+      WebLogic Server must be configured to disable weak cipher suites including
+      NULL ciphers, anonymous ciphers, export-grade ciphers, and deprecated algorithms
+      (DES, 3DES, RC4, CBC mode ciphers).
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Review the cipher suites configuration
+        4. Verify no weak ciphers are enabled
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('Servers/AdminServer/SSL/AdminServer')
+        ciphers = cmo.getEnabledCipherSuites()
+        for cipher in ciphers:
+            print(cipher)
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Under "Advanced", configure cipher suites
+        4. Enable only strong cipher suites with forward secrecy:
+           - TLS_AES_256_GCM_SHA384 (TLS 1.3)
+           - TLS_AES_128_GCM_SHA256 (TLS 1.3)
+           - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+           - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+           - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+           - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        5. Disable all CBC mode ciphers, DES, 3DES, RC4, NULL, and anonymous ciphers
+        6. Click Save and restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Weak cipher suites can be exploited to decrypt sensitive data or perform
+        man-in-the-middle attacks. Only strong ciphers with forward secrecy should be used.
+      impact: |
+        Weak ciphers expose encrypted communications to cryptographic attacks
+        and data interception.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Cipher Suites"
+    tags:
+      - ssl
+      - tls
+      - encryption
+      - ciphers
+
+  - rule_id: OWLS15-005
+    rule_name: Enable Configuration Auditing
+    rule_description: |
+      Configuration auditing must be enabled to track changes to the WebLogic
+      Server configuration, including security-related changes.
+    category: Auditing
+    subcategory: Configuration Auditing
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Auditing
+        3. Verify the DefaultAuditor provider is configured
+        4. Check that configuration auditing is enabled in the domain
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName() + '/DefaultRealm/Auditors')
+        print('Audit Provider:', cmo.getAuditors())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Auditing
+        3. Configure a new DefaultAuditor provider if not present
+        4. Set the provider's severity level to Warning or higher
+        5. Enable configuration change auditing
+        6. Click Save and restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Configuration auditing provides an audit trail of security-relevant changes
+        and helps detect unauthorized modifications to the server configuration.
+      impact: |
+        Without auditing, security incidents and configuration changes may go
+        undetected, making forensic analysis difficult.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Configuration Auditing"
+    tags:
+      - auditing
+      - logging
+      - configuration
+
+  - rule_id: OWLS15-006
+    rule_name: Configure Password Policy with Password Validation Provider
+    rule_description: |
+      A strong password policy must be configured using the Password Validation Provider
+      to enforce password complexity, length, and expiration requirements.
+    category: Authentication
+    subcategory: Password Policy
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Check for Password Validation Provider configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName() + '/DefaultRealm/AuthenticationProviders')
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Create or configure Password Validation Provider:
+           - Minimum password length: 14 characters
+           - Require at least 1 uppercase letter
+           - Require at least 1 lowercase letter
+           - Require at least 1 numeric character
+           - Require at least 1 special character
+           - Enable password history (remember last 12 passwords)
+           - Set maximum password age (e.g., 90 days)
+           - Prevent password reuse
+           - Reject common passwords
+        4. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Strong password policies help prevent unauthorized access by ensuring
+        passwords are resistant to brute-force and dictionary attacks.
+      impact: |
+        Weak passwords can be easily compromised, leading to unauthorized access
+        and potential data breaches.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Password Validation Provider"
+    tags:
+      - authentication
+      - password
+      - policy
+
+  - rule_id: OWLS15-007
+    rule_name: Configure Account Lockout Policy
+    rule_description: |
+      Account lockout must be configured to automatically lock user accounts
+      after a specified number of failed login attempts to prevent brute-force attacks.
+    category: Authentication
+    subcategory: Account Lockout
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > User Lockout
+        3. Verify lockout is enabled with appropriate settings
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName())
+        lockoutMgr = cmo.getDefaultRealm().getUserLockoutManager()
+        print('Lockout Enabled:', lockoutMgr.isLockoutEnabled())
+        print('Lockout Threshold:', lockoutMgr.getLockoutThreshold())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > User Lockout
+        3. Enable User Lockout
+        4. Set Lockout Threshold to 5 or fewer failed attempts
+        5. Set Lockout Duration to at least 30 minutes
+        6. Set Lockout Reset Duration appropriately
+        7. Enable lockout logging for monitoring
+        8. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Account lockout prevents brute-force password attacks by locking accounts
+        after a specified number of failed login attempts.
+      impact: |
+        Without account lockout, attackers can perform unlimited password guessing
+        attacks against user accounts.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Protecting User Accounts"
+    tags:
+      - authentication
+      - lockout
+      - brute-force
+
+  - rule_id: OWLS15-008
+    rule_name: Enable Connection Filtering
+    rule_description: |
+      Connection filtering must be enabled to restrict network access to the
+      WebLogic Server based on source IP addresses and protocols.
+    category: Network Security
+    subcategory: Connection Filtering
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Connection Filtering
+        3. Verify connection filtering is enabled
+        4. Review the connection filter rules
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName())
+        print('Connection Filter:', cmo.getConnectionFilter())
+        print('Connection Logger:', cmo.getConnectionLoggerEnabled())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Connection Filtering
+        3. Enable Connection Filtering
+        4. Set Connection Filter to weblogic.security.net.ConnectionFilterImpl
+        5. Configure connection filter rules:
+           # Allow localhost all protocols
+           127.0.0.1 * * allow
+           # Allow admin network to admin port
+           10.0.0.0/24 * 7001 allow
+           # Allow app network to app ports
+           10.0.1.0/24 * 8001-8100 allow
+           # Deny all other
+           0.0.0.0/0 * * deny
+        6. Enable connection logging for monitoring
+        7. Click Save and restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Connection filtering provides network-level access control, limiting
+        exposure to only authorized networks and hosts.
+      impact: |
+        Without connection filtering, the server is accessible from any network,
+        increasing the attack surface.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Using Connection Filters"
+    tags:
+      - network
+      - firewall
+      - access-control
+
+  - rule_id: OWLS15-009
+    rule_name: Replace Demo Certificates with Production Certificates
+    rule_description: |
+      The demonstration (demo) identity and trust certificates must be replaced
+      with production certificates from a trusted Certificate Authority.
+    category: Encryption
+    subcategory: Certificate Management
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > Keystores
+        3. Verify Custom Identity and Custom Trust are configured
+        4. Verify DemoIdentity and DemoTrust are NOT being used
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('Servers/AdminServer')
+        print('Keystore Type:', cmo.getKeystores())
+        print('Identity Keystore:', cmo.getCustomIdentityKeyStoreFileName())
+    remediation:
+      remediation_step: |
+        1. Obtain SSL certificates from a trusted Certificate Authority
+        2. Create a keystore with your identity certificate (PKCS12 or JKS format)
+        3. Create or configure a trust keystore with CA certificates
+        4. Log in to WebLogic Remote Console
+        5. Navigate to Servers > [Server Name] > Configuration > Keystores
+        6. Change Keystores to "Custom Identity and Custom Trust"
+        7. Configure Custom Identity Keystore:
+           - Path to identity keystore file
+           - Keystore type (JKS or PKCS12)
+           - Keystore passphrase
+        8. Configure Custom Trust Keystore:
+           - Path to trust keystore file
+           - Keystore type
+           - Keystore passphrase
+        9. Configure SSL settings to use the new keystores
+        10. Click Save and restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Demo certificates are for development only and are not secure for production.
+        They have well-known passwords and are not signed by trusted CAs.
+      impact: |
+        Use of demo certificates exposes the server to man-in-the-middle attacks
+        and does not provide proper authentication.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Configuring Keystores"
+    tags:
+      - ssl
+      - certificates
+      - keystore
+
+  - rule_id: OWLS15-010
+    rule_name: Enable Production Mode
+    rule_description: |
+      WebLogic Server 15c must be configured to run in Production mode rather than
+      Development mode. Development mode has relaxed security settings that are
+      not appropriate for production environments.
+    category: Configuration
+    subcategory: Server Mode
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Check the domain configuration
+        3. Verify the domain is in Production mode
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('/')
+        print('Production Mode:', cmo.isProductionModeEnabled())
+      expected_value: "true"
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Domain > Configuration > General
+        3. Enable "Production Mode"
+        4. Click Save
+        5. Restart all servers in the domain
+        6. Alternatively, set in config.xml:
+           <production-mode-enabled>true</production-mode-enabled>
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Full domain restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Production mode enables stricter security defaults including:
+        - Automatic deployment is disabled
+        - Secure administration ports
+        - Encrypted passwords in configuration
+        - Strict hostname verification
+        - Secure boot identity file
+        - Secure classloading
+      impact: |
+        Development mode has relaxed security settings that can expose the server
+        to various attacks and is not suitable for production workloads.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Production Mode"
+    tags:
+      - configuration
+      - production-mode
+      - security-defaults
+
+  - rule_id: OWLS15-011
+    rule_name: Configure Secure Administration Port
+    rule_description: |
+      The administration port must be configured and secured to restrict
+      administrative access to authorized networks only.
+    category: Network Security
+    subcategory: Administrative Access
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Domain > Configuration > General
+        3. Check if "Administration Port" is enabled
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('/')
+        print('Admin Port Enabled:', cmo.isAdministrationPortEnabled())
+        print('Admin Port:', cmo.getAdministrationPort())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Domain > Configuration > General
+        3. Enable "Administration Port"
+        4. Set Administration Port to a secure port (e.g., 9002)
+        5. Ensure the administration port uses SSL
+        6. Configure connection filtering to restrict access
+        7. Click Save and restart the domain
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Domain restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        A dedicated administration port separates administrative traffic from
+        application traffic and allows for more granular access control.
+      impact: |
+        Without a secure administration port, administrative access may be
+        exposed to unauthorized networks.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Administration Port"
+    tags:
+      - network
+      - administrative
+      - ports
+
+  - rule_id: OWLS15-012
+    rule_name: Enable HTTP Strict Transport Security (HSTS)
+    rule_description: |
+      HTTP Strict Transport Security (HSTS) must be enabled to force browsers
+      to use HTTPS connections and prevent downgrade attacks.
+    category: Encryption
+    subcategory: HTTP Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Check if HSTS is enabled
+      check_command: |
+        # Check WebLogic response headers
+        curl -k -I https://localhost:7002/console | grep -i "Strict-Transport-Security"
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Enable "HTTP Strict Transport Security (HSTS)"
+        4. Set HSTS Max Age to at least 31536000 (1 year)
+        5. Enable "Include Subdomains"
+        6. Optionally enable "Preload"
+        7. Click Save
+        8. Alternatively, configure in web.xml:
+           <http-header>
+             <name>Strict-Transport-Security</name>
+             <value>max-age=31536000; includeSubDomains; preload</value>
+           </http-header>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        HSTS prevents browsers from accessing the site over HTTP, protecting
+        against SSL stripping and man-in-the-middle attacks.
+      impact: |
+        Without HSTS, users may be vulnerable to downgrade attacks that force
+        unencrypted HTTP connections.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - SSL Configuration"
+    tags:
+      - ssl
+      - hsts
+      - http-security
+
+  - rule_id: OWLS15-013
+    rule_name: Configure Session Timeout and Secure Cookies
+    rule_description: |
+      Session timeout must be configured to automatically terminate inactive
+      user sessions. Cookies must have Secure, HttpOnly, and SameSite attributes.
+    category: Session Management
+    subcategory: Session Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check session timeout configuration
+        2. Verify cookie security settings
+      check_command: |
+        # Check web.xml for session configuration
+        grep -r "session-timeout\|cookie-config" $DOMAIN_HOME/applications/*/WEB-INF/web.xml
+    remediation:
+      remediation_step: |
+        1. For Administration Console:
+           - Navigate to Security Realms > myrealm > Configuration
+           - Set Session Timeout to 30 minutes or less
+        2. For applications, configure in web.xml:
+           <session-config>
+             <session-timeout>30</session-timeout>
+             <cookie-config>
+               <http-only>true</http-only>
+               <secure>true</secure>
+               <same-site>Strict</same-site>
+             </cookie-config>
+           </session-config>
+        3. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Session timeout prevents unauthorized access to active sessions.
+        Secure cookie flags prevent session hijacking via XSS or network interception.
+      impact: |
+        Long session timeouts and insecure cookies increase the risk of session
+        hijacking.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Session Management"
+    tags:
+      - session
+      - timeout
+      - cookies
+
+  - rule_id: OWLS15-014
+    rule_name: Disable Directory Listing
+    rule_description: |
+      Directory listing must be disabled to prevent exposure of directory
+      contents and file enumeration.
+    category: Application Security
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for directory listing settings
+        2. Verify listings parameter is set to false
+      check_command: |
+        # Check web.xml for directory listing
+        grep -r "listings" $DOMAIN_HOME/applications/*/WEB-INF/web.xml
+    remediation:
+      remediation_step: |
+        1. Configure in web.xml for all applications:
+           <servlet>
+             <servlet-name>FileServlet</servlet-name>
+             <servlet-class>weblogic.servlet.FileServlet</servlet-class>
+             <init-param>
+               <param-name>listings</param-name>
+               <param-value>false</param-value>
+             </init-param>
+           </servlet>
+        2. Or set in weblogic.xml:
+           <container-descriptor>
+             <index-directory-enabled>false</index-directory-enabled>
+           </container-descriptor>
+        3. Restart the application
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application restart may be required
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Directory listing can reveal sensitive information about file structure,
+        backup files, and hidden resources.
+      impact: |
+        Information disclosure can aid attackers in identifying potential
+        attack vectors and sensitive files.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Directory Listing"
+    tags:
+      - information-disclosure
+      - directory-listing
+      - application-security
+
+  - rule_id: OWLS15-015
+    rule_name: Configure CORS with Strict Policies
+    rule_description: |
+      CORS must be configured to restrict cross-origin requests to trusted
+      domains only and prevent unauthorized cross-origin access.
+    category: Application Security
+    subcategory: CORS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check CORS filter configuration
+        2. Verify CORS headers in responses
+      check_command: |
+        # Check for CORS headers
+        curl -I -H "Origin: https://evil.com" https://localhost:7002/console
+    remediation:
+      remediation_step: |
+        1. Configure CORS filter in web.xml:
+           <filter>
+             <filter-name>CorsFilter</filter-name>
+             <filter-class>weblogic.servlet.filter.CorsFilter</filter-class>
+             <init-param>
+               <param-name>cors.allowed.origins</param-name>
+               <param-value>https://trusted-domain.com</param-value>
+             </init-param>
+             <init-param>
+               <param-name>cors.allowed.methods</param-name>
+               <param-value>GET,POST,HEAD</param-value>
+             </init-param>
+             <init-param>
+               <param-name>cors.support.credentials</param-name>
+               <param-value>false</param-value>
+             </init-param>
+           </filter>
+        2. Ensure Access-Control-Allow-Origin is NEVER set to "*"
+        3. Validate origins against an allowlist
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application restart may be required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Improperly configured CORS can allow unauthorized cross-origin requests,
+        leading to data theft and CSRF attacks.
+      impact: |
+        Overly permissive CORS settings can expose sensitive data to malicious
+        websites.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - CORS Configuration"
+    tags:
+      - cors
+      - cross-origin
+      - application-security
+
+  - rule_id: OWLS15-016
+    rule_name: Disable WebLogic Examples and Samples
+    rule_description: |
+      All example applications, sample code, and demonstration applications
+      must be removed or disabled in production environments.
+    category: Configuration
+    subcategory: Default Applications
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check deployed applications in the domain
+        2. Verify no example or sample applications are deployed
+      check_command: |
+        # List deployed applications
+        ls -la $DOMAIN_HOME/applications/
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('AppDeployments')
+        for app in cmo.getAppDeployments():
+            print(app.getName())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Deployments
+        3. Identify example and sample applications
+        4. Stop and undeploy each example application
+        5. Remove example application files from $DOMAIN_HOME/applications/
+        6. Remove sample code from $WL_HOME/samples/ if not needed
+      rollback_supported: false
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Example applications often contain known vulnerabilities and are not
+        designed for production use.
+      impact: |
+        Example applications can provide attack vectors and reveal sensitive
+        information about the server configuration.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Default Configuration"
+    tags:
+      - default-applications
+      - examples
+      - hardening
+
+  - rule_id: OWLS15-017
+    rule_name: Configure Comprehensive Logging
+    rule_description: |
+      Comprehensive logging must be configured to capture security-relevant
+      events including authentication failures, authorization failures,
+      and configuration changes.
+    category: Auditing
+    subcategory: Logging
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Logging
+        3. Verify logging configuration
+      check_command: |
+        # Check log files exist and are being written
+        ls -la $DOMAIN_HOME/servers/AdminServer/logs/
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Logging > General
+        3. Configure:
+           - Log file rotation by size (max 10MB)
+           - Maximum number of log files (at least 10)
+           - Log severity level (Warning or higher)
+        4. Navigate to Servers > [Server Name] > Logging > HTTP
+        5. Enable HTTP access logging with extended format
+        6. Configure log forwarding to centralized logging (SIEM)
+        7. Configure auditing provider for security events
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        Comprehensive logging enables detection of security incidents and
+        supports forensic analysis.
+      impact: |
+        Insufficient logging makes it difficult to detect and investigate
+        security incidents.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Logging"
+    tags:
+      - logging
+      - monitoring
+      - auditing
+
+  - rule_id: OWLS15-018
+    rule_name: Enable Certificate Revocation Checking
+    rule_description: |
+      Certificate revocation checking must be enabled using OCSP and/or CRL
+      to verify that SSL certificates have not been revoked before accepting them.
+    category: Encryption
+    subcategory: Certificate Validation
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Check certificate revocation checking settings
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('Servers/AdminServer/SSL/AdminServer')
+        print('CRL Enabled:', cmo.isCrlRevocationCheckingEnabled())
+        print('OCSP Enabled:', cmo.isOcspRevocationCheckingEnabled())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > SSL
+        3. Under "Advanced", enable certificate revocation checking:
+           - Enable CRL checking
+           - Enable OCSP checking
+        4. Configure CRL distribution points
+        5. Configure OCSP responder URL if needed
+        6. Set behavior when revocation status cannot be determined (fail-closed)
+        7. Click Save and restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Certificate revocation checking ensures that compromised or invalid
+        certificates are not accepted.
+      impact: |
+        Without revocation checking, revoked certificates may be accepted,
+        enabling man-in-the-middle attacks.
+      false_positive_risk: Medium
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Certificate Revocation"
+    tags:
+      - ssl
+      - certificates
+      - revocation
+
+  - rule_id: OWLS15-019
+    rule_name: Configure Secure Node Manager
+    rule_description: |
+      Node Manager must be configured with SSL, proper authentication,
+      and access controls to secure remote server management.
+    category: Management
+    subcategory: Node Manager
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check nodemanager.properties configuration
+        2. Verify SSL and authentication settings
+      check_command: |
+        # Check Node Manager configuration
+        cat $WL_HOME/common/nodemanager/nodemanager.properties | grep -i "secure\|ssl\|auth"
+    remediation:
+      remediation_step: |
+        1. Edit $WL_HOME/common/nodemanager/nodemanager.properties
+        2. Configure:
+           SecureListener=true
+           ListenPort=5556
+           KeyFile=identity.jks
+           KeyFilePassword=encrypted_password
+           TrustKeyFile=trust.jks
+           TrustKeyFilePassword=encrypted_password
+           CustomIdentityAlias=alias
+           CustomIdentityPrivateKeyPassPhrase=encrypted_password
+        3. Configure domain username/password in nm_password.properties
+        4. Set file permissions to 600
+        5. Restart Node Manager
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Node Manager restart required
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        Secure Node Manager configuration prevents unauthorized remote server
+        management and protects administrative credentials.
+      impact: |
+        Compromised Node Manager can allow unauthorized control of WebLogic
+        servers.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Node Manager Security"
+    tags:
+      - node-manager
+      - management
+      - ssl
+
+  - rule_id: OWLS15-020
+    rule_name: Secure JMX Remote Access
+    rule_description: |
+      Java Management Extensions (JMX) remote access must be secured with
+      authentication, authorization, and SSL encryption, or disabled if not needed.
+    category: Management
+    subcategory: JMX Security
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check JMX configuration
+        2. Verify authentication and SSL are enabled
+      check_command: |
+        # Check JMX settings in startup scripts
+        grep -r "jmxremote" $DOMAIN_HOME/bin/
+    remediation:
+      remediation_step: |
+        1. If JMX is required, configure securely in setDomainEnv.sh:
+           -Dcom.sun.management.jmxremote.ssl=true
+           -Dcom.sun.management.jmxremote.authenticate=true
+           -Dcom.sun.management.jmxremote.port=7091
+           -Dcom.sun.management.jmxremote.access.file=/path/to/jmxremote.access
+           -Dcom.sun.management.jmxremote.password.file=/path/to/jmxremote.password
+           -Dcom.sun.management.jmxremote.ssl.need.client.auth=true
+        2. Create jmxremote.access file:
+           admin readwrite
+        3. Create jmxremote.password file with strong passwords
+        4. Set file permissions to 600 for password file
+        5. Restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Unsecured JMX provides remote access to server management and can be
+        exploited to execute arbitrary code.
+      impact: |
+        Compromised JMX can lead to complete server takeover and arbitrary
+        code execution.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - JMX Security"
+    tags:
+      - jmx
+      - management
+      - remote-access
+
+  - rule_id: OWLS15-021
+    rule_name: Configure JDBC Data Source Security
+    rule_description: |
+      JDBC data sources must be configured with encrypted passwords,
+      SSL connections, and appropriate connection pool settings.
+    category: Database Security
+    subcategory: JDBC Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Services > Data Sources
+        3. Review JDBC data source configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('JDBCSystemResources')
+        for ds in cmo.getJDBCSystemResources():
+            print('Data Source:', ds.getName())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Services > Data Sources > [Data Source] > Connection Pool
+        3. Configure:
+           - Ensure password is encrypted
+           - Use SSL for database connections if supported
+           - Configure connection timeout settings
+           - Set appropriate max connections
+           - Enable statement timeout
+        4. Configure credential mapping for database authentication
+        5. Click Save and restart data source
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Data source restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        JDBC configuration with encrypted passwords prevents credential exposure
+        and secure database connections protect data in transit.
+      impact: |
+        Exposed database credentials can lead to unauthorized database access
+        and data breach.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - JDBC Security"
+    tags:
+      - jdbc
+      - database
+      - credentials
+
+  - rule_id: OWLS15-022
+    rule_name: Configure JMS Security
+    rule_description: |
+      Java Message Service (JMS) must be configured with security constraints
+      to control access to queues and topics.
+    category: Messaging Security
+    subcategory: JMS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Services > Messaging > JMS Servers
+        3. Review JMS security configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('JMSServers')
+        for jms in cmo.getJMSServers():
+            print('JMS Server:', jms.getName())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Services > Messaging > JMS Modules
+        3. For each JMS resource:
+           - Configure security policies
+           - Restrict send/receive permissions
+           - Enable SSL for JMS connections
+        4. Configure JMS resource policies in Security Realms
+        5. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        JMS security ensures that only authorized users can send and receive
+        messages, protecting sensitive data in transit.
+      impact: |
+        Unsecured JMS can allow unauthorized access to messages and potential
+        data injection.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - JMS Security"
+    tags:
+      - jms
+      - messaging
+      - authorization
+
+  - rule_id: OWLS15-023
+    rule_name: Configure Secure Cluster Communication
+    rule_description: |
+      WebLogic clusters must be configured with secure communication channels
+      between cluster members using SSL.
+    category: Cluster Security
+    subcategory: Cluster Communication
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Environment > Clusters
+        3. Review cluster security configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('Clusters')
+        for cluster in cmo.getClusters():
+            print('Cluster:', cluster.getName())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Environment > Clusters > [Cluster Name] > Configuration
+        3. Enable cluster-wide security:
+           - Configure cluster SSL
+           - Set cluster password
+           - Prefer unicast over multicast for security
+           - Enable secure replication
+        4. Configure inter-server communication to use SSL
+        5. Click Save and restart cluster
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Cluster restart required
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        Secure cluster communication prevents interception of session data
+        and cluster messages, and prevents unauthorized nodes from joining.
+      impact: |
+        Unsecured cluster communication can expose session data and allow
+        unauthorized cluster nodes to join.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Cluster Security"
+    tags:
+      - cluster
+      - replication
+      - ssl
+
+  - rule_id: OWLS15-024
+    rule_name: Configure REST API Security
+    rule_description: |
+      RESTful services must be secured with appropriate authentication,
+      authorization, rate limiting, and transport security.
+    category: Web Services
+    subcategory: REST Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Review REST service configuration
+        2. Check for authentication and authorization
+        3. Verify HTTPS is enforced
+      check_command: |
+        # Check for REST security configuration
+        find $DOMAIN_HOME/applications -name "web.xml" -exec grep -l "security-constraint" {} \;
+    remediation:
+      remediation_step: |
+        1. Configure security in web.xml for REST endpoints:
+           <security-constraint>
+             <web-resource-collection>
+               <url-pattern>/api/*</url-pattern>
+             </web-resource-collection>
+             <auth-constraint>
+               <role-name>AuthenticatedUser</role-name>
+             </auth-constraint>
+             <user-data-constraint>
+               <transport-guarantee>CONFIDENTIAL</transport-guarantee>
+             </user-data-constraint>
+           </security-constraint>
+        2. Use Jakarta EE security annotations
+        3. Configure OAuth 2.0 or JWT for authentication
+        4. Implement rate limiting
+        5. Enable request validation
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Securing REST services prevents unauthorized access to API endpoints
+        and protects sensitive data from abuse.
+      impact: |
+        Unsecured REST APIs can expose sensitive data and functionality.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - REST Security"
+    tags:
+      - rest
+      - api-security
+      - authentication
+
+  - rule_id: OWLS15-025
+    rule_name: Configure SAML 2.0 Security
+    rule_description: |
+      SAML 2.0 single sign-on must be configured with proper signature validation,
+      encryption, and assertion security settings. SAML 1.1 is deprecated.
+    category: Authentication
+    subcategory: SAML Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Check SAML 2.0 provider configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName() + '/DefaultRealm/AuthenticationProviders')
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Configure SAML 2.0 Identity Assertion Provider:
+           - Enable signature validation
+           - Configure trusted signing certificates
+           - Set assertion lifetime (e.g., 5 minutes)
+           - Enable assertion encryption
+           - Configure replay attack prevention
+        4. Configure SAML 2.0 Credential Mapping Provider:
+           - Configure signing key
+           - Set appropriate assertion attributes
+        5. Remove SAML 1.1 providers if present
+        6. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        SAML 2.0 is the current standard for single sign-on. SAML 1.1 is deprecated
+        and should not be used.
+      impact: |
+        Compromised SAML configuration can lead to authentication bypass and
+        unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - SAML Security"
+    tags:
+      - saml
+      - sso
+      - authentication
+
+  - rule_id: OWLS15-026
+    rule_name: Configure OpenID Connect Provider
+    rule_description: |
+      OpenID Connect must be configured securely with proper token validation,
+      secure token handling, and appropriate scopes.
+    category: Authentication
+    subcategory: OpenID Connect
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check OpenID Connect configuration
+        2. Verify token validation settings
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName() + '/DefaultRealm/AuthenticationProviders')
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Configure WebLogic OpenID Connect Identity Assertion Provider:
+           - Configure provider metadata URL
+           - Set client ID and secret
+           - Configure redirect URI validation
+           - Enable token validation
+           - Set appropriate scopes (openid, profile, email)
+           - Configure logout behavior
+        4. Use PKCE for public clients
+        5. Enable token revocation checking
+        6. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        OpenID Connect provides modern, secure authentication. Proper configuration
+        prevents token theft and unauthorized access.
+      impact: |
+        Misconfigured OpenID Connect can lead to authentication bypass.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - OpenID Connect Provider"
+    tags:
+      - openid-connect
+      - authentication
+      - oauth
+
+  - rule_id: OWLS15-027
+    rule_name: Configure Oracle Identity Cloud Integrator
+    rule_description: |
+      Oracle Identity Cloud Integrator Provider must be configured securely
+      with proper authentication and authorization settings.
+    category: Authentication
+    subcategory: Identity Cloud
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Oracle Identity Cloud Integrator configuration
+        2. Verify TLS and authentication settings
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName() + '/DefaultRealm/AuthenticationProviders')
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Configure Oracle Identity Cloud Integrator Provider:
+           - Set Identity Cloud Service URL
+           - Configure client ID and secret
+           - Enable TLS/SSL for all connections
+           - Configure FIPS mode if required
+           - Enable authorization support
+           - Configure REMOTE_USER header support
+        4. Test the connection
+        5. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Oracle Identity Cloud Integrator enables integration with Oracle Identity
+        Cloud Service for centralized identity management.
+      impact: |
+        Misconfigured Identity Cloud integration can lead to authentication issues
+        or unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Oracle Identity Cloud Integrator"
+    tags:
+      - identity-cloud
+      - authentication
+      - oracle-cloud
+
+  - rule_id: OWLS15-028
+    rule_name: Configure Virtual User Authentication
+    rule_description: |
+      Virtual User Authentication Provider must be configured securely when
+      using certificate-based authentication without local user accounts.
+    category: Authentication
+    subcategory: Virtual User
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Virtual User Authentication Provider configuration
+        2. Verify it is properly configured with SSL
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName() + '/DefaultRealm/AuthenticationProviders')
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Configure Virtual User Authentication Provider:
+           - Add the provider to the security realm
+           - Configure two-way SSL
+           - Set up proper certificate validation
+           - Configure user name mapper
+        4. Ensure certificates are properly managed
+        5. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        Virtual User Authentication allows certificate-based authentication
+        without requiring local user accounts.
+      impact: |
+        Misconfigured virtual user authentication can lead to unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Virtual User Authentication"
+    tags:
+      - virtual-user
+      - authentication
+      - certificates
+
+  - rule_id: OWLS15-029
+    rule_name: Configure Security Headers
+    rule_description: |
+      Security headers must be configured to protect against common web
+      vulnerabilities including XSS, clickjacking, and MIME sniffing.
+    category: Application Security
+    subcategory: HTTP Security Headers
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for security headers in responses
+        2. Verify header configuration
+      check_command: |
+        # Check for security headers
+        curl -k -I https://localhost:7002/console | grep -iE "X-Frame-Options|X-Content-Type-Options|Content-Security-Policy"
+    remediation:
+      remediation_step: |
+        1. Configure security headers in web.xml:
+           <http-header>
+             <name>X-Frame-Options</name>
+             <value>DENY</value>
+           </http-header>
+           <http-header>
+             <name>X-Content-Type-Options</name>
+             <value>nosniff</value>
+           </http-header>
+           <http-header>
+             <name>Content-Security-Policy</name>
+             <value>default-src 'self'</value>
+           </http-header>
+           <http-header>
+             <name>Referrer-Policy</name>
+             <value>strict-origin-when-cross-origin</value>
+           </http-header>
+           <http-header>
+             <name>Permissions-Policy</name>
+             <value>geolocation=(), microphone=(), camera=()</value>
+           </http-header>
+        2. Redeploy applications
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        Security headers protect against common web vulnerabilities including
+        XSS, clickjacking, and MIME sniffing attacks.
+      impact: |
+        Missing security headers leaves applications vulnerable to common
+        web attacks.
+      false_positive_risk: Low
+      references:
+        - type: OWASP
+          reference: "OWASP Secure Headers Project"
+    tags:
+      - security-headers
+      - xss
+      - clickjacking
+
+  - rule_id: OWLS15-030
+    rule_name: Configure JEP 290 Deserialization Filters
+    rule_description: |
+      JEP 290 deserialization filters must be configured to prevent
+      deserialization attacks by filtering allowed classes.
+    category: Application Security
+    subcategory: Deserialization Security
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check JEP 290 filter configuration
+        2. Verify filter is enabled
+      check_command: |
+        # Check for JEP 290 configuration
+        grep -r "jdk.serialFilter\|weblogic.serialFilter" $DOMAIN_HOME/
+    remediation:
+      remediation_step: |
+        1. Configure JEP 290 filters in setDomainEnv.sh:
+           JAVA_OPTIONS="${JAVA_OPTIONS} -Dweblogic.serialFilter=pattern"
+        2. Or configure in config.xml:
+           <jta-transaction-log-filter>
+             <enabled>true</enabled>
+           </jta-transaction-log-filter>
+        3. Create allowlist configuration file
+        4. Enable filter logging
+        5. Set deserialization timeout interval
+        6. Restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Deserialization attacks are a critical security vulnerability in Java
+        applications. JEP 290 filters help prevent these attacks.
+      impact: |
+        Without deserialization filters, applications are vulnerable to remote
+        code execution attacks.
+      false_positive_risk: Medium
+      cve_references:
+        - CVE-2015-4852
+        - CVE-2017-10271
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - JEP 290"
+    tags:
+      - deserialization
+      - jep290
+      - application-security
+
+  - rule_id: OWLS15-031
+    rule_name: Configure Secure Boot Identity
+    rule_description: |
+      Boot identity files must be secured with proper file permissions and
+      encrypted credentials.
+    category: Configuration
+    subcategory: Boot Security
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check boot identity file permissions
+        2. Verify boot identity file exists and is secured
+      check_command: |
+        # Check boot identity file permissions
+        ls -la $DOMAIN_HOME/servers/*/data/nodemanager/boot.properties
+        ls -la $DOMAIN_HOME/boot.properties
+    remediation:
+      remediation_step: |
+        1. Locate boot identity files
+        2. Set proper file permissions:
+           chmod 600 boot.properties
+           chown weblogic:weblogic boot.properties
+        3. Ensure encrypted credentials (WebLogic encrypts on first use)
+        4. Store boot identity files in secure locations
+        5. Never commit boot.properties to version control
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Boot identity files contain administrative credentials and must be
+        protected from unauthorized access.
+      impact: |
+        Exposed boot identity files can reveal administrative credentials
+        leading to unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Boot Identity"
+    tags:
+      - boot-identity
+      - credentials
+      - file-permissions
+
+  - rule_id: OWLS15-032
+    rule_name: Configure Coherence Cluster Security
+    rule_description: |
+      Oracle Coherence clusters must be secured with authentication and
+      encryption for cluster communication.
+    category: Coherence Security
+    subcategory: Cluster Communication
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Coherence configuration
+        2. Verify security settings
+      check_command: |
+        # Check for Coherence security configuration
+        find $DOMAIN_HOME -name "tangosol-coherence-override.xml" -exec cat {} \;
+    remediation:
+      remediation_step: |
+        1. Configure Coherence security in tangosol-coherence-override.xml:
+           <security-config>
+             <enabled>true</enabled>
+             <identity-assessor>
+               <class-name>com.tangosol.net.security.DefaultIdentityAsserter</class-name>
+             </identity-assessor>
+           </security-config>
+        2. Configure SSL for Coherence:
+           <ssl>
+             <enabled>true</enabled>
+             <protocol>TLS</protocol>
+           </ssl>
+        3. Restart Coherence cluster
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Cluster restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Secured Coherence clusters prevent unauthorized access to cached data
+        and protect data in transit between cluster members.
+      impact: |
+        Unsecured Coherence can expose cached data to unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Coherence Security"
+    tags:
+      - coherence
+      - caching
+      - encryption
+
+  - rule_id: OWLS15-033
+    rule_name: Configure EJB Security Constraints
+    rule_description: |
+      Enterprise JavaBeans (EJBs) must be configured with appropriate security
+      constraints including method-level authorization.
+    category: Application Security
+    subcategory: EJB Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Review EJB deployment descriptors
+        2. Check for security constraints
+      check_command: |
+        # Check EJB deployment descriptors
+        find $DOMAIN_HOME/applications -name "ejb-jar.xml" -exec grep -l "security-role" {} \;
+    remediation:
+      remediation_step: |
+        1. Configure security in ejb-jar.xml:
+           <assembly-descriptor>
+             <security-role>
+               <role-name>AuthorizedRole</role-name>
+             </security-role>
+             <method-permission>
+               <role-name>AuthorizedRole</role-name>
+               <method>
+                 <ejb-name>SecureEJB</ejb-name>
+                 <method-name>*</method-name>
+               </method>
+             </method-permission>
+           </assembly-descriptor>
+        2. Configure in weblogic-ejb-jar.xml:
+           <security-role-assignment>
+             <role-name>AuthorizedRole</role-name>
+             <principal-name>authorized_user</principal-name>
+           </security-role-assignment>
+        3. Redeploy applications
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        EJB security constraints ensure that only authorized users can invoke
+        business methods.
+      impact: |
+        Unsecured EJBs can allow unauthorized access to business logic.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - EJB Security"
+    tags:
+      - ejb
+      - application-security
+      - authorization
+
+  - rule_id: OWLS15-034
+    rule_name: Disable Unused Protocols and Services
+    rule_description: |
+      Unused services and protocols must be disabled to reduce
+      the attack surface.
+    category: Configuration
+    subcategory: Services Management
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Review enabled services and protocols
+        2. Check for unused IIOP, T3, HTTP tunneling
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('Servers/AdminServer')
+        print('T3 Enabled:', cmo.isT3Enabled())
+        print('IIOP Enabled:', cmo.isIIOEnabled())
+        print('HTTP Tunneling:', cmo.isHttpTunnelingEnabled())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Configuration > General
+        3. Disable unused protocols:
+           - Disable T3 if not needed (or require T3S with SSL)
+           - Disable IIOP if not needed (or require IIOPS with SSL)
+           - Disable HTTP tunneling if not needed
+        4. Navigate to Servers > [Server Name] > Configuration > Protocols
+        5. Review and disable unused protocol features
+        6. Click Save and restart the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Each enabled service or protocol increases the attack surface.
+        Unused services should be disabled.
+      impact: |
+        Unused services can provide additional attack vectors.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Protocol Configuration"
+    tags:
+      - services
+      - protocols
+      - attack-surface
+
+  - rule_id: OWLS15-035
+    rule_name: Configure LDAP Authentication Provider Caching
+    rule_description: |
+      LDAP Authentication Provider must be configured with optimized caching
+      settings to improve performance while maintaining security.
+    category: Authentication
+    subcategory: LDAP Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Check LDAP provider cache settings
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SecurityConfiguration/' + cmo.getName() + '/DefaultRealm/AuthenticationProviders')
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Providers > Authentication
+        3. Configure LDAP Authentication Provider:
+           - Optimize group membership cache size
+           - Optimize connection pool size
+           - Configure user cache
+           - Optimize principal validator cache
+           - Enable cache statistics monitoring
+           - Test LDAP connection during configuration
+        4. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Properly configured caching improves LDAP authentication performance
+        while maintaining security.
+      impact: |
+        Poorly configured caching can impact performance or security.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - LDAP Authentication"
+    tags:
+      - ldap
+      - authentication
+      - caching
+
+  - rule_id: OWLS15-036
+    rule_name: Configure Error Handling to Prevent Information Disclosure
+    rule_description: |
+      Error handling must be configured to prevent exposure of sensitive
+      information such as stack traces, server versions, and internal paths.
+    category: Application Security
+    subcategory: Error Handling
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for error page configuration
+        2. Verify debug mode is disabled in production
+      check_command: |
+        # Check web.xml for error pages
+        find $DOMAIN_HOME/applications -name "web.xml" -exec grep -l "error-page" {} \;
+    remediation:
+      remediation_step: |
+        1. Configure custom error pages in web.xml:
+           <error-page>
+             <error-code>404</error-code>
+             <location>/error/404.html</location>
+           </error-page>
+           <error-page>
+             <error-code>500</error-code>
+             <location>/error/500.html</location>
+           </error-page>
+           <error-page>
+             <exception-type>java.lang.Throwable</exception-type>
+             <location>/error/error.html</location>
+           </error-page>
+        2. Disable debug mode in production
+        3. Hide server information headers
+        4. Log detailed errors server-side only
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        Proper error handling prevents information disclosure that could
+        aid attackers in identifying vulnerabilities.
+      impact: |
+        Exposed stack traces and server information can reveal vulnerabilities.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Error Handling"
+    tags:
+      - error-handling
+      - information-disclosure
+      - application-security
+
+  - rule_id: OWLS15-037
+    rule_name: Configure Work Manager Constraints
+    rule_description: |
+      Work Manager must be configured with appropriate constraints to prevent
+      resource exhaustion and ensure fair resource allocation.
+    category: Resource Management
+    subcategory: Work Manager
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Environment > Work Managers
+        3. Review Work Manager configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SelfTuning/')
+        for wm in cmo.getWorkManagers():
+            print('Work Manager:', wm.getName())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Environment > Work Managers
+        3. Create or configure Work Manager:
+           - Maximum threads constraint
+           - Capacity constraint
+           - Minimum threads constraint
+           - Request class (fair share or response time goal)
+        4. Configure stuck thread detection
+        5. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Work Manager constraints prevent resource exhaustion by limiting
+        thread usage and detecting stuck threads.
+      impact: |
+        Without proper constraints, applications can exhaust server resources.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Work Manager"
+    tags:
+      - resource-management
+      - dos-prevention
+      - work-manager
+
+  - rule_id: OWLS15-038
+    rule_name: Configure Cross-Domain Security
+    rule_description: |
+      Cross-domain security must be properly configured to establish trust
+      between WebLogic domains while maintaining security boundaries.
+    category: Domain Security
+    subcategory: Cross-Domain Trust
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Cross Domain Security
+        3. Review cross-domain security configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('/')
+        print('Cross Domain Security:', cmo.isCrossDomainSecurityEnabled())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Security Realms > myrealm > Cross Domain Security
+        3. If cross-domain communication is required:
+           - Enable Cross Domain Security
+           - Generate a strong credential
+           - Configure trusted domain principals explicitly
+        4. Ensure the cross-domain credential is strong (at least 32 characters)
+        5. Use different credentials for different trust relationships
+        6. Click Save
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Domain restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Proper cross-domain security configuration ensures secure communication
+        between domains while preventing unauthorized access.
+      impact: |
+        Misconfigured cross-domain security can allow unauthorized access
+        between domains.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Cross-Domain Security"
+    tags:
+      - domain
+      - cross-domain
+      - trust
+
+  - rule_id: OWLS15-039
+    rule_name: Configure Secure SNMP Monitoring
+    rule_description: |
+      SNMP configuration must be secured with SNMPv3, community strings,
+      and access controls if SNMP monitoring is enabled.
+    category: Monitoring
+    subcategory: SNMP Security
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Diagnostics > SNMP Agent
+        3. Review SNMP configuration
+      check_command: |
+        # Using WLST
+        connect('admin_user', 'admin_password', 't3://localhost:7001')
+        cd('SNMPAgents')
+        for agent in cmo.getSNMPAgents():
+            print('SNMP Agent:', agent.getName())
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Diagnostics > SNMP Agent
+        3. Configure SNMP security:
+           - Use SNMPv3 with authentication and encryption
+           - Set strong community string (NOT "public")
+           - Limit access to specific hosts
+           - Configure traps destination securely
+        4. If SNMP is not needed, disable it
+        5. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Secured SNMP prevents unauthorized monitoring access and protects
+        management information.
+      impact: |
+        Compromised SNMP can expose server information.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - SNMP Security"
+    tags:
+      - snmp
+      - monitoring
+      - access-control
+
+  - rule_id: OWLS15-040
+    rule_name: Configure Application Deployment Security
+    rule_description: |
+      Application deployment must be secured with proper validation,
+      staged deployment, and security constraints in deployment descriptors.
+    category: Application Security
+    subcategory: Deployment Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Deployments
+        3. Review application security configuration
+      check_command: |
+        # Check deployment descriptors
+        find $DOMAIN_HOME/applications -name "web.xml" -exec grep -l "security-constraint" {} \;
+    remediation:
+      remediation_step: |
+        1. Review and update application deployment descriptors
+        2. Ensure web.xml includes:
+           - security-constraint elements
+           - security-role definitions
+           - login-config for authentication
+           - transport-guarantee CONFIDENTIAL for SSL
+        3. Ensure weblogic.xml includes:
+           - security-role-assignment
+           - Prefer-web-inf-classes for classloading
+        4. Use staged deployment mode for production
+        5. Validate deployment descriptors before deployment
+        6. Redeploy applications
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Proper deployment security ensures that applications are protected
+        from unauthorized access.
+      impact: |
+        Unsecured deployments can expose application functionality to
+        unauthorized users.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Application Security"
+    tags:
+      - deployment
+      - application-security
+      - descriptors
+
+  - rule_id: OWLS15-041
+    rule_name: Configure Secure Class Loading
+    rule_description: |
+      Class loading must be configured securely to prevent classloader
+      attacks and unauthorized code execution.
+    category: Application Security
+    subcategory: Class Loading
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check classloading configuration
+        2. Verify prefer-web-inf-classes settings
+      check_command: |
+        # Check weblogic.xml for classloading settings
+        find $DOMAIN_HOME/applications -name "weblogic.xml" -exec grep -A2 "prefer-web-inf-classes" {} \;
+    remediation:
+      remediation_step: |
+        1. Configure classloading in weblogic.xml:
+           <container-descriptor>
+             <prefer-web-inf-classes>true</prefer-web-inf-classes>
+             <prefer-application-packages>
+               <package-name>org.apache.commons.*</package-name>
+             </prefer-application-packages>
+           </container-descriptor>
+        2. Disable dynamic class reloading in production
+        3. Use EAR packaging for enterprise applications
+        4. Redeploy applications
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "20 minutes"
+    context:
+      rationale: |
+        Secure classloading prevents classloader conflicts and potential
+        code injection attacks.
+      impact: |
+        Misconfigured classloading can lead to security vulnerabilities.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Class Loading"
+    tags:
+      - classloading
+      - application-security
+      - configuration
+
+  - rule_id: OWLS15-042
+    rule_name: Configure Request Logging and Monitoring
+    rule_description: |
+      Request logging must be enabled to capture all HTTP requests with
+      sufficient detail for security monitoring and incident response.
+    category: Auditing
+    subcategory: Request Logging
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Logging > HTTP
+        3. Verify HTTP access logging is enabled
+      check_command: |
+        # Check HTTP log files
+        ls -la $DOMAIN_HOME/servers/AdminServer/logs/access.log
+    remediation:
+      remediation_step: |
+        1. Log in to WebLogic Remote Console
+        2. Navigate to Servers > [Server Name] > Logging > HTTP
+        3. Enable HTTP access logging:
+           - Set logging format to "extended"
+           - Include client IP, user, method, URI, status, bytes
+           - Enable log rotation
+        4. Configure log forwarding to SIEM
+        5. Set up alerts for suspicious activity
+        6. Click Save
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Minimal performance impact
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Request logging enables security monitoring, incident detection,
+        and forensic analysis.
+      impact: |
+        Without request logging, it is difficult to detect attacks.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - HTTP Logging"
+    tags:
+      - logging
+      - monitoring
+      - auditing
+
+  - rule_id: OWLS15-043
+    rule_name: Configure Multipart Request Limits
+    rule_description: |
+      Multipart request limits must be configured to prevent denial of service
+      attacks through large file uploads.
+    category: Application Security
+    subcategory: Request Limits
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check multipart configuration in web.xml
+        2. Verify upload size limits
+      check_command: |
+        # Check web.xml for multipart config
+        find $DOMAIN_HOME/applications -name "web.xml" -exec grep -A5 "multipart-config" {} \;
+    remediation:
+      remediation_step: |
+        1. Configure multipart limits in web.xml:
+           <servlet>
+             <servlet-name>FileUploadServlet</servlet-name>
+             <multipart-config>
+               <max-file-size>10485760</max-file-size>
+               <max-request-size>20971520</max-request-size>
+               <file-size-threshold>1048576</file-size-threshold>
+             </multipart-config>
+           </servlet>
+        2. Implement application-level validation
+        3. Scan uploaded files for malware
+        4. Redeploy applications
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Multipart request limits prevent denial of service attacks through
+        large file uploads.
+      impact: |
+        Without limits, attackers can exhaust server resources.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Oracle WebLogic Server 15c Security Guide - Request Limits"
+    tags:
+      - multipart
+      - file-upload
+      - dos-prevention

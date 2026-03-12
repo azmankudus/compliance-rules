@@ -19,6 +19,8 @@
 <img src="https://img.shields.io/badge/Windows_Server-2025-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server 2025"/>
 <img src="https://img.shields.io/badge/Oracle_Solaris-11.4-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle Solaris 11.4"/>
 <img src="https://img.shields.io/badge/Oracle_WebLogic-12c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic 12c"/>
+<img src="https://img.shields.io/badge/Oracle_WebLogic-14c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic 14c"/>
+<img src="https://img.shields.io/badge/Oracle_WebLogic-15c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic 15c"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -523,6 +525,44 @@ ms-ws-2022-cis-level1-member-v3.0.0.yaml
 
 ---
 
+### 🔧 Oracle WebLogic Server 15c
+
+#### Oracle Security Best Practices
+
+| Document | Level | Profile | Rules | Description | Status |
+|----------|------|---------|-------|-------------|--------|
+| [Security Hardening](ora/weblogic-15c/security/ora-weblogic-15c-security-hardening-1.0.0.yaml) | 🟢 Production | Server | 43 | Security hardening based on Oracle documentation | ✅ Verified |
+
+<details>
+<summary>📊 View Coverage Summary</summary>
+
+| Category | Rules | Description |
+|----------|-------|-------------|
+| Authentication | 5 | User authentication, OpenID Connect, virtual user auth |
+| Encryption | 7 | SSL/TLS, certificate management, HSTS |
+| Auditing | 3 | Logging, configuration auditing, request logging |
+| Network Security | 3 | Connection filtering, ports, virtual hosts |
+| Session Management | 2 | Session timeout and cookie security |
+| Application Security | 10 | EJB, REST, Web Services, deserialization filters |
+| Configuration | 4 | Production mode, boot identity, classloading |
+| Management | 2 | JMX, Node Manager security |
+| Cluster Security | 1 | Cluster communication security |
+| Coherence Security | 1 | Coherence cluster security |
+| Resource Management | 1 | Work Manager constraints |
+| Monitoring | 1 | SNMP security |
+| Domain Security | 1 | Cross-domain security |
+| Database Security | 1 | JDBC security |
+| Messaging Security | 1 | JMS security |
+| **Total** | **43** | |
+
+</details>
+
+#### CIS Benchmarks & DISA STIG
+
+> ⚠️ **Not Available** - Neither CIS Benchmark nor DISA STIG is publicly available for Oracle WebLogic Server 15c. The rules in this repository are based on Oracle's official security documentation and best practices.
+
+---
+
 ## 🏛️ Supported Frameworks
 
 <table>
@@ -850,19 +890,20 @@ generate_ansible_playbook(
 | Solaris 11.4 SPARC STIG | - | - | 14 | 154 | 49 | - | **217** |
 | WebLogic 12c Security | - | - | - | - | - | 40 | **40** |
 | WebLogic 14c Security | - | - | - | - | - | 45 | **45** |
+| WebLogic 15c Security | - | - | - | - | - | 43 | **43** |
 | RHEL 10 Server | 225 | 77 | - | - | - | - | **302** |
 | RHEL 10 Workstation | 219 | 78 | - | - | - | - | **297** |
 | RHEL 9 Server | 31 | 4 | 20 | 414 | 16 | - | **485** |
 | RHEL 9 Workstation | 6 | 3 | - | - | - | - | **9** |
 | RHEL 8 Server | 5 | 2 | 22 | 320 | 27 | - | **376** |
 | RHEL 8 Workstation | 2 | 2 | - | - | - | - | **4** |
-| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **85** | **5601** |
+| **Total** | **2482** | **1232** | **135** | **1499** | **168** | **128** | **5644** |
 
 ### Severity Distribution
 
 ```
-High (Critical):   657 rules (11.8%) ████████████░░░░░░░░░░░░░░░
-Medium:           4478 rules (80.7%) ████████████████████████████
+High (Critical):   657 rules (11.6%) ████████████░░░░░░░░░░░░░░░
+Medium:           4521 rules (80.1%) ████████████████████████████
 Low:               156 rules (2.8%)  ███░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
@@ -898,6 +939,7 @@ Manual:             21 rules (0.5%)  ░░░░░░░░░░░░░░�
 | **CIS** | [CIS Oracle Solaris 11.4 Benchmark](https://www.cisecurity.org/benchmark/oracle_solaris) | v1.1.0 | 2024 |
 | **Oracle** | [Oracle WebLogic Server 12c Security Documentation](https://docs.oracle.com/middleware/1212/wls/SECMG/toc.htm) | v1.0.0 | 2026 |
 | **Oracle** | [Oracle WebLogic Server 14c Security Documentation](https://docs.oracle.com/en/middleware/standalone/weblogic-server/14.1.1.0/secmg/toc.htm) | v1.0.0 | 2026 |
+| **Oracle** | [Oracle WebLogic Server 15c Security Documentation](https://docs.oracle.com/en/middleware/standalone/weblogic-server/15.1.1/secmg/toc.htm) | v1.0.0 | 2026 |
 
 ### Community Resources
 
