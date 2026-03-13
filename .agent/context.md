@@ -11,56 +11,120 @@ compliance-rules/
 │   ├── schema.json          # JSON Schema (authoritative)
 │   └── schema.yaml          # YAML Schema
 ├── rules/                    # All compliance rules
-│   └── <vendor>/            # rh, ms, ora
-│       └── <product>-<version>/ # rhel-9, ws-2022
-│           ├── cis/         # CIS Benchmark rules
-│           └── stig/        # DISA STIG rules
+│   ├── redhat/              # Red Hat vendor (full name)
+│   │   ├── rhel-7/          # RHEL 7
+│   │   ├── rhel-8/          # RHEL 8
+│   │   ├── rhel-9/          # RHEL 9
+│   │   └── rhel-10/         # RHEL 10
+│   ├── microsoft/           # Microsoft vendor (full name)
+│   │   ├── windowsserver-2016/
+│   │   ├── windowsserver-2019/
+│   │   ├── windowsserver-2022/
+│   │   └── windowsserver-2025/
+│   └── oracle/              # Oracle vendor (full name)
+│       ├── solaris-11.4/
+│       ├── weblogic-12c/
+│       ├── weblogic-14c/
+│       ├── weblogic-15c/
+│       └── http-server-12c/
 └── .agent/                   # Agent configuration
 ```
 
-## Vendor Abbreviations
-| Vendor | Abbreviation |
-|--------|--------------|
-| Red Hat | `rh` |
-| Microsoft | `ms` |
-| Oracle | `ora` |
+## Vendor Names (Full Names)
+
+| Vendor | Directory Name | File Prefix |
+|--------|----------------|-------------|
+| Red Hat | `redhat` | `redhat-` |
+| Microsoft | `microsoft` | `microsoft-` |
+| Oracle | `oracle` | `oracle-` |
+
+## Product Names (No Spaces)
+
+| Product | Directory Name | File Component |
+|---------|----------------|----------------|
+| Red Hat Enterprise Linux | `rhel-<version>` | `rhel-<version>` |
+| Windows Server | `windowsserver-<version>` | `windowsserver-<version>` |
+| Solaris | `solaris-<version>` | `solaris-<version>` |
+| WebLogic Server | `weblogic-<version>` | `weblogic-<version>` |
+| HTTP Server | `http-server-<version>` | `httpserver-<version>` |
 
 ## File Naming Convention
 
 ### Format
 ```
-<vendor>-<product>-<version>-<framework>-<level>-<benchmark-version>.yaml
+<vendor>-<product>-<version>-<framework>-<type>-<doc-version>[-additional-info].yaml
 ```
 
+### Key Rules
+1. **Vendor/Product/Version** - Use full names without abbreviations
+2. **Framework** - Source of compliance rules (cis, stig, redhat, oracle)
+3. **Type** - Rule category (level1, level2, cat1, cat2, cat3, security)
+4. **Doc Version** - Benchmark version (v1.0.0, v2r7, etc.)
+5. **Additional Info** - ALWAYS at the end (server, workstation, dc, ms, x86, sparc)
+
 ### CIS Examples
-- `rh-rhel-9-cis-level1-server-v2.0.0.yaml`
-- `ms-ws-2022-cis-level1-dc-v3.0.0.yaml`
-- `ms-ws-2022-cis-level1-ms-v3.0.0.yaml`
+```
+redhat-rhel-10-cis-level1-v1.0.1-server.yaml
+redhat-rhel-10-cis-level1-v1.0.1-workstation.yaml
+redhat-rhel-10-cis-level2-v1.0.1-server.yaml
+microsoft-windowsserver-2022-cis-level1-v3.0.0-dc.yaml
+microsoft-windowsserver-2022-cis-level1-v3.0.0-ms.yaml
+```
 
 ### STIG Examples
-- `rh-rhel-9-stig-cat1-v2r7.yaml`
-- `ms-ws-2022-stig-cat1-v2r3.yaml`
+```
+redhat-rhel-9-stig-cat1-v2r7.yaml
+redhat-rhel-9-stig-cat2-v2r7.yaml
+microsoft-windowsserver-2022-stig-cat1-v2r3.yaml
+oracle-solaris-114-stig-cat1-v1r0-x86.yaml
+oracle-solaris-114-stig-cat1-v1r0-sparc.yaml
+oracle-weblogic-12c-stig-cat1-v2r2.yaml
+```
+
+### Vendor Documentation Examples
+```
+redhat-rhel-10-redhat-security-1.0.0.yaml
+oracle-weblogic-12c-oracle-security-1.0.0.yaml
+oracle-httpserver-12c-oracle-security-1.0.0.yaml
+```
 
 ## Compliance Levels
 
 ### CIS Profiles
-| Level | Suffix | Description |
-|-------|--------|-------------|
-| Level 1 Server | `level1-server` | Baseline security for servers |
-| Level 2 Server | `level2-server` | Enhanced hardening for servers |
-| Level 1 Workstation | `level1-workstation` | Baseline for workstations |
-| Level 2 Workstation | `level2-workstation` | Enhanced for workstations |
-| Level 1 DC | `level1-dc` | Domain Controller baseline |
-| Level 1 MS | `level1-ms` | Member Server baseline |
-| Level 2 DC | `level2-dc` | Domain Controller enhanced |
-| Level 2 MS | `level2-ms` | Member Server enhanced |
+| Level | Type Suffix | Additional Info | Description |
+|-------|-------------|-----------------|-------------|
+| Level 1 Server | `level1` | `-server` | Baseline security for servers |
+| Level 2 Server | `level2` | `-server` | Enhanced hardening for servers |
+| Level 1 Workstation | `level1` | `-workstation` | Baseline for workstations |
+| Level 2 Workstation | `level2` | `-workstation` | Enhanced for workstations |
+| Level 1 DC | `level1` | `-dc` | Domain Controller baseline |
+| Level 1 MS | `level1` | `-ms` | Member Server baseline |
+| Level 2 DC | `level2` | `-dc` | Domain Controller enhanced |
+| Level 2 MS | `level2` | `-ms` | Member Server enhanced |
 
 ### STIG Categories
-| Category | Suffix | Severity |
-|----------|--------|----------|
+| Category | Type Suffix | Severity |
+|----------|-------------|----------|
 | CAT I | `cat1` | High - Critical |
 | CAT II | `cat2` | Medium - Standard |
 | CAT III | `cat3` | Low - Best Practice |
+
+### Vendor Security
+| Source | Type Suffix | Description |
+|--------|-------------|-------------|
+| Red Hat Docs | `security` | Red Hat official security documentation |
+| Oracle Docs | `security` | Oracle official security documentation |
+
+## Additional Info Suffixes
+
+| Suffix | Meaning | Example |
+|--------|---------|---------|
+| `server` | Server profile | `*-server.yaml` |
+| `workstation` | Workstation profile | `*-workstation.yaml` |
+| `dc` | Domain Controller | `*-dc.yaml` |
+| `ms` | Member Server | `*-ms.yaml` |
+| `x86` | x86 architecture | `*-x86.yaml` |
+| `sparc` | SPARC architecture | `*-sparc.yaml` |
 
 ## Severity Values
 - `Critical`
@@ -73,3 +137,12 @@ compliance-rules/
 - `untested`
 - `partial`
 - `verified`
+
+## Framework Sources
+
+| Framework | Source | Used For |
+|-----------|--------|----------|
+| `cis` | CIS Benchmarks | All products |
+| `stig` | DISA STIGs | All products |
+| `redhat` | Red Hat Documentation | RHEL products |
+| `oracle` | Oracle Documentation | Oracle products |

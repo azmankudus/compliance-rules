@@ -1,0 +1,454 @@
+{
+  "rules": [
+    {
+      "rule_id": "RH10-SEC-001",
+      "rule_name": "Enable FIPS Mode During Installation",
+      "rule_description": "Enable the cryptographic module self-checks mandated by the Federal Information Processing Standard (FIPS) 140-3. The only correct way to switch the system to FIPS mode is to enable it during the RHEL installation.",
+      "category": "FIPS Mode",
+      "severity": "Critical",
+      "detection_step": "Check FIPS mode status: cat /proc/sys/crypto/fips_enabled. A value of 1 indicates FIPS mode is enabled.",
+      "remediation_step": "Add fips=1 option to the kernel command line at the start of the system installation. On UEFI systems, press 'e' key and add fips=1 to the end of the linuxefi line. On BIOS systems, press Tab key and add fips=1 to the end of the kernel command line."
+    },
+    {
+      "rule_id": "RH10-SEC-002",
+      "rule_name": "Configure FIPS Mode with RHEL Image Builder",
+      "rule_description": "Create a customized image with FIPS mode enabled using RHEL image builder by setting the fips directive in the blueprint.",
+      "category": "FIPS Mode",
+      "severity": "High",
+      "detection_step": "After system boot, verify FIPS mode: cat /proc/sys/crypto/fips_enabled should return 1.",
+      "remediation_step": "Create a TOML blueprint file with [customizations] fips = true, then build the customized RHEL image using: image-builder build image-type --blueprint blueprint-name"
+    },
+    {
+      "rule_id": "RH10-SEC-003",
+      "rule_name": "Verify FIPS Cryptographic Policy",
+      "rule_description": "Ensure the system-wide cryptographic policy is set to FIPS when operating in FIPS mode.",
+      "category": "FIPS Mode",
+      "severity": "High",
+      "detection_step": "Check current cryptographic policy: update-crypto-policies --show. Should return 'FIPS'.",
+      "remediation_step": "Set FIPS cryptographic policy: update-crypto-policies --set FIPS. Note: Setting FIPS policy alone does not enable FIPS mode - system must be installed in FIPS mode."
+    },
+    {
+      "rule_id": "RH10-SEC-004",
+      "rule_name": "Configure System-Wide Cryptographic Policy",
+      "rule_description": "Set appropriate system-wide cryptographic policy to ensure applications use secure cryptographic algorithms. Available policies: DEFAULT, LEGACY, FUTURE, and FIPS.",
+      "category": "Cryptographic Policies",
+      "severity": "High",
+      "detection_step": "Display current policy: update-crypto-policies --show",
+      "remediation_step": "Set the desired policy: update-crypto-policies --set <POLICY>. Then reboot the system for changes to take effect."
+    },
+    {
+      "rule_id": "RH10-SEC-005",
+      "rule_name": "Use FUTURE Cryptographic Policy for Enhanced Security",
+      "rule_description": "Apply stricter forward-looking security level intended for testing future policies. Disables SHA-1 in DNSSEC, rejects SHA2-224 and SHA3-224 hashes, disables 128-bit ciphers, requires minimum 3072-bit RSA/DH keys.",
+      "category": "Cryptographic Policies",
+      "severity": "Medium",
+      "detection_step": "Check current policy: update-crypto-policies --show",
+      "remediation_step": "Set FUTURE policy: update-crypto-policies --set FUTURE && reboot. Note: May cause interoperability issues with public internet systems."
+    },
+    {
+      "rule_id": "RH10-SEC-006",
+      "rule_name": "Configure Cryptographic Policies via Web Console",
+      "rule_description": "Set system-wide cryptographic policies using the RHEL web console graphical interface.",
+      "category": "Cryptographic Policies",
+      "severity": "Medium",
+      "detection_step": "Log into RHEL web console and check Crypto policy value in Configuration card.",
+      "remediation_step": "In web console Overview page, click Crypto policy value, select desired policy in Change crypto policy dialog, click Apply and reboot."
+    },
+    {
+      "rule_id": "RH10-SEC-007",
+      "rule_name": "Disable Post-Quantum Algorithms System-Wide",
+      "rule_description": "Disable post-quantum cryptography algorithms by applying the NO-PQ subpolicy if required for compatibility reasons.",
+      "category": "Cryptographic Policies",
+      "severity": "Medium",
+      "detection_step": "Check if PQC is enabled: update-crypto-policies --show. Look for NO-PQ suffix.",
+      "remediation_step": "Apply NO-PQ subpolicy: update-crypto-policies --set <POLICY>:NO-PQ. For example: update-crypto-policies --set DEFAULT:NO-PQ"
+    },
+    {
+      "rule_id": "RH10-SEC-008",
+      "rule_name": "Configure SSH Authentication with Smart Card",
+      "rule_description": "Configure OpenSSH to use SSH keys stored on a smart card for authentication, providing enhanced security through hardware-based key storage.",
+      "category": "PKCS #11 Hardware Security",
+      "severity": "High",
+      "detection_step": "List keys from smart card: ssh-keygen -D pkcs11:",
+      "remediation_step": "1. Generate keys on smart card and list them: ssh-keygen -D pkcs11: > keys.pub\n2. Transfer public key to server: ssh-copy-id -f -i keys.pub user@server\n3. Connect using smart card: ssh -i 'pkcs11:id=%01' server"
+    },
+    {
+      "rule_id": "RH10-SEC-009",
+      "rule_name": "Configure Apache with HSM-Protected Private Keys",
+      "rule_description": "Configure Apache HTTP server to use private keys stored on Hardware Security Modules (HSMs) through PKCS #11 for TLS encryption.",
+      "category": "PKCS #11 Hardware Security",
+      "severity": "High",
+      "detection_step": "Check Apache SSL configuration files in /etc/httpd/conf.d/ssl.conf for PKCS #11 URIs.",
+      "remediation_step": "Install pkcs11-provider package. In /etc/httpd/conf.d/ssl.conf, use PKCS #11 URIs:\nSSLCertificateFile 'pkcs11:id=%01;token=softhsm;type=cert'\nSSLCertificateKeyFile 'pkcs11:id=%01;token=softhsm;type=private?pin-value=111111'"
+    },
+    {
+      "rule_id": "RH10-SEC-010",
+      "rule_name": "Install and Configure OpenSCAP Scanner",
+      "rule_description": "Install OpenSCAP tools for configuration compliance scanning and vulnerability assessment against security baselines.",
+      "category": "Configuration Compliance (OpenSCAP)",
+      "severity": "High",
+      "detection_step": "Verify packages are installed: rpm -q openscap-scanner scap-security-guide",
+      "remediation_step": "Install required packages: dnf install openscap-scanner scap-security-guide"
+    },
+    {
+      "rule_id": "RH10-SEC-011",
+      "rule_name": "Scan System for Configuration Compliance",
+      "rule_description": "Assess system configuration compliance against a specific security baseline using OpenSCAP.",
+      "category": "Configuration Compliance (OpenSCAP)",
+      "severity": "High",
+      "detection_step": "List available profiles: oscap info /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml",
+      "remediation_step": "Run compliance scan: oscap xccdf eval --report scan_report.html --profile <profile_ID> /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml"
+    },
+    {
+      "rule_id": "RH10-SEC-012",
+      "rule_name": "Remediate System to Align with Security Baseline",
+      "rule_description": "Automatically remediate the system to align with a specific security baseline using OpenSCAP.",
+      "category": "Configuration Compliance (OpenSCAP)",
+      "severity": "High",
+      "detection_step": "Review scan results to identify failed rules that require remediation.",
+      "remediation_step": "Run remediation: oscap xccdf eval --remediate --profile <profile_ID> --report remediation_report.html /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml"
+    },
+    {
+      "rule_id": "RH10-SEC-013",
+      "rule_name": "Scan Container Images for Compliance",
+      "rule_description": "Assess security compliance of containers or container images against security baselines using oscap-podman.",
+      "category": "Configuration Compliance (OpenSCAP)",
+      "severity": "High",
+      "detection_step": "List container images: podman images. Get container ID: podman ps -a",
+      "remediation_step": "Scan container: oscap-podman <ID> xccdf eval --report scan_report.html --profile <profile_ID> /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml"
+    },
+    {
+      "rule_id": "RH10-SEC-014",
+      "rule_name": "Create Custom Security Profile with Autotailor",
+      "rule_description": "Customize security profiles by modifying specific rules using the autotailor tool for organization-specific requirements.",
+      "category": "Configuration Compliance (OpenSCAP)",
+      "severity": "Medium",
+      "detection_step": "Verify autotailor is installed: rpm -q scap-security-guide",
+      "remediation_step": "Use autotailor to create customized profile: autotailor --output <output_file> --profile <base_profile> <datastream>"
+    },
+    {
+      "rule_id": "RH10-SEC-015",
+      "rule_name": "Deploy Keylime Verifier",
+      "rule_description": "Deploy the Keylime verifier component that performs initial and periodic checks of system integrity for monitored agents.",
+      "category": "System Integrity (Keylime)",
+      "severity": "High",
+      "detection_step": "Check Keylime verifier service status: systemctl status keylime_verifier",
+      "remediation_step": "1. Install: dnf install keylime-verifier\n2. Configure IP in /etc/keylime/verifier.conf.d/\n3. Open firewall: firewall-cmd --add-port 8881/tcp --permanent\n4. Enable: systemctl enable --now keylime_verifier"
+    },
+    {
+      "rule_id": "RH10-SEC-016",
+      "rule_name": "Deploy Keylime Registrar",
+      "rule_description": "Deploy the Keylime registrar component that maintains a database of all agents and hosts TPM vendor public keys.",
+      "category": "System Integrity (Keylime)",
+      "severity": "High",
+      "detection_step": "Check Keylime registrar service status: systemctl status keylime_registrar",
+      "remediation_step": "1. Install: dnf install keylime-registrar\n2. Configure IP in /etc/keylime/registrar.conf.d/\n3. Open firewall: firewall-cmd --add-port 8890/tcp --permanent\n4. Enable: systemctl enable --now keylime_registrar"
+    },
+    {
+      "rule_id": "RH10-SEC-017",
+      "rule_name": "Deploy Keylime Agent",
+      "rule_description": "Deploy the Keylime agent on remote systems to be monitored for integrity by the verifier.",
+      "category": "System Integrity (Keylime)",
+      "severity": "High",
+      "detection_step": "Check Keylime agent service status: systemctl status keylime_agent",
+      "remediation_step": "1. Install: dnf install keylime-agent\n2. Configure verifier and registrar IP in /etc/keylime/agent.conf.d/\n3. Enable: systemctl enable --now keylime_agent"
+    },
+    {
+      "rule_id": "RH10-SEC-018",
+      "rule_name": "Configure Keylime Runtime Monitoring",
+      "rule_description": "Configure Keylime for continuous runtime monitoring of file integrity on monitored systems.",
+      "category": "System Integrity (Keylime)",
+      "severity": "High",
+      "detection_step": "Check agent configuration for allowlist and excludelist settings.",
+      "remediation_step": "Create allowlist with expected file hashes and configure in agent. Define excludelist for files that change frequently. Use keylime_tenant to provision agent with monitoring configuration."
+    },
+    {
+      "rule_id": "RH10-SEC-019",
+      "rule_name": "Install and Initialize AIDE",
+      "rule_description": "Install Advanced Intrusion Detection Environment (AIDE) and initialize the file integrity database for intrusion detection.",
+      "category": "File Integrity (AIDE)",
+      "severity": "High",
+      "detection_step": "Check AIDE package: rpm -q aide. Check database exists: ls -la /var/lib/aide/aide.db.gz",
+      "remediation_step": "1. Install: dnf install aide\n2. Initialize database: aide --init\n3. Activate database: mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz"
+    },
+    {
+      "rule_id": "RH10-SEC-020",
+      "rule_name": "Perform AIDE Integrity Checks",
+      "rule_description": "Run AIDE integrity checks to detect unauthorized file modifications.",
+      "category": "File Integrity (AIDE)",
+      "severity": "High",
+      "detection_step": "Run manual check: aide --check. Review output for any Changed, Added, or Removed entries.",
+      "remediation_step": "Schedule regular checks via cron. Add to /etc/crontab:\n05 4 * * * root /usr/sbin/aide --check"
+    },
+    {
+      "rule_id": "RH10-SEC-021",
+      "rule_name": "Update AIDE Database After Changes",
+      "rule_description": "Update the AIDE database after legitimate system changes to prevent false positives.",
+      "category": "File Integrity (AIDE)",
+      "severity": "Medium",
+      "detection_step": "Run check to identify changed files: aide --check",
+      "remediation_step": "1. Update database: aide --update\n2. Activate updated database: mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz"
+    },
+    {
+      "rule_id": "RH10-SEC-022",
+      "rule_name": "Deploy Tang Server for NBDE",
+      "rule_description": "Deploy a Tang server for Network-Bound Disk Encryption to enable automated unlocking of LUKS-encrypted volumes.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Check Tang service: systemctl status tangd.socket",
+      "remediation_step": "1. Install: dnf install tang\n2. Enable service: systemctl enable tangd.socket --now\n3. Verify: echo test | clevis encrypt tang '{\"url\":\"http://tang.server:80\"}' -y | clevis decrypt"
+    },
+    {
+      "rule_id": "RH10-SEC-023",
+      "rule_name": "Deploy Tang Server with Custom Port and SELinux",
+      "rule_description": "Deploy Tang server on a custom port with SELinux in enforcing mode.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Check Tang listening port: systemctl show tangd.socket -p Listen",
+      "remediation_step": "1. Allow custom port: semanage port -a -t tangd_port_t -p tcp 7500\n2. Open firewall: firewall-cmd --add-port=7500/tcp --permanent\n3. Create override: systemctl edit tangd.socket with ListenStream=7500\n4. Restart: systemctl restart tangd.socket"
+    },
+    {
+      "rule_id": "RH10-SEC-024",
+      "rule_name": "Configure NBDE Client with Clevis",
+      "rule_description": "Configure Clevis client to automatically unlock LUKS-encrypted volumes using Tang server.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Check Clevis bindings: clevis luks list -d /dev/sda2",
+      "remediation_step": "Bind LUKS volume to Tang: clevis luks bind -d /dev/sda2 tang '{\"url\":\"http://tang.server\"}'"
+    },
+    {
+      "rule_id": "RH10-SEC-025",
+      "rule_name": "Configure TPM2-Based LUKS Unlocking",
+      "rule_description": "Configure automated unlocking of LUKS-encrypted volumes using TPM 2.0 policy.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Check TPM2 bindings: clevis luks list -d /dev/sda2",
+      "remediation_step": "Bind LUKS volume to TPM2: clevis luks bind -d /dev/sda2 tpm2 '{}'"
+    },
+    {
+      "rule_id": "RH10-SEC-026",
+      "rule_name": "Rotate Tang Server Keys",
+      "rule_description": "Periodically rotate Tang server keys for security and update client bindings accordingly.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Check current keys: ls -la /var/db/tang/",
+      "remediation_step": "1. Hide old keys: mv /var/db/tang/*.jwk /var/db/tang/.$(basename *.jwk)\n2. Generate new keys: /usr/libexec/tangd-keygen /var/db/tang\n3. Update clients: clevis luks regen -d /dev/sda2 -s 1"
+    },
+    {
+      "rule_id": "RH10-SEC-027",
+      "rule_name": "Deploy fapolicyd Application Allowlisting",
+      "rule_description": "Deploy the fapolicyd framework to control application execution based on user-defined policies.",
+      "category": "Application Allowlisting (fapolicyd)",
+      "severity": "Critical",
+      "detection_step": "Check fapolicyd service: systemctl status fapolicyd",
+      "remediation_step": "1. Install: dnf install fapolicyd\n2. Enable: systemctl enable --now fapolicyd\n3. Verify blocking: cp /bin/ls /tmp && /tmp/ls (should fail)"
+    },
+    {
+      "rule_id": "RH10-SEC-028",
+      "rule_name": "Mark Files as Trusted in fapolicyd",
+      "rule_description": "Mark custom files as trusted in fapolicyd to allow their execution.",
+      "category": "Application Allowlisting (fapolicyd)",
+      "severity": "High",
+      "detection_step": "Check trust database: fapolicyd-cli --list",
+      "remediation_step": "Add trusted file: fapolicyd-cli --file add /path/to/binary --trust-file myapp\nUpdate database: fapolicyd-cli --update"
+    },
+    {
+      "rule_id": "RH10-SEC-029",
+      "rule_name": "Add Custom fapolicyd Rules",
+      "rule_description": "Add custom allow and deny rules to fapolicyd for specific application control.",
+      "category": "Application Allowlisting (fapolicyd)",
+      "severity": "High",
+      "detection_step": "List current rules: cat /etc/fapolicyd/compiled.rules",
+      "remediation_step": "1. Create rule file in /etc/fapolicyd/rules.d/ with appropriate prefix number\n2. Add rule: allow perm=execute all : trust=1\n3. Update: fagenrules --load && systemctl restart fapolicyd"
+    },
+    {
+      "rule_id": "RH10-SEC-030",
+      "rule_name": "Enable fapolicyd Integrity Checking",
+      "rule_description": "Enable integrity checking in fapolicyd to verify file integrity before allowing execution.",
+      "category": "Application Allowlisting (fapolicyd)",
+      "severity": "High",
+      "detection_step": "Check integrity setting in /etc/fapolicyd/fapolicyd.conf",
+      "remediation_step": "Edit /etc/fapolicyd/fapolicyd.conf and set:\nintegrity = sha256 (for hash-based) or integrity = ima (for IMA-based)"
+    },
+    {
+      "rule_id": "RH10-SEC-031",
+      "rule_name": "Install and Configure USBGuard",
+      "rule_description": "Install USBGuard framework to protect against intrusive USB devices by controlling which devices can connect.",
+      "category": "USB Device Protection (USBGuard)",
+      "severity": "Critical",
+      "detection_step": "Check USBGuard service: systemctl status usbguard",
+      "remediation_step": "1. Install: dnf install usbguard\n2. Generate initial policy: usbguard generate-policy > /etc/usbguard/rules.conf\n3. Enable: systemctl enable --now usbguard"
+    },
+    {
+      "rule_id": "RH10-SEC-032",
+      "rule_name": "Block Unauthorized USB Devices",
+      "rule_description": "Block specific USB devices from interacting with the system using USBGuard.",
+      "category": "USB Device Protection (USBGuard)",
+      "severity": "High",
+      "detection_step": "List USB devices: usbguard list-devices",
+      "remediation_step": "Block device: usbguard block-device <ID>\nReject device permanently: usbguard reject-device <ID> -p"
+    },
+    {
+      "rule_id": "RH10-SEC-033",
+      "rule_name": "Authorize USB Devices with USBGuard",
+      "rule_description": "Authorize specific USB devices to interact with the system using USBGuard.",
+      "category": "USB Device Protection (USBGuard)",
+      "severity": "High",
+      "detection_step": "List blocked devices: usbguard list-devices | grep block",
+      "remediation_step": "Temporarily allow: usbguard allow-device <ID>\nPermanently allow: usbguard allow-device <ID> -p"
+    },
+    {
+      "rule_id": "RH10-SEC-034",
+      "rule_name": "Create Custom USBGuard Policy",
+      "rule_description": "Create custom USB device authorization policies for specific security requirements.",
+      "category": "USB Device Protection (USBGuard)",
+      "severity": "High",
+      "detection_step": "Review current rules: usbguard list-rules",
+      "remediation_step": "1. Generate policy without hashes: usbguard generate-policy --no-hashes > ./rules.conf\n2. Edit rules.conf with custom rules\n3. Install: install -m 0600 -o root -g root rules.conf /etc/usbguard/rules.conf\n4. Restart: systemctl restart usbguard"
+    },
+    {
+      "rule_id": "RH10-SEC-035",
+      "rule_name": "Configure USBGuard IPC Access Control",
+      "rule_description": "Configure IPC access control in USBGuard to limit which users can interact with the USBGuard service.",
+      "category": "USB Device Protection (USBGuard)",
+      "severity": "High",
+      "detection_step": "Check IPC settings: grep -E 'IPCAllowedUsers|IPCAllowedGroups|IPCAccessControlFiles' /etc/usbguard/usbguard-daemon.conf",
+      "remediation_step": "Edit /etc/usbguard/usbguard-daemon.conf:\nIPCAllowedUsers=username\nor\nIPCAllowedGroups=groupname\nor use IPCAccessControlFiles option for file-based ACL"
+    },
+    {
+      "rule_id": "RH10-SEC-036",
+      "rule_name": "Enable USBGuard Audit Logging",
+      "rule_description": "Configure USBGuard to log authorization events to the Linux Audit system.",
+      "category": "USB Device Protection (USBGuard)",
+      "severity": "Medium",
+      "detection_step": "Check audit logs for USBGuard events: ausearch -ts recent | grep -i usb",
+      "remediation_step": "Ensure AuditDebugEnabled option is set appropriately in /etc/usbguard/usbguard-daemon.conf. USBGuard logs to audit by default when audit daemon is running."
+    },
+    {
+      "rule_id": "RH10-SEC-037",
+      "rule_name": "Configure High-Availability NBDE",
+      "rule_description": "Deploy multiple Tang servers for high availability in NBDE deployments using Clevis SSS pin.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Check Clevis bindings for multiple Tang servers: clevis luks list -d /dev/sda2",
+      "remediation_step": "Use SSS pin with multiple Tang servers:\nclevis luks bind -d /dev/sda2 sss '{\"t\":1,\"pins\":{\"tang\":[{\"url\":\"http://tang1\"},{\"url\":\"http://tang2\"}]}}'"
+    },
+    {
+      "rule_id": "RH10-SEC-038",
+      "rule_name": "Remove Clevis Pin from LUKS Volume",
+      "rule_description": "Safely remove a Clevis pin binding from a LUKS-encrypted volume.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "Medium",
+      "detection_step": "List current bindings: clevis luks list -d /dev/sda2",
+      "remediation_step": "Remove binding: clevis luks unbind -d /dev/sda2 -s <slot_number>"
+    },
+    {
+      "rule_id": "RH10-SEC-039",
+      "rule_name": "Configure Keylime Measured Boot Attestation",
+      "rule_description": "Configure Keylime for measured boot attestation to verify system state at boot time.",
+      "category": "System Integrity (Keylime)",
+      "severity": "High",
+      "detection_step": "Check if measured boot is configured in Keylime agent settings.",
+      "remediation_step": "Enable measured boot in agent configuration. Configure verifier to validate boot measurements against expected values. Use keylime_tenant to provision with boot policy."
+    },
+    {
+      "rule_id": "RH10-SEC-040",
+      "rule_name": "Use RHEL System Roles for AIDE Configuration",
+      "rule_description": "Use the aide RHEL system role to configure file integrity checks across multiple systems.",
+      "category": "File Integrity (AIDE)",
+      "severity": "Medium",
+      "detection_step": "Verify ansible and rhel-system-roles packages are installed.",
+      "remediation_step": "Create playbook using rhel-system-roles.aide:\n- name: Configure AIDE\n  hosts: all\n  tasks:\n    - include_role:\n        name: rhel-system-roles.aide\n      vars:\n        aide_init: true\n        aide_cron_check: true"
+    },
+    {
+      "rule_id": "RH10-SEC-041",
+      "rule_name": "Use RHEL System Roles for NBDE Configuration",
+      "rule_description": "Use nbde_server and nbde_client RHEL system roles to configure NBDE across multiple systems.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "Medium",
+      "detection_step": "Verify ansible and rhel-system-roles packages are installed.",
+      "remediation_step": "Use nbde_server role for Tang servers and nbde_client role for Clevis clients in Ansible playbooks."
+    },
+    {
+      "rule_id": "RH10-SEC-042",
+      "rule_name": "Use RHEL System Roles for fapolicyd Configuration",
+      "rule_description": "Use the fapolicyd RHEL system role to prevent users from executing untrustworthy code.",
+      "category": "Application Allowlisting (fapolicyd)",
+      "severity": "Medium",
+      "detection_step": "Verify ansible and rhel-system-roles packages are installed.",
+      "remediation_step": "Create playbook using rhel-system-roles.fapolicyd to configure application allowlisting across managed nodes."
+    },
+    {
+      "rule_id": "RH10-SEC-043",
+      "rule_name": "Configure PKCS #11 PIN for LUKS Unlocking",
+      "rule_description": "Configure unlocking of LUKS-encrypted volumes using a PKCS #11 pin for hardware token-based authentication.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Check if PKCS #11 pin is configured: clevis luks list -d /dev/sda2",
+      "remediation_step": "Bind LUKS volume to PKCS #11:\nclevis luks bind -d /dev/sda2 pkcs11 '{\"uri\":\"pkcs11:...\"}'"
+    },
+    {
+      "rule_id": "RH10-SEC-044",
+      "rule_name": "Perform Hardened RHEL Installation with Kickstart",
+      "rule_description": "Perform a hardened installation of RHEL using Kickstart with a security profile applied automatically.",
+      "category": "Configuration Compliance (OpenSCAP)",
+      "severity": "High",
+      "detection_step": "Review Kickstart file for oscap configuration.",
+      "remediation_step": "Add to Kickstart file:\n%addon org_fedora_oscap --profile=<profile_ID> --content-url=<url>\n%end"
+    },
+    {
+      "rule_id": "RH10-SEC-045",
+      "rule_name": "Configure Automated LUKS Enrollment with Kickstart",
+      "rule_description": "Configure automated enrollment of LUKS-encrypted volumes during Kickstart installation using NBDE.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "High",
+      "detection_step": "Review Kickstart file for Clevis configuration.",
+      "remediation_step": "Add to Kickstart file:\n%post\nclevis luks bind -d /dev/sda2 tang '{\"url\":\"http://tang.server\"}' -y\n%end"
+    },
+    {
+      "rule_id": "RH10-SEC-046",
+      "rule_name": "Verify Non-FIPS Compliant Applications",
+      "rule_description": "Identify and document applications using cryptography not compliant with FIPS 140-3.",
+      "category": "FIPS Mode",
+      "severity": "Medium",
+      "detection_step": "Review list of non-FIPS compliant applications in RHEL documentation.",
+      "remediation_step": "Document exceptions for applications like: Bacula (CRAM-MD5), Cyrus SASL (SCRAM-SHA-1), curl (NTLM), MariaDB (mysql_native_password), Samba (RC4/DES for Windows interoperability). Consider alternatives or accept risk."
+    },
+    {
+      "rule_id": "RH10-SEC-047",
+      "rule_name": "Create Custom Cryptographic Policy",
+      "rule_description": "Create and set a custom system-wide cryptographic policy for specific organizational requirements.",
+      "category": "Cryptographic Policies",
+      "severity": "Medium",
+      "detection_step": "List available policies: update-crypto-policies --list",
+      "remediation_step": "1. Create policy file in /etc/crypto-policies/policies/\n2. Define cryptographic settings in policy file\n3. Apply: update-crypto-policies --set <custom_policy_name>\n4. Reboot system"
+    },
+    {
+      "rule_id": "RH10-SEC-048",
+      "rule_name": "Configure Cryptographic Subpolicies",
+      "rule_description": "Customize system-wide cryptographic policies using subpolicies for fine-grained control.",
+      "category": "Cryptographic Policies",
+      "severity": "Medium",
+      "detection_step": "Check current policy with subpolicies: update-crypto-policies --show",
+      "remediation_step": "Apply subpolicy: update-crypto-policies --set <POLICY>:<SUBPOLICY>. Example: update-crypto-policies --set DEFAULT:NO-SHA1"
+    },
+    {
+      "rule_id": "RH10-SEC-049",
+      "rule_name": "Configure Structured USBGuard Policy",
+      "rule_description": "Create structured USBGuard policy by organizing rules in separate configuration files within /etc/usbguard/rules.d/.",
+      "category": "USB Device Protection (USBGuard)",
+      "severity": "Medium",
+      "detection_step": "List rule files: ls -la /etc/usbguard/rules.d/",
+      "remediation_step": "1. Create separate .conf files in /etc/usbguard/rules.d/\n2. Use numeric prefixes for ordering (e.g., 10-keyboards.conf)\n3. Restart: systemctl restart usbguard"
+    },
+    {
+      "rule_id": "RH10-SEC-050",
+      "rule_name": "Deploy Tang as Container",
+      "rule_description": "Deploy Tang server as a container for NBDE instead of RPM installation.",
+      "category": "NBDE (Clevis/Tang)",
+      "severity": "Medium",
+      "detection_step": "Check running container: podman ps | grep tang",
+      "remediation_step": "Run Tang container:\npodman run -d --name tang-server -p 80:80 -v /var/db/tang:/var/db/tang:Z registry.access.redhat.com/rhel9/tang"
+    }
+  ]
+}

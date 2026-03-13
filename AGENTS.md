@@ -4,7 +4,7 @@ This repository contains machine-readable compliance rules in YAML format for au
 
 ## Project Overview
 
-- **Purpose**: Security hardening rules based on CIS Benchmarks and DISA STIGs
+- **Purpose**: Security hardening rules based on CIS Benchmarks, DISA STIGs, and vendor official documentation
 - **Format**: YAML files validated against JSON Schema
 - **Schema**: `docs/schema.json`
 
@@ -15,6 +15,62 @@ This repository contains machine-readable compliance rules in YAML format for au
 - `docs/schema.yaml` - YAML schema reference
 - `scripts/download-stig-json.sh` - Download latest STIG catalog
 - `scripts/download-cis-json.sh` - Download latest CIS catalog
+
+## Directory Structure
+
+```
+rules/
+├── redhat/                          # Red Hat vendor folder
+│   ├── rhel-7/                      # RHEL 7 product
+│   │   └── redhat-rhel-7-*.yaml     # All RHEL 7 rule files
+│   ├── rhel-8/                      # RHEL 8 product
+│   ├── rhel-9/                      # RHEL 9 product
+│   └── rhel-10/                     # RHEL 10 product
+├── microsoft/                       # Microsoft vendor folder
+│   ├── windowsserver-2016/          # Windows Server 2016
+│   ├── windowsserver-2019/          # Windows Server 2019
+│   ├── windowsserver-2022/          # Windows Server 2022
+│   └── windowsserver-2025/          # Windows Server 2025
+└── oracle/                          # Oracle vendor folder
+    ├── solaris-11.4/                # Solaris 11.4
+    ├── weblogic-12c/                # WebLogic 12c
+    ├── weblogic-14c/                # WebLogic 14c
+    ├── weblogic-15c/                # WebLogic 15c
+    └── http-server-12c/             # HTTP Server 12c
+```
+
+## File Naming Convention
+
+```
+rules/<vendor>/<product>-<version>/<vendor>-<product>-<version>-<framework>-<type>-<doc-version>[-additional-info].yaml
+```
+
+### Components
+
+| Component | Description | Examples |
+|-----------|-------------|----------|
+| `<vendor>` | Full vendor name | `redhat`, `microsoft`, `oracle` |
+| `<product>` | Product name (no spaces) | `rhel`, `windowsserver`, `solaris` |
+| `<version>` | Product version | `10`, `2022`, `114`, `12c` |
+| `<framework>` | Compliance source | `cis`, `stig`, `redhat`, `oracle` |
+| `<type>` | Rule type/category | `level1`, `level2`, `cat1`, `cat2`, `cat3`, `security` |
+| `<doc-version>` | Document version | `v1.0.0`, `v2r7`, `v3.0.0` |
+| `[-additional-info]` | Optional suffix | `server`, `workstation`, `dc`, `ms`, `x86`, `sparc` |
+
+### Examples
+
+```
+redhat-rhel-10-cis-level1-v1.0.1-server.yaml
+redhat-rhel-10-cis-level1-v1.0.1-workstation.yaml
+redhat-rhel-9-stig-cat1-v2r7.yaml
+redhat-rhel-10-redhat-security-1.0.0.yaml
+microsoft-windowsserver-2022-cis-level1-v3.0.0-dc.yaml
+microsoft-windowsserver-2022-cis-level1-v3.0.0-ms.yaml
+microsoft-windowsserver-2022-stig-cat1-v2r3.yaml
+oracle-solaris-114-stig-cat1-v1r0-x86.yaml
+oracle-solaris-114-stig-cat1-v1r0-sparc.yaml
+oracle-weblogic-12c-oracle-security-1.0.0.yaml
+```
 
 ## STIG Lookup Workflow
 
@@ -75,32 +131,26 @@ cat docs/cis-*.json | jq '.benchmarks[] | select(.title | contains("Windows Serv
 
 - **https://www.cisecurity.org/benchmark/** - Official CIS Benchmarks
 
+## Vendor Documentation Sources
+
+- **Red Hat:** https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/
+- **Microsoft:** https://learn.microsoft.com/en-us/windows-server/
+- **Oracle:** https://docs.oracle.com/en/middleware/
+
 ## Anti-Hallucination Rules
 
 1. NEVER fabricate compliance rules
-2. ALWAYS source from official benchmarks
+2. ALWAYS source from official benchmarks or vendor documentation
 3. ALWAYS verify version is latest
 4. IF information not found, state clearly
 5. IF rule not in official source, do not create it
-
-## File Naming Convention
-
-```
-<vendor>-<product>-<version>-<framework>-<level>-<benchmark-version>.yaml
-```
-
-### Examples
-- `rh-rhel-9-cis-level1-server-v2.0.0.yaml`
-- `rh-rhel-9-stig-cat1-v2r7.yaml`
-- `ms-ws-2022-cis-level1-dc-v3.0.0.yaml`
-- `ms-ws-2022-stig-cat1-v2r3.yaml`
 
 ## Validation
 
 After creating/editing rules, run validation:
 
 ```bash
-python -c "
+python3 -c "
 import yaml, json
 from jsonschema import validate
 with open('docs/schema.json') as f: schema = json.load(f)
