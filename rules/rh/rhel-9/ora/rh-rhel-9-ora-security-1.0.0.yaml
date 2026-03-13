@@ -1,0 +1,1520 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: Red Hat Enterprise Linux 9 Security Hardening
+  version: 1.0.0
+  description: Security hardening rules from official Red Hat RHEL 9 Security Hardening
+    Guide
+  platform: Red Hat Enterprise Linux 9
+  benchmark: Red Hat RHEL 9 Security Hardening Guide
+  author: Red Hat
+  created: '2026-03-13T00:00:00Z'
+  modified: '2026-03-13T00:00:00Z'
+  compatible_platforms:
+  - RHEL 9.x
+  references:
+  - type: Official Documentation
+    reference: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/security_hardening
+compliance_info:
+  framework: Oracle Security
+  version: 1.0.0
+  profile: Production
+rules:
+- rule_id: RH9-SEC-001
+  rule_name: Secure Disk Partitioning
+  rule_description: Separate partitions should be created for critical directories
+    to prevent resource exhaustion attacks and contain potential damage from filesystem
+    corruption. Create separate partitions for /boot, /home, /var, /tmp, /var/log,
+    and /var/log/audit.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Run 'lsblk' or 'df -h' to verify that separate partitions exist
+      for /boot, /home, /var, /tmp, /var/log, and /var/log/audit. Check /etc/fstab
+      for mount points.
+  remediation:
+    remediation_step: During installation, use manual partitioning to create separate
+      partitions for critical directories. For existing systems, use LVM to create
+      logical volumes and migrate data to new partitions. Update /etc/fstab accordingly.
+  tags:
+  - rhel9
+  - security
+  - installation-security
+- rule_id: RH9-SEC-002
+  rule_name: Restrict Network During Installation
+  rule_description: Limit network connectivity during installation to minimize exposure
+    to potential attacks. Use minimal network configuration and disable unnecessary
+    network services during the installation process.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Review installation logs at /var/log/anaconda/ to verify network
+      configuration during installation. Check for any unexpected network connections
+      made during installation.
+  remediation:
+    remediation_step: During installation, use the 'nomodeset' kernel parameter or
+      configure network settings manually. Disable automatic network detection and
+      only enable required network interfaces.
+  tags:
+  - rhel9
+  - security
+  - installation-security
+- rule_id: RH9-SEC-003
+  rule_name: Minimal Package Installation
+  rule_description: Install only the minimum required packages to reduce the attack
+    surface. Use the Minimal Install base environment and add only necessary packages
+    for the system's intended purpose.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Run 'rpm -qa | wc -l' to count installed packages. Compare against
+      a baseline minimal installation. Run 'dnf group list --installed' to view installed
+      package groups.
+  remediation:
+    remediation_step: Perform a minimal installation using the 'Minimal Install' base
+      environment. Remove unnecessary packages with 'dnf remove <package>'. Use 'dnf
+      group remove' to remove entire package groups.
+  tags:
+  - rhel9
+  - security
+  - installation-security
+- rule_id: RH9-SEC-004
+  rule_name: Post-Installation Security Updates
+  rule_description: Immediately after installation, update all packages to the latest
+    security patches to address known vulnerabilities.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Run 'dnf check-update --security' to list available security updates.
+      Check the last update time with 'dnf history list'.
+  remediation:
+    remediation_step: Run 'dnf update --security' to install all security updates.
+      Configure automatic security updates using 'dnf-automatic' or 'dnf-automatic-install'
+      service.
+  tags:
+  - rhel9
+  - security
+  - installation-security
+- rule_id: RH9-SEC-005
+  rule_name: Disable SMT to Prevent CPU Security Issues
+  rule_description: Disable Simultaneous Multithreading (SMT) to mitigate CPU side-channel
+    vulnerabilities such as MDS, RIDL, Fallout, and ZombieLoad. This is especially
+    important for systems handling sensitive data.
+  category: Installation Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check SMT status with 'lscpu' (look for Thread(s) per core > 1).
+      Check kernel parameter with 'cat /sys/devices/system/cpu/smt/active'.
+  remediation:
+    remediation_step: Disable SMT via kernel parameter by adding 'nosmt' to GRUB_CMDLINE_LINUX
+      in /etc/default/grub. Run 'grub2-mkconfig -o /boot/grub2/grub.cfg' and reboot.
+      Alternatively, use the web console to disable SMT.
+  tags:
+  - rhel9
+  - security
+  - installation-security
+- rule_id: RH9-SEC-006
+  rule_name: Enable FIPS Mode During Installation
+  rule_description: Enable Federal Information Processing Standards (FIPS) mode during
+    installation to ensure the system uses only FIPS-approved cryptographic algorithms.
+    Required for systems that must comply with federal security standards.
+  category: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check FIPS status with 'sysctl crypto.fips_enabled' or 'cat /proc/sys/crypto/fips_enabled'.
+      A value of 1 indicates FIPS mode is enabled.
+  remediation:
+    remediation_step: During installation, add 'fips=1' to the kernel boot parameters.
+      After installation, run 'fips-mode-setup --enable' and reboot the system. Verify
+      with 'fips-mode-setup --check'.
+  tags:
+  - rhel9
+  - security
+  - fips-mode
+- rule_id: RH9-SEC-007
+  rule_name: Switch System to FIPS Mode
+  rule_description: Convert an existing RHEL 9 system to FIPS mode to comply with
+    federal cryptographic standards. This requires enabling FIPS kernel parameter
+    and regenerating initramfs.
+  category: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify current FIPS status with 'fips-mode-setup --check'. Check
+      if FIPS packages are installed with 'rpm -q dracut-fips openssl-fips'.
+  remediation:
+    remediation_step: 'Install required packages: ''dnf install dracut-fips''. Run
+      ''fips-mode-setup --enable'' to enable FIPS mode. Reboot the system. Verify
+      with ''fips-mode-setup --check''.'
+  tags:
+  - rhel9
+  - security
+  - fips-mode
+- rule_id: RH9-SEC-008
+  rule_name: Enable FIPS Mode in Containers
+  rule_description: Configure containers to run in FIPS mode when the host system
+    has FIPS enabled. This ensures consistent cryptographic behavior across host and
+    container environments.
+  category: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check if container has FIPS enabled by verifying 'crypto.fips_enabled'
+      inside the container. Verify host FIPS status.
+  remediation:
+    remediation_step: 'Bind mount /etc/system-fips and /usr/share/doc into the container.
+      Set FIPS environment variable. For Podman: ''podman run --volume /etc/system-fips:/etc/system-fips:ro
+      ...'''
+  tags:
+  - rhel9
+  - security
+  - fips-mode
+- rule_id: RH9-SEC-009
+  rule_name: Configure System-Wide Cryptographic Policy
+  rule_description: Set an appropriate system-wide cryptographic policy to enforce
+    consistent cryptographic settings across all applications. Use DEFAULT, FUTURE,
+    FIPS, or LEGACY policies based on security requirements.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check current policy with 'update-crypto-policies --show'. View
+      policy details with 'update-crypto-policies --show-default'.
+  remediation:
+    remediation_step: 'Set policy with ''update-crypto-policies --set <POLICY>'' where
+      POLICY is DEFAULT, FUTURE, FIPS, or LEGACY. For FUTURE policy: ''update-crypto-policies
+      --set FUTURE''. Restart affected services.'
+  tags:
+  - rhel9
+  - security
+  - cryptographic-policies
+- rule_id: RH9-SEC-010
+  rule_name: Use FUTURE Cryptographic Policy
+  rule_description: Enable the FUTURE cryptographic policy for stronger security with
+    next-generation cryptographic algorithms. This policy uses longer key sizes and
+    newer algorithms.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify current policy with 'update-crypto-policies --show'. The
+      output should show 'FUTURE'.
+  remediation:
+    remediation_step: 'Run ''update-crypto-policies --set FUTURE''. Reboot or restart
+      cryptographic services. Note: This may cause compatibility issues with older
+      systems.'
+  tags:
+  - rhel9
+  - security
+  - cryptographic-policies
+- rule_id: RH9-SEC-011
+  rule_name: Enable Post-Quantum Cryptography
+  rule_description: Enable post-quantum cryptographic algorithms system-wide to prepare
+    for quantum computing threats. RHEL 9 includes support for post-quantum algorithms.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check if post-quantum algorithms are enabled by examining the
+      cryptographic policy configuration in /etc/crypto-policies/back-ends/.
+  remediation:
+    remediation_step: Use subpolicies to enable post-quantum algorithms. Create a
+      custom subpolicy or use 'update-crypto-policies --set DEFAULT:POSTQUANTUM' if
+      available.
+  tags:
+  - rhel9
+  - security
+  - cryptographic-policies
+- rule_id: RH9-SEC-012
+  rule_name: Disable SHA-1 Usage
+  rule_description: SHA-1 is considered cryptographically weak and should be disabled
+    except where required for legacy compatibility. Use SHA-256 or SHA-3 instead.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if SHA-1 is enabled by examining the cryptographic policy:
+      ''update-crypto-policies --show''. Verify SHA-1 status in policy files.'
+  remediation:
+    remediation_step: 'Use DEFAULT or FUTURE policy which disables SHA-1 by default.
+      To re-enable SHA-1 only if necessary: ''update-crypto-policies --set DEFAULT:SHA1''.
+      Avoid SHA-1 in new deployments.'
+  tags:
+  - rhel9
+  - security
+  - cryptographic-policies
+- rule_id: RH9-SEC-013
+  rule_name: Configure Custom Cryptographic Policy
+  rule_description: Create and apply a custom cryptographic policy when predefined
+    policies do not meet specific security requirements. This allows fine-grained
+    control over cryptographic settings.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check current policy with 'update-crypto-policies --show'. Verify
+      custom policy files exist in /etc/crypto-policies/policies/modules/.
+  remediation:
+    remediation_step: Create a policy module file in /etc/crypto-policies/policies/modules/MODULE.pmod.
+      Define algorithm restrictions. Apply with 'update-crypto-policies --set <BASE_POLICY>:<MODULE>'.
+  tags:
+  - rhel9
+  - security
+  - cryptographic-policies
+- rule_id: RH9-SEC-014
+  rule_name: 'Configure PKCS #11 for Smart Card Authentication'
+  rule_description: 'Configure applications to use PKCS #11 modules for smart card
+    authentication. This enables secure authentication using hardware tokens and smart
+    cards.'
+  category: 'PKCS #11'
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify smart card reader is detected with ''lsusb''. Check PC/SC
+      daemon status with ''systemctl status pcscd''. Verify PKCS #11 module configuration.'
+  remediation:
+    remediation_step: 'Install required packages: ''dnf install opensc pcsc-lite''.
+      Enable pcscd service: ''systemctl enable --now pcscd''. Configure applications
+      to use the PKCS #11 module at /usr/lib64/opensc-pkcs11.so.'
+  tags:
+  - rhel9
+  - security
+  - pkcs-#11
+- rule_id: RH9-SEC-015
+  rule_name: Configure SSH with Smart Card Keys
+  rule_description: Configure SSH to use keys stored on smart cards for authentication.
+    This provides stronger authentication than password-based methods.
+  category: 'PKCS #11'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify smart card contains SSH keys. Check SSH configuration
+      allows PKCS #11 authentication. Test with ''ssh -I /usr/lib64/opensc-pkcs11.so
+      user@host''.'
+  remediation:
+    remediation_step: Configure ~/.ssh/config with 'PKCS11Provider /usr/lib64/opensc-pkcs11.so'.
+      For system-wide configuration, add to /etc/ssh/ssh_config. Generate keys on
+      smart card if needed.
+  tags:
+  - rhel9
+  - security
+  - pkcs-#11
+- rule_id: RH9-SEC-016
+  rule_name: Use HSM for Apache Private Keys
+  rule_description: 'Configure Apache HTTP Server to store private keys in a Hardware
+    Security Module (HSM) using PKCS #11. This protects private keys from software-based
+    attacks.'
+  category: 'PKCS #11'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify HSM PKCS #11 module is installed. Check Apache SSL configuration
+      for PKCS #11 URI in certificate and key directives.'
+  remediation:
+    remediation_step: 'Install HSM PKCS #11 module. Configure Apache SSLCertificateFile
+      and SSLCertificateKeyFile to use PKCS #11 URIs. Example: ''SSLCertificateKeyFile
+      "pkcs11:token=Apache;object=server-key"'''
+  tags:
+  - rhel9
+  - security
+  - pkcs-#11
+- rule_id: RH9-SEC-017
+  rule_name: Use HSM for Nginx Private Keys
+  rule_description: 'Configure Nginx to store private keys in a Hardware Security
+    Module (HSM) using PKCS #11. This provides hardware-level protection for cryptographic
+    keys.'
+  category: 'PKCS #11'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify HSM module is configured. Check Nginx configuration for
+      ssl_certificate and ssl_certificate_key using PKCS #11 URIs.'
+  remediation:
+    remediation_step: 'Configure Nginx to use PKCS #11 URIs for certificates and keys.
+      Ensure OpenSSL PKCS #11 engine is configured. Test configuration with ''nginx
+      -t''.'
+  tags:
+  - rhel9
+  - security
+  - pkcs-#11
+- rule_id: RH9-SEC-018
+  rule_name: Install and Configure OpenSCAP
+  rule_description: Install OpenSCAP tools to enable security compliance scanning
+    and vulnerability assessment. OpenSCAP provides standardized security content
+    automation.
+  category: Compliance Scanning
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify OpenSCAP installation with 'rpm -q openscap-scanner scap-security-guide'.
+      Check available profiles with 'ls /usr/share/xml/scap/ssg/content/'.
+  remediation:
+    remediation_step: 'Install packages: ''dnf install openscap-scanner scap-security-guide''.
+      For GUI: ''dnf install scap-workbench''. Update SCAP content: ''dnf update scap-security-guide''.'
+  tags:
+  - rhel9
+  - security
+  - compliance-scanning
+- rule_id: RH9-SEC-019
+  rule_name: Scan System for Vulnerabilities
+  rule_description: Perform regular vulnerability scans using OpenSCAP with Red Hat
+    Security Advisories OVAL feed to identify and address security vulnerabilities.
+  category: Compliance Scanning
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run vulnerability scan: ''oscap oval eval --report vulnerability-report.html
+      /usr/share/openscap/cpe/oval-com.rhel9.xml''. Review report for identified vulnerabilities.'
+  remediation:
+    remediation_step: 'Analyze scan results and apply patches: ''dnf update --security''.
+      For specific CVEs: ''dnf update --advisory=<ADVISORY_ID>''. Re-scan to verify
+      remediation.'
+  tags:
+  - rhel9
+  - security
+  - compliance-scanning
+- rule_id: RH9-SEC-020
+  rule_name: Scan System Configuration Compliance
+  rule_description: Perform configuration compliance scans against security baselines
+    such as CIS, STIG, or PCI-DSS using OpenSCAP and SCAP Security Guide.
+  category: Compliance Scanning
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List available profiles: ''oscap info /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml''.
+      Run scan: ''oscap xccdf eval --profile <PROFILE> --report report.html /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml''.'
+  remediation:
+    remediation_step: 'Apply remediation: ''oscap xccdf eval --remediate --profile
+      <PROFILE> --report report.html /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml''.
+      Or use Ansible playbook generated from scan results.'
+  tags:
+  - rhel9
+  - security
+  - compliance-scanning
+- rule_id: RH9-SEC-021
+  rule_name: Remediate System with Ansible Playbook
+  rule_description: Use SCAP Security Guide Ansible playbooks to automatically remediate
+    systems to align with security baselines.
+  category: Compliance Scanning
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Locate Ansible playbooks: ''ls /usr/share/scap-security-guide/ansible/''.
+      Verify playbook content matches desired profile.'
+  remediation:
+    remediation_step: 'Run remediation playbook: ''ansible-playbook -b -i inventory
+      /usr/share/scap-security-guide/ansible/rhel9-playbook-<PROFILE>.yml''. Review
+      changes and reboot if required.'
+  tags:
+  - rhel9
+  - security
+  - compliance-scanning
+- rule_id: RH9-SEC-022
+  rule_name: Deploy Compliant System with Kickstart
+  rule_description: Deploy RHEL 9 systems that are compliant with security profiles
+    immediately after installation using Kickstart with OpenSCAP integration.
+  category: Compliance Scanning
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify Kickstart file includes '%addon com_redhat_oscap' section.
+      Check profile name and content path are correct.
+  remediation:
+    remediation_step: 'Add OSCAP addon to Kickstart: ''%addon com_redhat_oscap --content-type
+      scap-security-guide --profile xccdf_org.ssgproject.content_profile_cis''. Include
+      remediation with ''--tailoring'' if needed.'
+  tags:
+  - rhel9
+  - security
+  - compliance-scanning
+- rule_id: RH9-SEC-023
+  rule_name: Scan Containers for Vulnerabilities
+  rule_description: Scan container images for vulnerabilities using OpenSCAP before
+    deployment. This ensures containers do not introduce security risks.
+  category: Compliance Scanning
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Install atomic or openscap-utils for container scanning. Scan
+      image: ''oscap-podman <IMAGE_NAME> oval eval --report report.html /usr/share/openscap/cpe/oval-com.rhel9.xml''.'
+  remediation:
+    remediation_step: Update base image to latest version. Apply security patches
+      to container. Rebuild container with updated packages. Implement container scanning
+      in CI/CD pipeline.
+  tags:
+  - rhel9
+  - security
+  - compliance-scanning
+- rule_id: RH9-SEC-024
+  rule_name: Deploy Keylime Verifier
+  rule_description: Deploy Keylime verifier to provide remote attestation services.
+    The verifier checks the integrity of agents using TPM-based measurements.
+  category: System Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify Keylime verifier installation: ''rpm -q keylime-verifier''.
+      Check service status: ''systemctl status keylime_verifier''. Verify configuration
+      in /etc/keylime/verifier.conf.'
+  remediation:
+    remediation_step: 'Install: ''dnf install keylime-verifier''. Configure /etc/keylime/verifier.conf
+      with appropriate settings. Enable service: ''systemctl enable --now keylime_verifier''.
+      Configure TLS certificates.'
+  tags:
+  - rhel9
+  - security
+  - system-integrity
+- rule_id: RH9-SEC-025
+  rule_name: Deploy Keylime Registrar
+  rule_description: Deploy Keylime registrar to manage TPM endorsements and agent
+    registration. The registrar maintains a database of registered agents.
+  category: System Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify installation: ''rpm -q keylime-registrar''. Check service:
+      ''systemctl status keylime_registrar''. Verify database connectivity.'
+  remediation:
+    remediation_step: 'Install: ''dnf install keylime-registrar''. Configure /etc/keylime/registrar.conf.
+      Enable service: ''systemctl enable --now keylime_registrar''. Configure database
+      backend if needed.'
+  tags:
+  - rhel9
+  - security
+  - system-integrity
+- rule_id: RH9-SEC-026
+  rule_name: Deploy Keylime Agent
+  rule_description: Deploy Keylime agent on systems requiring integrity monitoring.
+    The agent uses TPM to measure and report system integrity.
+  category: System Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify TPM is available: ''ls /dev/tpm*''. Check agent installation:
+      ''rpm -q keylime-agent''. Verify agent configuration in /etc/keylime/agent.conf.'
+  remediation:
+    remediation_step: 'Install: ''dnf install keylime-agent''. Configure /etc/keylime/agent.conf
+      with verifier and registrar addresses. Enable service: ''systemctl enable --now
+      keylime_agent''. Ensure TPM is enabled in BIOS.'
+  tags:
+  - rhel9
+  - security
+  - system-integrity
+- rule_id: RH9-SEC-027
+  rule_name: Configure Keylime Runtime Monitoring
+  rule_description: Configure Keylime for runtime integrity monitoring to detect and
+    alert on unauthorized system changes during operation.
+  category: System Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify Keylime agent is running and connected. Check IMA policy
+      configuration. Verify allowlist and exclude lists are configured.
+  remediation:
+    remediation_step: 'Configure IMA policy in agent configuration. Create allowlist
+      of trusted binaries: ''keylime_create_allowlist.sh > allowlist.txt''. Configure
+      revocation actions in verifier.'
+  tags:
+  - rhel9
+  - security
+  - system-integrity
+- rule_id: RH9-SEC-028
+  rule_name: Configure Keylime Measured Boot
+  rule_description: Configure Keylime for measured boot attestation to verify system
+    boot integrity using TPM measurements of the boot process.
+  category: System Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify TPM PCR banks contain boot measurements: ''tpm2_pcrread''.
+      Check Keylime measured boot configuration. Verify boot agent is configured.'
+  remediation:
+    remediation_step: Enable measured boot in BIOS/UEFI. Configure Keylime to use
+      boot attestation. Create boot measurement allowlist. Configure revocation policies
+      for boot failures.
+  tags:
+  - rhel9
+  - security
+  - system-integrity
+- rule_id: RH9-SEC-029
+  rule_name: Install and Initialize AIDE
+  rule_description: Install Advanced Intrusion Detection Environment (AIDE) to create
+    a database of file integrity information for detecting unauthorized file modifications.
+  category: File Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify AIDE installation: ''rpm -q aide''. Check database exists:
+      ''ls -la /var/lib/aide/aide.db.gz''. Verify configuration: ''aide --version''.'
+  remediation:
+    remediation_step: 'Install AIDE: ''dnf install aide''. Initialize database: ''aide
+      --init''. Install database: ''cp /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz''.
+      Schedule regular checks via cron.'
+  tags:
+  - rhel9
+  - security
+  - file-integrity
+- rule_id: RH9-SEC-030
+  rule_name: Perform Regular AIDE Integrity Checks
+  rule_description: Perform regular file integrity checks using AIDE to detect unauthorized
+    modifications to critical system files.
+  category: File Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run AIDE check: ''aide --check''. Review output for any detected
+      changes. Check cron job exists: ''ls /etc/cron.d/aide''.'
+  remediation:
+    remediation_step: 'Create cron job for daily checks: ''echo "0 5 * * * root /usr/sbin/aide
+      --check" > /etc/cron.d/aide''. Configure email notifications for detected changes.
+      Review and investigate any reported modifications.'
+  tags:
+  - rhel9
+  - security
+  - file-integrity
+- rule_id: RH9-SEC-031
+  rule_name: Update AIDE Database After Changes
+  rule_description: Update the AIDE database after legitimate system changes to prevent
+    false positives in integrity checks.
+  category: File Integrity
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run check to identify changes: ''aide --check''. Verify changes
+      are legitimate before updating database.'
+  remediation:
+    remediation_step: 'After verifying legitimate changes, update database: ''aide
+      --update''. Install updated database: ''cp /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz''.
+      Document reason for changes.'
+  tags:
+  - rhel9
+  - security
+  - file-integrity
+- rule_id: RH9-SEC-032
+  rule_name: Configure AIDE Monitoring for Critical Directories
+  rule_description: Configure AIDE to monitor critical system directories including
+    /etc, /bin, /sbin, /lib, /usr for unauthorized modifications.
+  category: File Integrity
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review AIDE configuration: ''grep -E "^/etc|^/bin|^/sbin" /etc/aide.conf''.
+      Verify monitoring rules include critical directories.'
+  remediation:
+    remediation_step: 'Edit /etc/aide.conf to include monitoring rules for critical
+      directories. Example: ''/etc p+u+g+s+m+c+md5+sha1''. Reinitialize database after
+      configuration changes.'
+  tags:
+  - rhel9
+  - security
+  - file-integrity
+- rule_id: RH9-SEC-033
+  rule_name: Encrypt Block Devices with LUKS2
+  rule_description: Encrypt block devices using LUKS2 (Linux Unified Key Setup) to
+    protect data at rest. LUKS2 provides improved security and features over LUKS1.
+  category: Disk Encryption
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for LUKS encrypted devices: ''lsblk -f | grep crypto_LUKS''.
+      Verify LUKS version: ''cryptsetup luksDump /dev/<device> | grep Version''.'
+  remediation:
+    remediation_step: 'Encrypt existing device: ''cryptsetup reencrypt --encrypt /dev/<device>''.
+      For new devices: ''cryptsetup luksFormat /dev/<device>''. Open encrypted device:
+      ''cryptsetup open /dev/<device> <name>''. Create filesystem on mapped device.'
+  tags:
+  - rhel9
+  - security
+  - disk-encryption
+- rule_id: RH9-SEC-034
+  rule_name: Encrypt Existing Data with LUKS2
+  rule_description: Encrypt existing data on block devices using LUKS2 re-encryption
+    feature without data loss. This allows in-place encryption of storage.
+  category: Disk Encryption
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify device is not already encrypted: ''cryptsetup isLuks /dev/<device>''.
+      Check available disk space for re-encryption metadata.'
+  remediation:
+    remediation_step: 'Backup important data. Run: ''cryptsetup reencrypt --encrypt
+      --type luks2 /dev/<device>''. Use ''--reduce-device-size'' if needed for metadata.
+      Verify encryption: ''cryptsetup luksDump /dev/<device>''.'
+  tags:
+  - rhel9
+  - security
+  - disk-encryption
+- rule_id: RH9-SEC-035
+  rule_name: Configure LUKS with Detached Header
+  rule_description: Configure LUKS encryption with a detached header for enhanced
+    security. The detached header can be stored separately from the encrypted data.
+  category: Disk Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for detached header: ''cryptsetup luksDump /dev/<device>
+      --header /path/to/header''. Verify header file exists and is valid.'
+  remediation:
+    remediation_step: 'Create LUKS with detached header: ''cryptsetup luksFormat /dev/<device>
+      --header /path/to/header''. Open with header: ''cryptsetup open /dev/<device>
+      <name> --header /path/to/header''. Store header securely.'
+  tags:
+  - rhel9
+  - security
+  - disk-encryption
+- rule_id: RH9-SEC-036
+  rule_name: Configure NBDE with Tang Server
+  rule_description: Deploy Tang server for Network Bound Disk Encryption (NBDE) to
+    enable automated unlocking of LUKS-encrypted volumes in network environments.
+  category: Disk Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify Tang server installation: ''rpm -q tang''. Check service
+      status: ''systemctl status tangd.socket''. Verify keys exist: ''ls /var/db/tang''.'
+  remediation:
+    remediation_step: 'Install Tang: ''dnf install tang''. Enable socket: ''systemctl
+      enable --now tangd.socket''. Generate keys if needed: ''/usr/libexec/tangd-keygen
+      /var/db/tang''. Configure firewall to allow port 80.'
+  tags:
+  - rhel9
+  - security
+  - disk-encryption
+- rule_id: RH9-SEC-037
+  rule_name: Configure Clevis Client for NBDE
+  rule_description: Configure Clevis client to automatically unlock LUKS-encrypted
+    volumes using Tang server. This enables automated disk unlocking when the network
+    is available.
+  category: Disk Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify Clevis installation: ''rpm -q clevis clevis-luks''. Check
+      existing bindings: ''clevis luks list -d /dev/<device>''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install clevis clevis-luks''. Bind to Tang:
+      ''clevis luks bind -d /dev/<device> tang ''{"url":"http://tang.server"}''''.
+      Test unlocking: ''clevis luks unlock -d /dev/<device>''. Configure dracut for
+      early boot unlocking.'
+  tags:
+  - rhel9
+  - security
+  - disk-encryption
+- rule_id: RH9-SEC-038
+  rule_name: Configure TPM 2.0 Disk Encryption
+  rule_description: Configure Clevis to use TPM 2.0 for automated unlocking of LUKS-encrypted
+    volumes. This binds disk encryption to the system's TPM hardware.
+  category: Disk Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify TPM 2.0 is available: ''ls /dev/tpm* && tpm2_pcrread''.
+      Check Clevis TPM pin: ''clevis luks list -d /dev/<device>''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install clevis-pin-tpm2''. Bind to TPM: ''clevis
+      luks bind -d /dev/<device> tpm2 ''{}''''. Configure dracut: ''dracut -f''. Test
+      unlocking on reboot.'
+  tags:
+  - rhel9
+  - security
+  - disk-encryption
+- rule_id: RH9-SEC-039
+  rule_name: Rotate Tang Server Keys
+  rule_description: Regularly rotate Tang server keys to maintain security. Key rotation
+    ensures that compromised keys cannot be used indefinitely.
+  category: Disk Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List Tang keys: ''ls -la /var/db/tang''. Check key creation dates.
+      Verify key rotation schedule exists.'
+  remediation:
+    remediation_step: 'Generate new keys: ''/usr/libexec/tangd-keygen /var/db/tang''.
+      Old keys become advertisements. Update client bindings: ''clevis luks report
+      -d /dev/<device> -s 1''. Regenerate: ''clevis luks regen -d /dev/<device> -s
+      1''.'
+  tags:
+  - rhel9
+  - security
+  - disk-encryption
+- rule_id: RH9-SEC-040
+  rule_name: Install and Configure Audit Daemon
+  rule_description: Install and configure the Linux Audit daemon (auditd) to record
+    security-relevant events for compliance and forensic analysis.
+  category: System Auditing
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify auditd installation: ''rpm -q audit''. Check service status:
+      ''systemctl status auditd''. Verify logging: ''ls -la /var/log/audit/audit.log''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install audit''. Enable service: ''systemctl
+      enable --now auditd''. Configure /etc/audit/auditd.conf for log retention and
+      size. Restart service: ''service auditd restart''.'
+  tags:
+  - rhel9
+  - security
+  - system-auditing
+- rule_id: RH9-SEC-041
+  rule_name: Configure Audit Rules for Security Events
+  rule_description: Configure audit rules to monitor security-relevant events including
+    file access, system calls, and user activities.
+  category: System Auditing
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List current rules: ''auditctl -l''. Check rules file: ''cat
+      /etc/audit/rules.d/audit.rules''. Verify rules are loaded.'
+  remediation:
+    remediation_step: 'Add rules to /etc/audit/rules.d/audit.rules. Example: ''-w
+      /etc/passwd -p wa -k identity''. Load rules: ''augenrules --load''. Verify:
+      ''auditctl -l''.'
+  tags:
+  - rhel9
+  - security
+  - system-auditing
+- rule_id: RH9-SEC-042
+  rule_name: Monitor Login Events with Audit
+  rule_description: Configure audit rules to monitor user login events including successful
+    and failed login attempts.
+  category: System Auditing
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check login monitoring rules: ''auditctl -l | grep login''. Search
+      for login events: ''aureport --login''.'
+  remediation:
+    remediation_step: 'Add login monitoring rules to /etc/audit/rules.d/audit.rules:
+      ''-w /var/log/lastlog -p wa -k logins''. Also monitor: ''-w /var/run/faillock/
+      -p wa -k faillock''. Reload rules.'
+  tags:
+  - rhel9
+  - security
+  - system-auditing
+- rule_id: RH9-SEC-043
+  rule_name: Monitor Software Updates with Audit
+  rule_description: Configure audit rules to monitor package management activities
+    including software installations, updates, and removals.
+  category: System Auditing
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check package monitoring rules: ''auditctl -l | grep -E "dnf|rpm"''.
+      Search for package events: ''ausearch -k software-update''.'
+  remediation:
+    remediation_step: 'Add rules: ''-w /usr/bin/dnf -p x -k software-update'' and
+      ''-w /usr/bin/rpm -p x -k software-update''. Also monitor /etc/dnf/dnf.conf.
+      Reload rules.'
+  tags:
+  - rhel9
+  - security
+  - system-auditing
+- rule_id: RH9-SEC-044
+  rule_name: Use Pre-configured Audit Rules
+  rule_description: Use pre-configured audit rule sets provided by RHEL for compliance
+    with security standards such as STIG and CIS.
+  category: System Auditing
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for pre-configured rules: ''ls /usr/share/audit/sample-rules/''.
+      Review available rule sets.'
+  remediation:
+    remediation_step: 'Copy appropriate rule set: ''cp /usr/share/audit/sample-rules/30-stig.rules
+      /etc/audit/rules.d/''. Combine multiple rule sets as needed. Reload: ''augenrules
+      --load''. Restart auditd.'
+  tags:
+  - rhel9
+  - security
+  - system-auditing
+- rule_id: RH9-SEC-045
+  rule_name: Configure Audit Log Retention
+  rule_description: Configure audit log retention to ensure audit logs are preserved
+    for the required period while managing disk space.
+  category: System Auditing
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review auditd configuration: ''grep -E "max_log_file|num_logs|max_log_file_action"
+      /etc/audit/auditd.conf''. Calculate total retention capacity.'
+  remediation:
+    remediation_step: 'Edit /etc/audit/auditd.conf: Set ''max_log_file = 100'' (MB),
+      ''num_logs = 10'', ''max_log_file_action = ROTATE''. Consider ''disk_full_action
+      = SYSLOG'' or ''HALT''. Restart auditd.'
+  tags:
+  - rhel9
+  - security
+  - system-auditing
+- rule_id: RH9-SEC-046
+  rule_name: Install and Deploy fapolicyd
+  rule_description: Install and deploy fapolicyd to control execution of applications
+    based on trust properties. This prevents unauthorized code execution.
+  category: Application Control
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify installation: ''rpm -q fapolicyd''. Check service status:
+      ''systemctl status fapolicyd''. Verify daemon is running: ''fapolicyd --check''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install fapolicyd''. Enable service: ''systemctl
+      enable --now fapolicyd''. Verify blocking works: attempt to run unauthorized
+      binary. Configure rules in /etc/fapolicyd/fapolicyd.rules.'
+  tags:
+  - rhel9
+  - security
+  - application-control
+- rule_id: RH9-SEC-047
+  rule_name: Configure fapolicyd Trust Database
+  rule_description: Configure fapolicyd trust database to define which applications
+    are allowed to execute. Use RPM database and custom trust sources.
+  category: Application Control
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check trust sources: ''cat /etc/fapolicyd/fapolicyd.conf | grep
+      trust''. List trusted files: ''ls /etc/fapolicyd/trust.d/''.'
+  remediation:
+    remediation_step: 'Configure trust sources in /etc/fapolicyd/fapolicyd.conf. Add
+      custom trusted files: ''fapolicyd-cli --file add /path/to/binary''. Use /etc/fapolicyd/trust.d/
+      for trust lists.'
+  tags:
+  - rhel9
+  - security
+  - application-control
+- rule_id: RH9-SEC-048
+  rule_name: Create Custom fapolicyd Rules
+  rule_description: Create custom fapolicyd rules to define application execution
+    policies based on specific requirements beyond the default rules.
+  category: Application Control
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review existing rules: ''cat /etc/fapolicyd/fapolicyd.rules''.
+      Check rule syntax and order.'
+  remediation:
+    remediation_step: 'Add custom rules to /etc/fapolicyd/rules.d/. Rule format: ''decision
+      perm=execute type=binary trust=1''. Number files for ordering (e.g., 20-custom.rules).
+      Update: ''fapolicyd-cli --update''.'
+  tags:
+  - rhel9
+  - security
+  - application-control
+- rule_id: RH9-SEC-049
+  rule_name: Enable fapolicyd Integrity Checking
+  rule_description: Enable integrity checking in fapolicyd to verify that trusted
+    files have not been modified. This uses IMA or SHA256 checksums.
+  category: Application Control
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check integrity configuration: ''grep integrity /etc/fapolicyd/fapolicyd.conf''.
+      Verify IMA is configured: ''cat /sys/kernel/security/ima/policy''.'
+  remediation:
+    remediation_step: 'Enable integrity in /etc/fapolicyd/fapolicyd.conf: ''integrity
+      = ima''. For SHA256: ''integrity = sha256''. Configure IMA policy if using IMA.
+      Restart fapolicyd.'
+  tags:
+  - rhel9
+  - security
+  - application-control
+- rule_id: RH9-SEC-050
+  rule_name: Install and Configure USBGuard
+  rule_description: Install and configure USBGuard to enforce policies on USB device
+    authorization. This prevents unauthorized USB devices from accessing the system.
+  category: USB Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify installation: ''rpm -q usbguard''. Check service status:
+      ''systemctl status usbguard''. List current policy: ''usbguard list-rules''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install usbguard''. Generate initial policy:
+      ''usbguard generate-policy > /etc/usbguard/rules.conf''. Enable service: ''systemctl
+      enable --now usbguard''. Configure /etc/usbguard/usbguard-daemon.conf.'
+  tags:
+  - rhel9
+  - security
+  - usb-security
+- rule_id: RH9-SEC-051
+  rule_name: Create USB Device Policy
+  rule_description: Create a USB device policy that defines which devices are allowed,
+    blocked, or require explicit authorization.
+  category: USB Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review current policy: ''cat /etc/usbguard/rules.conf''. Check
+      device allow/deny status: ''usbguard list-devices''.'
+  remediation:
+    remediation_step: 'Generate policy from current devices: ''usbguard generate-policy''.
+      Edit rules in /etc/usbguard/rules.conf. Rule format: ''allow id 1d6b:0002 serial
+      "0000:00:14.0" name "xHCI Host Controller" hash "abcd1234"''. Restart usbguard.'
+  tags:
+  - rhel9
+  - security
+  - usb-security
+- rule_id: RH9-SEC-052
+  rule_name: Authorize USB Devices via CLI
+  rule_description: Use USBGuard CLI to temporarily or permanently authorize or block
+    USB devices without modifying the policy file.
+  category: USB Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List devices with status: ''usbguard list-devices''. Identify
+      device ID for authorization.'
+  remediation:
+    remediation_step: 'Allow device temporarily: ''usbguard allow-device <ID>''. Block
+      device: ''usbguard block-device <ID>''. Make permanent: ''usbguard allow-device
+      -p <ID>''. This appends to rules.conf.'
+  tags:
+  - rhel9
+  - security
+  - usb-security
+- rule_id: RH9-SEC-053
+  rule_name: Configure USBGuard IPC Authorization
+  rule_description: Configure which users and groups are authorized to use the USBGuard
+    IPC interface for device management.
+  category: USB Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check IPC configuration: ''cat /etc/usbguard/usbguard-daemon.conf
+      | grep IPCAccessControlGroups''. Verify user permissions.'
+  remediation:
+    remediation_step: 'Edit /etc/usbguard/usbguard-daemon.conf. Add: ''IPCAccessControlGroups=wheel,usbguard''.
+      Set IPC ACL file: ''IPCAccessControlFiles=/etc/usbguard/IPCAccessControl.d/''.
+      Restart usbguard.'
+  tags:
+  - rhel9
+  - security
+  - usb-security
+- rule_id: RH9-SEC-054
+  rule_name: Log USBGuard Events to Audit
+  rule_description: Configure USBGuard to log device authorization events to the Linux
+    Audit system for security monitoring and compliance.
+  category: USB Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check audit logging configuration: ''cat /etc/usbguard/usbguard-daemon.conf
+      | grep AuditBackend''. Search for USB events: ''ausearch -ts recent -m USBGUARD''.'
+  remediation:
+    remediation_step: 'Enable audit logging in /etc/usbguard/usbguard-daemon.conf:
+      ''AuditBackend=LinuxAudit''. Ensure auditd is running. Restart usbguard. Verify
+      events appear in audit log.'
+  tags:
+  - rhel9
+  - security
+  - usb-security
+- rule_id: RH9-SEC-055
+  rule_name: Configure Remote Logging Server
+  rule_description: Configure a centralized logging server using Rsyslog to receive
+    logs from remote systems for security monitoring and analysis.
+  category: Remote Logging
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check rsyslog configuration: ''cat /etc/rsyslog.conf | grep -E
+      "imtcp|imudp"''. Verify listening ports: ''ss -tlnp | grep 514''.'
+  remediation:
+    remediation_step: 'Edit /etc/rsyslog.conf. Enable TCP: ''module(load="imtcp")
+      input(type="imtcp" port="514")''. Enable UDP: ''module(load="imudp") input(type="imudp"
+      port="514")''. Configure log paths. Restart: ''systemctl restart rsyslog''.
+      Configure firewall.'
+  tags:
+  - rhel9
+  - security
+  - remote-logging
+- rule_id: RH9-SEC-056
+  rule_name: Configure Client for Remote Logging
+  rule_description: Configure Rsyslog clients to send logs to a remote logging server
+    for centralized log management.
+  category: Remote Logging
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check forwarding configuration: ''cat /etc/rsyslog.conf | grep
+      @''. Verify logs are being sent: ''tcpdump -i any port 514''.'
+  remediation:
+    remediation_step: 'Edit /etc/rsyslog.conf. Add TCP forwarding: ''*.* @@logserver.example.com:514''.
+      For UDP: ''*.* @logserver.example.com:514''. Add queue for reliability. Restart:
+      ''systemctl restart rsyslog''.'
+  tags:
+  - rhel9
+  - security
+  - remote-logging
+- rule_id: RH9-SEC-057
+  rule_name: Configure TLS Encrypted Remote Logging
+  rule_description: Configure TLS encryption for remote logging to protect log data
+    in transit from eavesdropping and tampering.
+  category: Remote Logging
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check TLS configuration: ''cat /etc/rsyslog.d/*conf | grep -E
+      "gtls|tls"''. Verify certificates exist: ''ls /etc/pki/rsyslog/''.'
+  remediation:
+    remediation_step: 'Install certificates. Configure server: ''global(DefaultNetstreamDriver="gtls"
+      DefaultNetstreamDriverCAFile="/etc/pki/rsyslog/ca.pem")''. Configure client
+      similarly. Use ''action(type="omfwd" protocol="tcp" target="server" port="6514"
+      StreamDriver="gtls" StreamDriverMode="1")''. Restart rsyslog.'
+  tags:
+  - rhel9
+  - security
+  - remote-logging
+- rule_id: RH9-SEC-058
+  rule_name: Configure SELinux in Enforcing Mode
+  rule_description: Ensure SELinux is configured in enforcing mode to provide mandatory
+    access control security for the system.
+  category: SELinux
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check SELinux status: ''getenforce''. Verify mode in config:
+      ''grep SELINUX /etc/selinux/config''. Check for denials: ''ausearch -m AVC -ts
+      recent''.'
+  remediation:
+    remediation_step: 'Edit /etc/selinux/config: ''SELINUX=enforcing''. Set enforcing
+      mode: ''setenforce 1''. Relabel filesystem if needed: ''fixfiles relabel'' or
+      ''touch /.autorelabel && reboot''. Resolve any denials with policy updates.'
+  tags:
+  - rhel9
+  - security
+  - selinux
+- rule_id: RH9-SEC-059
+  rule_name: Configure SELinux Targeted Policy
+  rule_description: Use SELinux targeted policy which confines specific daemons and
+    services while leaving user sessions unconfined.
+  category: SELinux
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current policy: ''sestatus | grep "Loaded policy"''. Verify
+      policy type: ''grep SELINUXTYPE /etc/selinux/config''.'
+  remediation:
+    remediation_step: 'Edit /etc/selinux/config: ''SELINUXTYPE=targeted''. Reinstall
+      policy if needed: ''dnf reinstall selinux-policy-targeted''. May require relabeling.
+      Reboot for changes to take full effect.'
+  tags:
+  - rhel9
+  - security
+  - selinux
+- rule_id: RH9-SEC-060
+  rule_name: Enable Firewalld
+  rule_description: Enable and configure firewalld to provide host-based firewall
+    protection with zone-based security policies.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check firewalld status: ''systemctl status firewalld''. Verify
+      active zones: ''firewall-cmd --get-active-zones''. List rules: ''firewall-cmd
+      --list-all''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install firewalld''. Enable: ''systemctl enable
+      --now firewalld''. Configure default zone: ''firewall-cmd --set-default-zone=public''.
+      Add services: ''firewall-cmd --add-service=ssh --permanent''. Reload: ''firewall-cmd
+      --reload''.'
+  tags:
+  - rhel9
+  - security
+  - firewall
+- rule_id: RH9-SEC-061
+  rule_name: Configure Firewall Zones
+  rule_description: Configure appropriate firewall zones for different network interfaces
+    and security levels.
+  category: Firewall
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List zones: ''firewall-cmd --get-zones''. Check interface assignments:
+      ''firewall-cmd --get-active-zones''. Review zone settings: ''firewall-cmd --zone=public
+      --list-all''.'
+  remediation:
+    remediation_step: 'Assign interface to zone: ''firewall-cmd --zone=internal --change-interface=eth0
+      --permanent''. Configure zone services: ''firewall-cmd --zone=internal --add-service=http
+      --permanent''. Configure port forwarding if needed. Reload configuration.'
+  tags:
+  - rhel9
+  - security
+  - firewall
+- rule_id: RH9-SEC-062
+  rule_name: Configure SSH Hardening
+  rule_description: Configure SSH daemon with security hardening settings including
+    key-based authentication, disabling root login, and limiting access.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review SSH config: ''sshd -T | grep -E "permitrootlogin|passwordauthentication|pubkeyauthentication"''.
+      Check for weak settings in /etc/ssh/sshd_config.'
+  remediation:
+    remediation_step: 'Edit /etc/ssh/sshd_config: ''PermitRootLogin no'', ''PasswordAuthentication
+      no'', ''PubkeyAuthentication yes'', ''Protocol 2'', ''MaxAuthTries 3'', ''ClientAliveInterval
+      300''. Restart: ''systemctl restart sshd''. Test before closing session.'
+  tags:
+  - rhel9
+  - security
+  - ssh-security
+- rule_id: RH9-SEC-063
+  rule_name: Configure SSH Key Authentication
+  rule_description: Configure SSH to use public key authentication instead of passwords
+    for stronger authentication.
+  category: SSH Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check SSH key auth: ''sshd -T | grep pubkeyauthentication''.
+      Verify authorized_keys exist: ''ls -la ~/.ssh/authorized_keys''. Test key login.'
+  remediation:
+    remediation_step: 'Generate key pair: ''ssh-keygen -t ed25519 -b 4096''. Copy
+      to server: ''ssh-copy-id user@server''. Edit /etc/ssh/sshd_config: ''PubkeyAuthentication
+      yes'', ''PasswordAuthentication no''. Restart sshd. Test key login before closing
+      session.'
+  tags:
+  - rhel9
+  - security
+  - ssh-security
+- rule_id: RH9-SEC-064
+  rule_name: Configure Password Policy
+  rule_description: Configure system password policy to enforce strong passwords including
+    length, complexity, and history requirements.
+  category: Authentication
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check password quality config: ''cat /etc/security/pwquality.conf''.
+      Check PAM settings: ''grep pam_pwquality /etc/pam.d/system-auth''.'
+  remediation:
+    remediation_step: 'Edit /etc/security/pwquality.conf: ''minlen = 14'', ''minclass
+      = 4'', ''dcredit = -1'', ''ucredit = -1'', ''lcredit = -1'', ''ocredit = -1'',
+      ''retry = 3''. Configure history in PAM: ''pam_pwhistory.so remember=5''.'
+  tags:
+  - rhel9
+  - security
+  - authentication
+- rule_id: RH9-SEC-065
+  rule_name: Configure Account Lockout Policy
+  rule_description: Configure account lockout policy to prevent brute force password
+    attacks by locking accounts after failed login attempts.
+  category: Authentication
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check faillock config: ''cat /etc/security/faillock.conf''. Check
+      PAM configuration: ''grep faillock /etc/pam.d/system-auth''.'
+  remediation:
+    remediation_step: 'Edit /etc/security/faillock.conf: ''deny = 5'', ''unlock_time
+      = 900'', ''root_unlock_time = 900''. Configure PAM if needed. Verify with ''faillock
+      --user <username>''.'
+  tags:
+  - rhel9
+  - security
+  - authentication
+- rule_id: RH9-SEC-066
+  rule_name: Disable Unused Services
+  rule_description: Disable unnecessary services and daemons to reduce the attack
+    surface and resource consumption.
+  category: Service Management
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List enabled services: ''systemctl list-unit-files --type=service
+      --state=enabled''. List listening ports: ''ss -tlnp''.'
+  remediation:
+    remediation_step: 'Disable service: ''systemctl disable --now <service>''. Mask
+      if needed: ''systemctl mask <service>''. Review and remove unused packages:
+      ''dnf autoremove''.'
+  tags:
+  - rhel9
+  - security
+  - service-management
+- rule_id: RH9-SEC-067
+  rule_name: Configure Kernel Parameters
+  rule_description: Configure kernel parameters for security hardening including network
+    security, memory protection, and system behavior.
+  category: Kernel Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current parameters: ''sysctl -a | grep -E "net.ipv4|net.ipv6|kernel.exec"''.
+      Review /etc/sysctl.d/ configuration files.'
+  remediation:
+    remediation_step: 'Create /etc/sysctl.d/99-security.conf with settings: ''net.ipv4.conf.all.rp_filter
+      = 1'', ''net.ipv4.conf.all.accept_source_route = 0'', ''net.ipv4.conf.all.accept_redirects
+      = 0'', ''kernel.exec-shield = 1''. Apply: ''sysctl --system''.'
+  tags:
+  - rhel9
+  - security
+  - kernel-security
+- rule_id: RH9-SEC-068
+  rule_name: Configure Process Accounting
+  rule_description: Enable process accounting to record system activities including
+    command execution for security auditing.
+  category: System Auditing
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check psacct status: ''systemctl status psacct''. Verify accounting
+      is active: ''accton /var/account/pacct''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install psacct''. Enable: ''systemctl enable
+      --now psacct''. Review commands with ''lastcomm''. Configure log rotation for
+      /var/account/pacct.'
+  tags:
+  - rhel9
+  - security
+  - system-auditing
+- rule_id: RH9-SEC-069
+  rule_name: Configure Secure Boot
+  rule_description: Enable UEFI Secure Boot to ensure only trusted, signed boot components
+    are loaded during system startup.
+  category: Boot Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check Secure Boot status: ''mokutil --sb-state''. Verify UEFI
+      mode: ''ls /sys/firmware/efi''. Check key enrollment: ''mokutil --list-enrolled''.'
+  remediation:
+    remediation_step: Enable Secure Boot in BIOS/UEFI settings. Ensure RHEL 9 is installed
+      with Secure Boot support. Use 'mokutil' to manage Machine Owner Keys (MOK) for
+      third-party drivers. Sign custom kernel modules if needed.
+  tags:
+  - rhel9
+  - security
+  - boot-security
+- rule_id: RH9-SEC-070
+  rule_name: Configure Automatic Security Updates
+  rule_description: Configure automatic installation of security updates to ensure
+    systems remain protected against known vulnerabilities.
+  category: Update Management
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check dnf-automatic status: ''systemctl status dnf-automatic''.
+      Review configuration: ''cat /etc/dnf/automatic.conf''.'
+  remediation:
+    remediation_step: 'Install: ''dnf install dnf-automatic''. Edit /etc/dnf/automatic.conf:
+      ''upgrade_type = security'', ''apply_updates = yes'', ''download_updates = yes''.
+      Enable timer: ''systemctl enable --now dnf-automatic.timer''.'
+  tags:
+  - rhel9
+  - security
+  - update-management
