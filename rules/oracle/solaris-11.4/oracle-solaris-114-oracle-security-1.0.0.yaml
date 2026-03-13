@@ -1,0 +1,1278 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: Oracle Solaris 11.4 Security Hardening Guide
+  version: 1.0.0
+  description: Security hardening rules from official Oracle Solaris 11.4 documentation
+  platform: Oracle Solaris 11.4
+  benchmark: Oracle Solaris 11.4 Security Documentation
+  author: Oracle
+  source: https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/
+  created: '2026-03-13T00:00:00Z'
+  modified: '2026-03-13T00:00:00Z'
+  compatible_platforms:
+  - Solaris 11.4 x86
+  - Solaris 11.4 SPARC
+compliance_info:
+  framework: NIST
+  version: 1.0.0
+  profile: Oracle Solaris Security Hardening
+profile:
+  name: Oracle Solaris Security Hardening
+  description: Comprehensive security hardening based on official Oracle Solaris documentation covering RBAC, privileges, network security, encryption, and auditing
+  level: 1
+rules:
+- rule_id: ORA-USER-001
+  rule_name: Configure root as a role not a user
+  rule_description: Configure the root account as a role rather than a user to enforce accountability and prevent direct root logins.
+  category: Access Control
+  subcategory: User Management
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify root is configured as a role
+    check_command: "roles root"
+    expected_value: "root is a role"
+  remediation:
+    remediation_step: |
+      To convert root from a user to a role:
+      1. Create a local user who can assume the root role
+      2. Assign the root role to trusted users:
+         usermod -R +root username
+      3. Set root as a role:
+         usermod -K type=role root
+      4. Verify: roles root
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Direct root login disabled
+    estimated_time: 5 minutes
+  context:
+    rationale: Making root a role prevents direct root logins and ensures accountability through individual user accounts
+    impact: High - Critical for access control and auditing
+    false_positive_risk: None
+  tags:
+  - access-control
+  - root
+  - rbac
+
+- rule_id: ORA-USER-002
+  rule_name: Set account locking for failed login attempts
+  rule_description: Configure account locking to disable accounts after a specified number of failed login attempts to prevent brute force attacks.
+  category: Access Control
+  subcategory: Authentication
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify account locking is configured
+    check_command: "grep ^LOCK /etc/security/policy.conf"
+    expected_value: "LOCK_AFTER_RETRIES=YES"
+  remediation:
+    remediation_step: |
+      Enable account locking:
+      1. Edit /etc/security/policy.conf
+      2. Set: LOCK_AFTER_RETRIES=YES
+      3. Configure retry count in /etc/default/login:
+         RETRIES=3
+      4. To unlock locked accounts: passwd -u username
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Accounts may be locked after failed attempts
+    estimated_time: 5 minutes
+  context:
+    rationale: Account locking prevents brute force password attacks
+    impact: High - Important security control
+    false_positive_risk: Low
+  tags:
+  - authentication
+  - account-locking
+  - brute-force
+
+- rule_id: ORA-USER-003
+  rule_name: Set restrictive umask for regular users
+  rule_description: Configure a more restrictive umask value for regular users to prevent overly permissive file creation.
+  category: Access Control
+  subcategory: File Permissions
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify umask setting for regular users
+    check_command: "grep UMASK /etc/default/login"
+    expected_value: "UMASK=027 or UMASK=077"
+  remediation:
+    remediation_step: |
+      Set restrictive umask:
+      1. Edit /etc/default/login
+      2. Set: UMASK=027
+      3. This ensures new files are not world-readable
+    rollback_supported: true
+    reboot_required: false
+    service_impact: New files will have restricted permissions
+    estimated_time: 2 minutes
+  context:
+    rationale: Restrictive umask prevents accidental exposure of sensitive data through file permissions
+    impact: Medium - Important for data protection
+    false_positive_risk: Low
+  tags:
+  - file-permissions
+  - umask
+  - data-protection
+
+- rule_id: ORA-USER-004
+  rule_name: Remove unnecessary basic privileges from users
+  rule_description: Remove unneeded basic privileges from regular users to implement principle of least privilege.
+  category: Access Control
+  subcategory: Privileges
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify basic privileges assigned to users
+    check_command: "grep defaultpriv /etc/user_attr"
+    expected_value: defaultpriv should exclude unnecessary privileges
+  remediation:
+    remediation_step: |
+      Remove basic privileges from users:
+      1. Identify unnecessary privileges for your environment
+      2. Remove privileges using usermod:
+         usermod -K defaultpriv=basic,!proc_info,!proc_session username
+      3. Common privileges to consider removing:
+         - proc_info - view other processes
+         - proc_session - session control
+         - file_link_any - create hard links
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Users may not be able to perform some operations
+    estimated_time: 10 minutes
+  context:
+    rationale: Removing unnecessary privileges reduces the attack surface and limits what users can do
+    impact: Medium - Important for least privilege
+    false_positive_risk: Medium
+  tags:
+  - privileges
+  - least-privilege
+  - rbac
+
+- rule_id: ORA-USER-005
+  rule_name: Configure password policy requirements
+  rule_description: Configure strong password policies including minimum length, complexity, and history requirements.
+  category: Access Control
+  subcategory: Password Policy
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify password policy configuration
+    check_command: "grep -E 'PASSLENGTH|HISTORY|MINDIFF|MINALPHA' /etc/default/passwd"
+    expected_value: "PASSLENGTH >= 8, HISTORY >= 5"
+  remediation:
+    remediation_step: |
+      Configure password policy in /etc/default/passwd:
+      PASSLENGTH=8
+      HISTORY=5
+      MINDIFF=3
+      MINALPHA=2
+      MINNONALPHA=1
+      MAXREPEATS=0
+      
+      For stronger policies, also configure:
+      MINUPPER=1
+      MINLOWER=1
+      MINDIGIT=1
+      MINSPECIAL=1
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Users must create stronger passwords
+    estimated_time: 5 minutes
+  context:
+    rationale: Strong password policies prevent weak passwords that can be easily compromised
+    impact: High - Critical for authentication security
+    false_positive_risk: Low
+  tags:
+  - password-policy
+  - authentication
+  - security-baseline
+
+- rule_id: ORA-NET-001
+  rule_name: Disable network routing daemon if not required
+  rule_description: Disable the in.routed daemon if the system does not need to perform dynamic routing.
+  category: Network Configuration
+  subcategory: Routing
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify routing daemon status
+    check_command: "svcs -a | grep routing"
+    expected_value: "in.routed disabled or not running"
+  remediation:
+    remediation_step: |
+      Disable routing daemon:
+      svcadm disable routing-setup
+      svcadm disable routing/ndp:default
+      
+      Or prevent routing at boot:
+      routeadm -d ipv4-forwarding
+      routeadm -d ipv6-forwarding
+      routeadm -u
+    rollback_supported: true
+    reboot_required: false
+    service_impact: System will not perform dynamic routing
+    estimated_time: 2 minutes
+  context:
+    rationale: Unnecessary routing services increase attack surface
+    impact: Medium - Reduces network attack surface
+    false_positive_risk: Low
+  tags:
+  - network
+  - routing
+  - services
+
+- rule_id: ORA-NET-002
+  rule_name: Disable broadcast packet forwarding
+  rule_description: Disable forwarding of broadcast packets to prevent amplification attacks.
+  category: Network Configuration
+  subcategory: Packet Forwarding
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify broadcast forwarding is disabled
+    check_command: "ndd /dev/ip ip_forward_directed_broadcasts"
+    expected_value: "0"
+  remediation:
+    remediation_step: |
+      Disable broadcast forwarding:
+      ndd -set /dev/ip ip_forward_directed_broadcasts 0
+      
+      Make persistent by adding to /etc/rc2.d/S99ndd:
+      ndd -set /dev/ip ip_forward_directed_broadcasts 0
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Broadcast packets will not be forwarded
+    estimated_time: 2 minutes
+  context:
+    rationale: Disabling broadcast forwarding prevents amplification attacks
+    impact: Medium - Important for network security
+    false_positive_risk: Low
+  tags:
+  - network
+  - broadcast
+  - ddos
+
+- rule_id: ORA-NET-003
+  rule_name: Disable responses to ICMP echo requests
+  rule_description: Disable responses to ICMP echo requests (ping) to reduce system visibility and prevent reconnaissance.
+  category: Network Configuration
+  subcategory: ICMP
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify ICMP echo response setting
+    check_command: "ndd /dev/ip ip_respond_to_echo_broadcast"
+    expected_value: "0"
+  remediation:
+    remediation_step: |
+      Disable ICMP echo responses:
+      ndd -set /dev/ip ip_respond_to_echo_broadcast 0
+      ndd -set /dev/icmp icmp_want_redirect 0
+      
+      Make persistent in startup scripts.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: System will not respond to ping broadcasts
+    estimated_time: 2 minutes
+  context:
+    rationale: Reducing ICMP responses limits system reconnaissance by attackers
+    impact: Low - Reduces visibility
+    false_positive_risk: Low
+  tags:
+  - network
+  - icmp
+  - reconnaissance
+
+- rule_id: ORA-NET-004
+  rule_name: Set strict multihoming
+  rule_description: Configure strict multihoming to prevent source address spoofing on multi-homed systems.
+  category: Network Configuration
+  subcategory: IP Addressing
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify strict multihoming setting
+    check_command: "ndd /dev/ip ip_strict_dst_multihoming"
+    expected_value: "1"
+  remediation:
+    remediation_step: |
+      Enable strict multihoming:
+      ndd -set /dev/ip ip_strict_dst_multihoming 1
+      
+      Make persistent in startup scripts.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Stricter handling of multi-homed addresses
+    estimated_time: 2 minutes
+  context:
+    rationale: Strict multihoming prevents source address spoofing
+    impact: Medium - Important for network security
+    false_positive_risk: Low
+  tags:
+  - network
+  - multihoming
+  - spoofing
+
+- rule_id: ORA-NET-005
+  rule_name: Configure IP Filter or Packet Filter firewall
+  rule_description: Configure and enable the IP Filter or Packet Filter firewall to control network traffic.
+  category: Network Configuration
+  subcategory: Firewall
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify firewall service is enabled
+    check_command: "svcs -a | grep -E 'ipfilter|packet-filter'"
+    expected_value: "Firewall service online"
+  remediation:
+    remediation_step: |
+      Configure IP Filter:
+      1. Create /etc/ipf/ipf.conf with rules
+      2. Enable the service:
+         svcadm enable ipfilter
+      3. Example basic rules:
+         block in all
+         pass in on net0 proto tcp from any to any port = 22
+         pass out all
+      
+      Or configure Packet Filter (PF):
+      1. Create /etc/pf.conf
+      2. Enable: svcadm enable packet-filter
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Network traffic filtered according to rules
+    estimated_time: 30 minutes
+  context:
+    rationale: Host-based firewalls provide essential network access control
+    impact: High - Critical for network security
+    false_positive_risk: Medium
+  tags:
+  - network
+  - firewall
+  - ipfilter
+  - packet-filter
+
+- rule_id: ORA-NET-006
+  rule_name: Configure TCP Wrappers for access control
+  rule_description: Configure TCP Wrappers to control access to network services based on host addresses.
+  category: Network Configuration
+  subcategory: Access Control
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify TCP Wrappers configuration
+    check_command: "cat /etc/hosts.allow /etc/hosts.deny 2>/dev/null"
+    expected_value: TCP Wrappers configured with appropriate rules
+  remediation:
+    remediation_step: |
+      Configure TCP Wrappers:
+      1. Edit /etc/hosts.allow:
+         sshd: 10.0.0.0/255.255.255.0 : allow
+         ALL: LOCAL : allow
+      2. Edit /etc/hosts.deny:
+         ALL: ALL : deny
+      3. Ensure services are compiled with libwrap support
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Access to services restricted by host
+    estimated_time: 10 minutes
+  context:
+    rationale: TCP Wrappers provide an additional layer of access control for network services
+    impact: Medium - Important for network security
+    false_positive_risk: Medium
+  tags:
+  - network
+  - tcp-wrappers
+  - access-control
+
+- rule_id: ORA-CRYPTO-001
+  rule_name: Enable FIPS 140-2 mode for cryptographic services
+  rule_description: Enable FIPS 140-2 mode to ensure cryptographic operations use validated algorithms and implementations.
+  category: Cryptography
+  subcategory: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify FIPS 140-2 mode status
+    check_command: "cryptoadm list fips-140"
+    expected_value: "FIPS 140-2 mode enabled"
+  remediation:
+    remediation_step: |
+      Enable FIPS 140-2 mode:
+      1. Create a new boot environment:
+         beadm create solaris-fips
+      2. Enable FIPS in the new BE:
+         cryptoadm enable fips-140
+      3. Reboot to the new BE:
+         beadm activate solaris-fips
+         reboot
+      4. Verify: cryptoadm list fips-140
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Only FIPS-validated algorithms available
+    estimated_time: 30 minutes
+  context:
+    rationale: FIPS 140-2 compliance is required for many regulatory standards
+    impact: High - Required for compliance
+    false_positive_risk: None
+  tags:
+  - cryptography
+  - fips
+  - compliance
+
+- rule_id: ORA-CRYPTO-002
+  rule_name: Configure cryptographic provider policies
+  rule_description: Configure cryptographic provider policies to disable weak or deprecated algorithms.
+  category: Cryptography
+  subcategory: Provider Configuration
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify cryptographic provider configuration
+    check_command: "cryptoadm list policy"
+    expected_value: Weak algorithms disabled
+  remediation:
+    remediation_step: |
+      Disable weak algorithms:
+      1. List available mechanisms:
+         cryptoadm list -vm
+      2. Disable weak mechanisms:
+         cryptoadm disable provider=des mechanism=CKM_DES
+         cryptoadm disable provider=md5 mechanism=CKM_MD5
+      3. Enable only strong algorithms as needed
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Weak algorithms unavailable
+    estimated_time: 10 minutes
+  context:
+    rationale: Disabling weak algorithms prevents their use in cryptographic operations
+    impact: Medium - Important for cryptographic security
+    false_positive_risk: Low
+  tags:
+  - cryptography
+  - algorithms
+  - provider-policy
+
+- rule_id: ORA-ZONE-001
+  rule_name: Use zones for application isolation
+  rule_description: Use Oracle Solaris Zones to isolate applications and services for enhanced security through virtualization.
+  category: Virtualization
+  subcategory: Zones
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify zone configuration for critical services
+    check_command: "zoneadm list -cv"
+    expected_value: Critical services running in non-global zones
+  remediation:
+    remediation_step: |
+      Create and configure zones:
+      1. Create zone configuration:
+         zonecfg -z myzone
+         create -b
+         set zonepath=/zones/myzone
+         set ip-type=exclusive
+         add net
+         set physical=net0
+         end
+         commit
+         exit
+      2. Install zone:
+         zoneadm -z myzone install
+      3. Boot zone:
+         zoneadm -z myzone boot
+      4. Configure zone console:
+         zlogin -C myzone
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Services migrated to zones
+    estimated_time: 60 minutes
+  context:
+    rationale: Zones provide isolation and containment for applications
+    impact: Medium - Important for security isolation
+    false_positive_risk: Low
+  tags:
+  - virtualization
+  - zones
+  - isolation
+
+- rule_id: ORA-ZONE-002
+  rule_name: Configure immutable zones for enhanced security
+  rule_description: Configure zones as immutable to prevent modifications to the file system, enhancing security.
+  category: Virtualization
+  subcategory: Immutable Zones
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify immutable zone configuration
+    check_command: "zonecfg -z myzone info file-mac-profile"
+    expected_value: "file-mac-profile: strict or fixed-configuration"
+  remediation:
+    remediation_step: |
+      Configure immutable zone:
+      1. Set file MAC profile in zone configuration:
+         zonecfg -z myzone
+         set file-mac-profile=strict
+         commit
+         exit
+      2. Reboot zone:
+         zoneadm -z myzone reboot
+      
+      Profile options:
+      - strict - Read-only root, no writable areas
+      - fixed-configuration - Limited writable areas
+      - none - Not immutable (default)
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Zone file system read-only
+    estimated_time: 15 minutes
+  context:
+    rationale: Immutable zones prevent unauthorized modifications
+    impact: Medium - Enhanced security through immutability
+    false_positive_risk: Low
+  tags:
+  - virtualization
+  - zones
+  - immutability
+
+- rule_id: ORA-AUDIT-001
+  rule_name: Configure and enable audit service
+  rule_description: Configure and enable the Solaris audit service to record security-relevant events for monitoring and compliance.
+  category: Auditing
+  subcategory: Audit Service
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify audit service is enabled and configured
+    check_command: "auditconfig -getcond && auditconfig -getflags"
+    expected_value: "audit condition = auditing, audit flags configured"
+  remediation:
+    remediation_step: |
+      Configure audit service:
+      1. Edit /etc/security/audit_control:
+         dir:/var/audit
+         flags:lo,as,ss,pc
+         minfree:20
+         naflags:lo,as
+      2. Enable audit service:
+         audit -s
+         svcadm enable auditd
+      3. Verify: auditconfig -getcond
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Audit records generated
+    estimated_time: 15 minutes
+  context:
+    rationale: Auditing is essential for security monitoring and compliance
+    impact: High - Critical for security monitoring
+    false_positive_risk: Low
+  tags:
+  - auditing
+  - monitoring
+  - compliance
+
+- rule_id: ORA-AUDIT-002
+  rule_name: Configure audit flags for significant events
+  rule_description: Configure audit flags to capture login/logout, administrative actions, and other security-relevant events.
+  category: Auditing
+  subcategory: Audit Flags
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify audit flags configuration
+    check_command: "cat /etc/security/audit_control | grep flags"
+    expected_value: "flags include lo,as,ss,pc at minimum"
+  remediation:
+    remediation_step: |
+      Configure audit flags in /etc/security/audit_control:
+      flags:lo,as,ss,pc,ua,ua
+      
+      Key audit flags:
+      - lo - login/logout events
+      - as - administrative actions
+      - ss - system state changes
+      - pc - process management
+      - ua - user administration
+      - aa - audit administration
+      
+      Apply changes: audit -s
+    rollback_supported: true
+    reboot_required: false
+    service_impact: More events audited
+    estimated_time: 5 minutes
+  context:
+    rationale: Comprehensive audit flags ensure important security events are recorded
+    impact: High - Critical for security monitoring
+    false_positive_risk: Low
+  tags:
+  - auditing
+  - audit-flags
+  - monitoring
+
+- rule_id: ORA-AUDIT-003
+  rule_name: Configure audit log rotation and archival
+  rule_description: Configure audit log rotation and archival to manage disk space and retain audit records according to policy.
+  category: Auditing
+  subcategory: Log Management
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify audit log management configuration
+    check_command: "cat /etc/security/audit_control | grep -E 'minfree|files'"
+    expected_value: "minfree >= 20"
+  remediation:
+    remediation_step: |
+      Configure audit log management:
+      1. In /etc/security/audit_control:
+         minfree:20
+         minfree:20
+      
+      2. For archival, create script to rotate logs:
+         #!/bin/sh
+         audit -n
+         gzip /var/audit/*.not_terminated
+         mv /var/audit/*.gz /archive/audit/
+      
+      3. Schedule with cron for regular rotation
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Audit logs archived
+    estimated_time: 15 minutes
+  context:
+    rationale: Proper log management ensures audit records are available when needed
+    impact: Medium - Important for compliance
+    false_positive_risk: Low
+  tags:
+  - auditing
+  - log-management
+  - archival
+
+- rule_id: ORA-SVC-001
+  rule_name: Disable unnecessary network services
+  rule_description: Identify and disable network services that are not required for the system's function to reduce attack surface.
+  category: Services
+  subcategory: Service Management
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify unnecessary services are disabled
+    check_command: "svcs -a | grep online"
+    expected_value: Only necessary services online
+  remediation:
+    remediation_step: |
+      Disable unnecessary services:
+      1. List running services:
+         svcs -a | grep online
+      2. Disable unnecessary services:
+         svcadm disable service-name:instance
+      
+      Common services to consider disabling:
+      - telnet
+      - rlogin/rsh
+      - finger
+      - daytime/time
+      - echo/discard
+      - chargen
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Disabled services unavailable
+    estimated_time: 15 minutes
+  context:
+    rationale: Disabling unnecessary services reduces attack surface
+    impact: High - Critical for security
+    false_positive_risk: Medium
+  tags:
+  - services
+  - hardening
+  - attack-surface
+
+- rule_id: ORA-SVC-002
+  rule_name: Configure Service Management Facility (SMF) for service security
+  rule_description: Use SMF to manage services securely and configure service properties for enhanced security.
+  category: Services
+  subcategory: SMF
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify SMF service configurations
+    check_command: "svccfg -s svc:/network/ssh:default listprop"
+    expected_value: Services configured with appropriate properties
+  remediation:
+    remediation_step: |
+      Configure SMF service properties:
+      1. View service properties:
+         svccfg -s service:instance listprop
+      2. Modify properties:
+         svccfg -s service:instance setprop property=value
+      3. Refresh service:
+         svcadm refresh service:instance
+      
+      Example for SSH:
+      svccfg -s ssh:default setprop config/permitrootlogin=no
+      svcadm refresh ssh:default
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Services reconfigured
+    estimated_time: 15 minutes
+  context:
+    rationale: SMF provides centralized service management with security properties
+    impact: Medium - Important for service security
+    false_positive_risk: Low
+  tags:
+  - services
+  - smf
+  - configuration
+
+- rule_id: ORA-SSH-001
+  rule_name: Disable SSH root login
+  rule_description: Configure SSH to prevent direct root login to enforce accountability and prevent unauthorized access.
+  category: Network Configuration
+  subcategory: SSH
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SSH root login is disabled
+    check_command: "grep PermitRootLogin /etc/ssh/sshd_config"
+    expected_value: "PermitRootLogin no"
+  remediation:
+    remediation_step: |
+      Disable SSH root login:
+      1. Edit /etc/ssh/sshd_config
+      2. Set: PermitRootLogin no
+      3. Or use SMF:
+         svccfg -s ssh:default setprop config/permitrootlogin=no
+         svcadm refresh ssh:default
+      4. Restart SSH: svcadm restart ssh
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Direct root SSH login blocked
+    estimated_time: 5 minutes
+  context:
+    rationale: Preventing direct root SSH login enforces individual accountability
+    impact: High - Critical for access control
+    false_positive_risk: None
+  tags:
+  - ssh
+  - root-access
+  - authentication
+
+- rule_id: ORA-SSH-002
+  rule_name: Configure SSH protocol version 2 only
+  rule_description: Configure SSH to use only protocol version 2 as version 1 has known security vulnerabilities.
+  category: Network Configuration
+  subcategory: SSH
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SSH protocol version
+    check_command: "grep Protocol /etc/ssh/sshd_config"
+    expected_value: "Protocol 2"
+  remediation:
+    remediation_step: |
+      Configure SSH protocol 2:
+      1. Edit /etc/ssh/sshd_config
+      2. Set: Protocol 2
+      3. Restart SSH: svcadm restart ssh
+      
+      Note: RHEL 7+ defaults to protocol 2 only
+    rollback_supported: true
+    reboot_required: false
+    service_impact: SSH protocol 1 connections rejected
+    estimated_time: 2 minutes
+  context:
+    rationale: SSH protocol 1 has known vulnerabilities and should not be used
+    impact: High - Critical for SSH security
+    false_positive_risk: None
+  tags:
+  - ssh
+  - protocol
+  - encryption
+
+- rule_id: ORA-SSH-003
+  rule_name: Disable SSH password authentication
+  rule_description: Disable password authentication for SSH and require public key authentication for enhanced security.
+  category: Network Configuration
+  subcategory: SSH
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SSH password authentication setting
+    check_command: "grep PasswordAuthentication /etc/ssh/sshd_config"
+    expected_value: "PasswordAuthentication no"
+  remediation:
+    remediation_step: |
+      Disable SSH password authentication:
+      1. First, ensure key-based authentication is configured
+      2. Edit /etc/ssh/sshd_config
+      3. Set: PasswordAuthentication no
+      4. Also set: ChallengeResponseAuthentication no
+      5. Restart SSH: svcadm restart ssh
+      
+      WARNING: Ensure key authentication works before disabling passwords
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Password SSH login blocked
+    estimated_time: 10 minutes
+  context:
+    rationale: Key-based authentication is more secure than passwords
+    impact: High - Critical for SSH security
+    false_positive_risk: Low
+  tags:
+  - ssh
+  - authentication
+  - public-key
+
+- rule_id: ORA-FILE-001
+  rule_name: Configure ZFS encryption for sensitive data
+  rule_description: Enable ZFS encryption for datasets containing sensitive data to protect data at rest.
+  category: Data Protection
+  subcategory: Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify ZFS encryption status
+    check_command: "zfs get encryption rpool/export/home"
+    expected_value: "encryption on"
+  remediation:
+    remediation_step: |
+      Enable ZFS encryption:
+      1. Create encrypted dataset:
+         zfs create -o encryption=on -o keyformat=passphrase rpool/secure
+      2. Or encrypt existing dataset (requires migration):
+         zfs snapshot rpool/data@backup
+         zfs send rpool/data@backup | zfs receive -o encryption=on rpool/encrypted
+      3. Use strong encryption:
+         zfs create -o encryption=aes-256-gcm -o keyformat=passphrase rpool/secure
+    rollback_supported: false
+    reboot_required: false
+    service_impact: Encrypted datasets require key at mount
+    estimated_time: 30 minutes
+  context:
+    rationale: ZFS encryption protects sensitive data at rest
+    impact: High - Critical for data protection
+    false_positive_risk: None
+  tags:
+  - encryption
+  - zfs
+  - data-protection
+
+- rule_id: ORA-FILE-002
+  rule_name: Set restrictive ACLs on sensitive directories
+  rule_description: Configure Access Control Lists (ACLs) on sensitive directories to implement fine-grained access control.
+  category: Access Control
+  subcategory: ACLs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify ACLs on sensitive directories
+    check_command: "ls -Vd /etc/security /etc/shadow"
+    expected_value: Restrictive ACLs configured
+  remediation:
+    remediation_step: |
+      Configure ACLs:
+      1. View current ACLs:
+         ls -Vd /path/to/dir
+      2. Set ACL:
+         chmod A+user:username:rwx:allow /path/to/dir
+      3. Remove ACL:
+         chmod A-user:username:allow /path/to/dir
+      4. Set default ACL for new files:
+         chmod A+default:user:username:rwx:allow /path/to/dir
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Access restricted per ACL
+    estimated_time: 15 minutes
+  context:
+    rationale: ACLs provide fine-grained access control beyond traditional permissions
+    impact: Medium - Important for access control
+    false_positive_risk: Medium
+  tags:
+  - access-control
+  - acls
+  - permissions
+
+- rule_id: ORA-FILE-003
+  rule_name: Limit tmpfs file system size
+  rule_description: Configure a maximum size for the tmpfs file system to prevent denial of service through resource exhaustion.
+  category: File System
+  subcategory: tmpfs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify tmpfs size limit
+    check_command: "mount | grep tmpfs"
+    expected_value: tmpfs mounted with size limit
+  remediation:
+    remediation_step: |
+      Set tmpfs size limit:
+      1. Edit /etc/vfstab
+      2. Add size option to tmpfs entry:
+         swap - /tmp tmpfs - yes size=1g
+      3. Remount:
+         mount -o remount /tmp
+      
+      Or set in SMF for /tmp:
+      svccfg -s system/filesystem/tmp:default setprop tmpfs_size=1G
+      svcadm refresh system/filesystem/tmp:default
+    rollback_supported: true
+    reboot_required: false
+    service_impact: tmpfs limited to specified size
+    estimated_time: 5 minutes
+  context:
+    rationale: Limiting tmpfs prevents resource exhaustion attacks
+    impact: Medium - Important for availability
+    false_positive_risk: Low
+  tags:
+  - filesystem
+  - tmpfs
+  - dos-prevention
+
+- rule_id: ORA-SEC-001
+  rule_name: Place security banners in motd and issue files
+  rule_description: Configure security warning banners in /etc/motd and /etc/issue to inform users of acceptable use policies.
+  category: System Configuration
+  subcategory: Banners
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify security banners are present
+    check_command: "cat /etc/motd /etc/issue"
+    expected_value: Security warning banner present
+  remediation:
+    remediation_step: |
+      Configure security banners:
+      1. Edit /etc/motd:
+         ************************************************************************
+         * NOTICE: This is a secured system. Unauthorized access is prohibited. *
+         * All activities are logged and monitored.                             *
+         ************************************************************************
+      
+      2. Edit /etc/issue with similar message
+      3. Configure /etc/issue.net for network logins
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  context:
+    rationale: Security banners inform users of policies and support legal proceedings
+    impact: Low - Important for compliance
+    false_positive_risk: None
+  tags:
+  - banners
+  - compliance
+  - policy
+
+- rule_id: ORA-SEC-002
+  rule_name: Verify package integrity
+  rule_description: Use the pkg verify command to check the integrity of installed packages and detect unauthorized modifications.
+  category: System Integrity
+  subcategory: Package Verification
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: runtime
+    detection_step: Verify package integrity
+    check_command: "pkg verify"
+    expected_value: All packages verified successfully
+  remediation:
+    remediation_step: |
+      Verify and repair packages:
+      1. Check all packages:
+         pkg verify
+      2. Check specific package:
+         pkg verify package/name
+      3. Repair corrupted packages:
+         pkg fix package/name
+      4. Reinstall if needed:
+         pkg reinstall package/name
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May require package reinstallation
+    estimated_time: 30 minutes
+  context:
+    rationale: Package integrity verification detects unauthorized modifications
+    impact: High - Critical for system integrity
+    false_positive_risk: Low
+  tags:
+  - integrity
+  - packages
+  - verification
+
+- rule_id: ORA-SEC-003
+  rule_name: Run compliance assessments regularly
+  rule_description: Use the compliance command to regularly assess system compliance with security benchmarks.
+  category: Compliance
+  subcategory: Assessment
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: runtime
+    detection_step: Verify compliance assessment is configured
+    check_command: "compliance list"
+    expected_value: Compliance benchmarks available
+  remediation:
+    remediation_step: |
+      Run compliance assessments:
+      1. List available benchmarks:
+         compliance list
+      2. Run assessment:
+         compliance assess -b solaris
+      3. Generate report:
+         compliance report -b solaris
+      4. Schedule regular assessments:
+         compliance schedule -b solaris -p daily
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Reports generated
+    estimated_time: 15 minutes
+  context:
+    rationale: Regular compliance assessments ensure ongoing security posture
+    impact: Medium - Important for compliance
+    false_positive_risk: Low
+  tags:
+  - compliance
+  - assessment
+  - benchmark
+
+- rule_id: ORA-SEC-004
+  rule_name: Install Critical Patch Updates (CPUs)
+  rule_description: Regularly install Oracle Critical Patch Updates to address security vulnerabilities.
+  category: System Updates
+  subcategory: Patching
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: runtime
+    detection_step: Verify system is up to date with security patches
+    check_command: "pkg list entire"
+    expected_value: System running current SRU
+  remediation:
+    remediation_step: |
+      Install Critical Patch Updates:
+      1. Check available updates:
+         pkg update -nv
+      2. Install updates:
+         pkg update
+      3. Create new BE for updates:
+         pkg update --be-name solaris-new
+      4. Reboot if required:
+         reboot
+      5. Verify: pkg list entire
+    rollback_supported: true
+    reboot_required: true
+    service_impact: System updated and rebooted
+    estimated_time: 60 minutes
+  context:
+    rationale: Timely patching addresses known vulnerabilities
+    impact: High - Critical for security
+    false_positive_risk: Low
+  tags:
+  - patching
+  - updates
+  - vulnerability-management
+
+- rule_id: ORA-SEC-005
+  rule_name: Configure link protection in virtualized environments
+  rule_description: Enable link protection features to prevent MAC and IP spoofing in virtualized environments.
+  category: Network Configuration
+  subcategory: Link Protection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify link protection configuration
+    check_command: "dladm show-linkprop -p protection"
+    expected_value: Link protection enabled
+  remediation:
+    remediation_step: |
+      Enable link protection:
+      1. Enable MAC address protection:
+         dladm set-linkprop -p protection=mac-nospf net0
+      2. Enable IP address protection:
+         dladm set-linkprop -p protection=ip-nospf net0
+      3. Enable DHCP protection:
+         dladm set-linkprop -p protection=dhcp-nospf net0
+      4. Verify: dladm show-linkprop -p protection net0
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Spoofed traffic blocked
+    estimated_time: 10 minutes
+  context:
+    rationale: Link protection prevents spoofing attacks in virtualized environments
+    impact: Medium - Important for virtualization security
+    false_positive_risk: Low
+  tags:
+  - network
+  - virtualization
+  - spoofing
+
+- rule_id: ORA-IPSEC-001
+  rule_name: Configure IPsec for network traffic protection
+  rule_description: Configure IPsec to encrypt and authenticate network traffic between systems.
+  category: Network Security
+  subcategory: IPsec
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify IPsec configuration
+    check_command: "ipsecconf -ln"
+    expected_value: IPsec policies configured if required
+  remediation:
+    remediation_step: |
+      Configure IPsec:
+      1. Create /etc/inet/ipsecinit.conf:
+         {laddr host1 raddr host2} ipsec {encr_algs aes encr_auth_algs sha256 sa shared}
+      2. Enable IPsec policy:
+         svcadm enable ipsec/policy
+      3. Configure IKE for key management:
+         svcadm enable ikev2
+      4. Verify: ipsecconf -ln
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Network traffic encrypted
+    estimated_time: 30 minutes
+  context:
+    rationale: IPsec provides secure network communication
+    impact: Medium - Important for network security
+    false_positive_risk: Medium
+  tags:
+  - network
+  - ipsec
+  - encryption
+
+- rule_id: ORA-RBAC-001
+  rule_name: Use rights profiles for administrative tasks
+  rule_description: Use rights profiles instead of direct root access to implement principle of least privilege for administrative tasks.
+  category: Access Control
+  subcategory: RBAC
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify rights profiles are assigned
+    check_command: "profiles -l"
+    expected_value: Appropriate profiles assigned to users
+  remediation:
+    remediation_step: |
+      Configure rights profiles:
+      1. List available profiles:
+         profiles -a
+      2. Assign profile to user:
+         usermod -P +"User Security" username
+      3. Create custom profile:
+         profiles -p "Custom Admin"
+         set desc="Custom administrative profile"
+         add cmd=/usr/sbin/usermod
+         set privs={*}
+         end
+         commit
+      4. Assign: usermod -P +"Custom Admin" username
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Users have limited administrative rights
+    estimated_time: 15 minutes
+  context:
+    rationale: Rights profiles provide fine-grained administrative access control
+    impact: Medium - Important for least privilege
+    false_positive_risk: Low
+  tags:
+  - access-control
+  - rbac
+  - privileges
