@@ -1,0 +1,1174 @@
+schema_version: "1.0.0"
+metadata:
+  name: Oracle Forms and Reports 12c Security Hardening
+  version: "1.0.0"
+  description: Security hardening rules for Oracle Forms and Reports 12c based on Oracle security documentation
+  platform: Oracle Forms and Reports 12c
+  benchmark: Oracle Forms and Reports Security Best Practices
+  author: Compliance Rules Team
+  created: "2026-03-14T00:00:00Z"
+  modified: "2026-03-14T00:00:00Z"
+  compatible_platforms:
+    - Oracle Forms and Reports 12.2.1.4
+    - Oracle Forms and Reports 12.2.1.3
+  references:
+    - type: Oracle Documentation
+      reference: "https://docs.oracle.com/en/middleware/developer-tools/forms/12.2.1.4/working-forms/security-overview.html"
+    - type: Oracle Documentation
+      reference: "Working with Oracle Forms 12c (12.2.1.4)"
+
+compliance_info:
+  framework: Oracle Security
+  version: "1.0.0"
+  profile: Production
+
+rules:
+  - rule_id: OFR-001
+    rule_name: Disable Test Form in Production
+    rule_description: |
+      The default Oracle Forms test form (test.fmx) must be disabled in production environments.
+      When no application is specified in the URL, Forms launches test.fmx by default, which can
+      expose system information to unauthorized users.
+    category: Access Control
+    subcategory: Application Security
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the formsweb.cfg file in $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/<Forms Instance Name>/server
+        2. Verify that the "form" parameter in the [default] section is not set to "test.fmx" or is empty
+        3. Verify that baseHTML and baseHTMLjpi point to a security page rather than default templates
+      check_command: |
+        grep -E "^form=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Create a forbidden.html page with security message
+        2. Edit formsweb.cfg file
+        3. In the [default] section, set form= (empty) or remove the test form
+        4. Set baseHTML=forbidden.html
+        5. Set baseHTMLjpi=forbidden.html
+        6. For each application-specific section, add baseHTML=base.htm and baseHTMLjpi=basejpi.htm
+        7. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        The test form can expose system configuration information and should not be accessible
+        in production environments.
+      impact: |
+        Exposing the test form could allow attackers to gather system information and validate
+        the Forms installation is running.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Securing the Oracle Forms Test Form"
+    tags:
+      - access-control
+      - production
+      - test-form
+      - critical
+
+  - rule_id: OFR-002
+    rule_name: Restrict URL Parameters to Prevent Override Attacks
+    rule_description: |
+      The restrictedURLparams parameter must be configured to prevent users from overriding
+      critical configuration parameters through URL manipulation. This prevents unauthorized
+      access and configuration bypass attacks.
+    category: Access Control
+    subcategory: URL Security
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the formsweb.cfg file
+        2. Verify restrictedURLparams parameter includes critical parameters
+        3. At minimum, verify userid parameter is restricted
+      check_command: |
+        grep -E "^restrictedURLparams=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Edit formsweb.cfg file
+        2. Add or modify restrictedURLparams in the [default] section
+        3. Include at minimum: userid, pageTitle, HTMLbodyAttrs, HTMLbeforeForm, HTMLafterForm, log
+        4. To restrict all URL parameters except config, set restrictedURLparams=all
+        5. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        URL parameter override attacks can allow users to bypass security controls, connect
+        as different users, or access unauthorized forms.
+      impact: |
+        Unrestricted URL parameters could allow unauthorized database access, privilege
+        escalation, or configuration manipulation.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Managing URL Security for Applications"
+    tags:
+      - access-control
+      - url-security
+      - parameter-injection
+      - critical
+
+  - rule_id: OFR-003
+    rule_name: Disable Debug Mode in Production
+    rule_description: |
+      The allow_debug and debug parameters must be set to FALSE/NO in production environments.
+      Debug mode can expose sensitive system information and diagnostic data to unauthorized users.
+    category: Logging and Monitoring
+    subcategory: Debug Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check formsweb.cfg file for allow_debug parameter
+        2. Verify allow_debug is set to FALSE (default)
+        3. Check that debug runform parameter is set to NO
+      check_command: |
+        grep -E "allow_debug|debug" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Edit formsweb.cfg file
+        2. Set allow_debug=FALSE in the [default] section
+        3. Ensure debug=NO in the otherparams or application sections
+        4. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Debug mode exposes diagnostic information, stack traces, and potentially sensitive
+        configuration data that could aid attackers.
+      impact: |
+        Debug information could reveal application logic, database structure, or system
+        configuration details to attackers.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - logging
+      - debug
+      - production
+      - high
+
+  - rule_id: OFR-004
+    rule_name: Configure Maximum Runtime Processes Limit
+    rule_description: |
+      The maxRuntimeProcesses parameter must be configured to a non-zero value to prevent
+      denial of service attacks through unlimited process creation.
+    category: Resource Management
+    subcategory: Process Limits
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check formsweb.cfg file for maxRuntimeProcesses parameter
+        2. Verify the value is set to a reasonable limit (not 0)
+        3. The value should reflect the server's hardware capacity
+      check_command: |
+        grep -E "^maxRuntimeProcesses=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Assess server hardware capacity and expected concurrent users
+        2. Edit formsweb.cfg file
+        3. Set maxRuntimeProcesses to an appropriate value (e.g., 100-500 depending on capacity)
+        4. Consider setting prestartRuntimes, prestartInit, prestartMin for pooling
+        5. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        The default value of 0 (unlimited) leaves the system vulnerable to DoS attacks
+        through unlimited process creation.
+      impact: |
+        Unlimited runtime processes can exhaust system resources, causing denial of service
+        for legitimate users.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - resource-management
+      - dos-prevention
+      - process-limits
+      - high
+
+  - rule_id: OFR-005
+    rule_name: Enable SSL/TLS for Forms Communications
+    rule_description: |
+      Oracle Forms Services must be configured to use SSL/TLS encryption for all communications
+      to protect sensitive data including credentials and application data in transit.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Verify HTTPS is enabled in Oracle HTTP Server
+        2. Check that Forms applications are accessed via HTTPS URLs
+        3. Verify SSL certificates are valid and from trusted CA
+        4. Check WebLogic SSL configuration for Forms managed server
+      check_command: |
+        # Check OHS SSL configuration
+        grep -r "SSLWallet" $DOMAIN_HOME/config/fmwconfig/components/OHS/*/httpd.conf
+        # Check if Forms URL uses HTTPS
+        curl -k -I https://localhost:443/forms/frmservlet 2>/dev/null | head -5
+    remediation:
+      remediation_step: |
+        1. Create or obtain SSL certificate from trusted Certificate Authority
+        2. Create Oracle Wallet with the SSL certificate
+        3. Enable HTTPS port in Oracle HTTP Server (default enabled)
+        4. Configure SSL in WebLogic Server for Forms managed server (optional but recommended)
+        5. Update application URLs to use HTTPS
+        6. Import certificate into client JVM truststore if needed
+        7. Restart OHS and WebLogic Server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "60 minutes"
+    context:
+      rationale: |
+        Without SSL/TLS encryption, all communications including credentials and application
+        data are transmitted in clear text.
+      impact: |
+        Clear text transmission exposes sensitive data to interception and man-in-the-middle
+        attacks.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Enabling SSL"
+    tags:
+      - ssl
+      - tls
+      - encryption
+      - critical
+
+  - rule_id: OFR-006
+    rule_name: Configure FORMS_MESSAGE_ENCRYPTION for Non-SSL Environments
+    rule_description: |
+      When SSL/TLS is not used, the FORMS_MESSAGE_ENCRYPTION environment variable must be
+      set to TRUE to enable proprietary message obfuscation between client and server.
+    category: Encryption
+    subcategory: Message Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if SSL/TLS is configured for Forms
+        2. If SSL is not configured, check environment file for FORMS_MESSAGE_ENCRYPTION
+        3. Verify FORMS_MESSAGE_ENCRYPTION is set to TRUE when not using SSL
+      check_command: |
+        grep -E "^FORMS_MESSAGE_ENCRYPTION=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/*.env
+    remediation:
+      remediation_step: |
+        1. If SSL is not configured, edit the environment file (default.env)
+        2. Add or set FORMS_MESSAGE_ENCRYPTION=TRUE
+        3. Restart the Forms managed server
+        4. Note: Configuring SSL is the preferred security approach
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Without SSL or message encryption, Forms communications are sent in clear text,
+        exposing sensitive data.
+      impact: |
+        Unencrypted messages can be intercepted and read by attackers on the network.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Environment Variables"
+    tags:
+      - encryption
+      - message-security
+      - high
+
+  - rule_id: OFR-007
+    rule_name: Restrict Database Connection String in URL
+    rule_description: |
+      The FORMS_ALLOW_DB_CONNECT_STRING environment variable must be set to FALSE to prevent
+      users from specifying arbitrary database connection strings through the URL.
+    category: Access Control
+    subcategory: Database Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check environment file for FORMS_ALLOW_DB_CONNECT_STRING
+        2. Verify it is set to FALSE or not set (default is FALSE)
+        3. Ensure users cannot specify full connection strings in URLs
+      check_command: |
+        grep -E "^FORMS_ALLOW_DB_CONNECT_STRING=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/*.env
+    remediation:
+      remediation_step: |
+        1. Edit the environment file (default.env)
+        2. Set FORMS_ALLOW_DB_CONNECT_STRING=FALSE (or remove if already FALSE by default)
+        3. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Allowing full connection strings in URLs could enable users to connect to unauthorized
+        databases or bypass connection controls.
+      impact: |
+        Unauthorized database connections could expose sensitive data or allow privilege
+        escalation.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Environment Variables"
+    tags:
+      - database-security
+      - access-control
+      - connection-string
+      - high
+
+  - rule_id: OFR-008
+    rule_name: Configure Single Sign-On for Production Applications
+    rule_description: |
+      Production Forms applications should be configured to use Single Sign-On (SSO) through
+      Oracle Access Manager to provide centralized authentication and access control.
+    category: Authentication
+    subcategory: Single Sign-On
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check formsweb.cfg for ssoMode parameter
+        2. Verify ssoMode is set to TRUE or WEBGATE for production applications
+        3. Verify OAM integration is properly configured
+        4. Check that Resource Access Descriptors (RADs) are configured
+      check_command: |
+        grep -E "ssoMode|ssoProxyConnect|ssoDynamicResourceCreate" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Install and configure Oracle Access Manager (OAM)
+        2. Configure webgate for Oracle HTTP Server
+        3. Edit formsweb.cfg and set ssoMode=TRUE for application sections
+        4. Configure Resource Access Descriptors in OID or OPSS
+        5. Register web-tier as OAM partner application
+        6. Test SSO authentication flow
+        7. Restart servers
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "120 minutes"
+    context:
+      rationale: |
+        SSO provides centralized authentication, stronger access controls, and eliminates
+        the need for separate database credentials.
+      impact: |
+        Without SSO, users may share database credentials, making audit trails less reliable
+        and access control more difficult.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Using Forms Services with Oracle Access Manager"
+    tags:
+      - authentication
+      - sso
+      - access-manager
+      - high
+
+  - rule_id: OFR-009
+    rule_name: Disable Listener Servlet Debug Messages
+    rule_description: |
+      The allowLservletDebug parameter must be set to FALSE to prevent debug messages from
+      being written to Oracle Diagnostic Logs in production environments.
+    category: Logging and Monitoring
+    subcategory: Debug Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check formsweb.cfg for allowLservletDebug parameter
+        2. Verify it is set to FALSE (default) or not configured
+      check_command: |
+        grep -E "^allowLservletDebug=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Edit formsweb.cfg file
+        2. Set allowLservletDebug=FALSE in the [default] section
+        3. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Debug messages can expose sensitive information and consume unnecessary disk space
+        in production environments.
+      impact: |
+        Excessive logging could fill disk space and expose sensitive diagnostic information.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - logging
+      - debug
+      - medium
+
+  - rule_id: OFR-010
+    rule_name: Secure Resource Access Descriptors (RADs)
+    rule_description: |
+      Resource Access Descriptors (RADs) in Oracle Internet Directory must be secured to
+      prevent unauthorized viewing of database credentials by administrators.
+    category: Access Control
+    subcategory: Credential Protection
+    assessment:
+      severity: High
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: |
+        1. Verify RAD entries are not viewable by OID administrators
+        2. Check that orclaci access control is properly configured
+        3. Verify only authorized users can read RAD credential attributes
+      check_command: |
+        ldapsearch -p <port> -h <host> -D cn=orcladmin -w <password> -b "cn=Extended Properties,cn=OracleContext,<realm>" "(objectclass=*)" orclaci
+    remediation:
+      remediation_step: |
+        1. Create aci-change.ldif file with DenyGroupOverride setting
+        2. Replace %s_OracleContextDN% with your realm's Oracle Context DN
+        3. Execute ldapmodify command to apply the ACI changes
+        4. Verify the changes are applied correctly
+        5. Test that OID administrators cannot view RAD credentials
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        RADs contain database connection credentials that should only be accessible to
+        authorized users and processes.
+      impact: |
+        Exposed RAD credentials could allow unauthorized database access using application
+        service accounts.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Securing RADs"
+    tags:
+      - credentials
+      - ldap
+      - access-control
+      - high
+
+  - rule_id: OFR-011
+    rule_name: Configure Session Timeout
+    rule_description: |
+      Forms sessions must have appropriate timeout settings to prevent idle sessions from
+      remaining active indefinitely, reducing the risk of session hijacking.
+    category: Session Management
+    subcategory: Timeout Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check FORMS_TIMEOUT environment variable
+        2. Verify heartBeat parameter is appropriately configured
+        3. Check weblogic.xml session-timeout setting
+        4. Verify idleTimeout parameter if using client idle events
+      check_command: |
+        grep -E "^FORMS_TIMEOUT=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/*.env
+        grep -E "^heartBeat=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Edit environment file (default.env)
+        2. Set FORMS_TIMEOUT to appropriate value (e.g., 15-60 minutes)
+        3. Ensure heartBeat value is less than FORMS_TIMEOUT
+        4. Configure session-timeout in weblogic.xml if needed
+        5. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Idle sessions that remain active indefinitely increase the window of opportunity
+        for session hijacking attacks.
+      impact: |
+        Long-lived idle sessions could be hijacked to gain unauthorized access to
+        applications and data.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Environment Variables"
+    tags:
+      - session-management
+      - timeout
+      - medium
+
+  - rule_id: OFR-012
+    rule_name: Configure FORMS_PATH Securely
+    rule_description: |
+      The FORMS_PATH environment variable must be configured to restrict the directories
+      from which Forms applications can be loaded, preventing unauthorized form execution.
+    category: Access Control
+    subcategory: File System Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check FORMS_PATH environment variable
+        2. Verify it only includes authorized application directories
+        3. Ensure it does not include world-writable directories
+        4. Verify FORMS_MODULE_PATH is also properly restricted if used
+      check_command: |
+        grep -E "^FORMS_PATH=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/*.env
+    remediation:
+      remediation_step: |
+        1. Identify all authorized application directories
+        2. Edit environment file (default.env)
+        3. Set FORMS_PATH to include only authorized directories
+        4. Use FORMS_MODULE_PATH for additional restrictions if needed
+        5. Ensure directories are not world-writable
+        6. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Restricting FORMS_PATH prevents execution of unauthorized forms that may have
+        been placed in insecure directories.
+      impact: |
+        Unrestricted FORMS_PATH could allow execution of malicious forms or unauthorized
+        application modules.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Environment Variables"
+    tags:
+      - file-system
+      - path-security
+      - access-control
+      - high
+
+  - rule_id: OFR-013
+    rule_name: Disable Dynamic Resource Creation in Production
+    rule_description: |
+      The ssoDynamicResourceCreate parameter should be set to FALSE in production environments
+      to prevent users from creating their own Resource Access Descriptors.
+    category: Access Control
+    subcategory: SSO Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check formsweb.cfg for ssoDynamicResourceCreate parameter
+        2. Verify it is set to FALSE for production applications
+        3. Check that RADs are pre-configured by administrators
+      check_command: |
+        grep -E "^ssoDynamicResourceCreate=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Pre-configure all required Resource Access Descriptors
+        2. Edit formsweb.cfg file
+        3. Set ssoDynamicResourceCreate=FALSE for production application sections
+        4. Configure ssoErrorUrl to redirect unauthorized users
+        5. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Allowing users to create their own RADs could enable unauthorized database
+        connections.
+      impact: |
+        Self-service RAD creation could allow users to configure connections to
+        unauthorized databases.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Security Overview"
+    tags:
+      - sso
+      - access-control
+      - resource-descriptors
+      - medium
+
+  - rule_id: OFR-014
+    rule_name: Enable SSO Logout on Application Exit
+    rule_description: |
+      The ssoLogout parameter should be set to TRUE to ensure users are properly logged
+      out of the SSO session when exiting a Forms application.
+    category: Session Management
+    subcategory: SSO Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check formsweb.cfg for ssoLogout parameter
+        2. Verify it is set to TRUE for applications using SSO
+        3. Verify ssoLogoutRedirect is configured with appropriate URL
+      check_command: |
+        grep -E "^ssoLogout=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Edit formsweb.cfg file
+        2. Set ssoLogout=TRUE for application sections using SSO
+        3. Configure ssoLogoutRedirect to appropriate logout landing page
+        4. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Failing to log out of SSO session leaves the session active, potentially allowing
+        others to access applications.
+      impact: |
+        Active SSO sessions on shared computers could allow unauthorized access to
+        other protected applications.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - session-management
+      - sso
+      - logout
+      - medium
+
+  - rule_id: OFR-015
+    rule_name: Hide Password from Application Property Retrieval
+    rule_description: |
+      The FORMS_HIDE_PASSWORD environment variable must be set to TRUE to prevent the
+      GET_APPLICATION_PROPERTY built-in from retrieving the current user's password.
+    category: Authentication
+    subcategory: Credential Protection
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check environment file for FORMS_HIDE_PASSWORD
+        2. Verify it is set to TRUE (default is FALSE)
+      check_command: |
+        grep -E "^FORMS_HIDE_PASSWORD=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/*.env
+    remediation:
+      remediation_step: |
+        1. Edit environment file (default.env)
+        2. Set FORMS_HIDE_PASSWORD=TRUE
+        3. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Allowing applications to retrieve passwords could lead to credential exposure
+        through logging, debugging, or malicious code.
+      impact: |
+        Exposed passwords could be used for unauthorized access or privilege escalation.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Environment Variables"
+    tags:
+      - credentials
+      - password-protection
+      - high
+
+  - rule_id: OFR-016
+    rule_name: Configure Heartbeat for Session Keep-Alive
+    rule_description: |
+      The heartBeat parameter must be configured to a value less than FORMS_TIMEOUT to
+      prevent premature session termination while the user is active.
+    category: Session Management
+    subcategory: Session Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check heartBeat parameter in formsweb.cfg
+        2. Check FORMS_TIMEOUT in environment file
+        3. Verify heartBeat is less than FORMS_TIMEOUT
+        4. Verify heartBeat is not too low (causing excessive network traffic)
+      check_command: |
+        grep -E "^heartBeat=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+        grep -E "^FORMS_TIMEOUT=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/*.env
+    remediation:
+      remediation_step: |
+        1. Determine appropriate FORMS_TIMEOUT value (e.g., 15 minutes)
+        2. Set heartBeat to a value less than FORMS_TIMEOUT (default 2 minutes)
+        3. Ensure session-timeout in weblogic.xml is greater than heartBeat
+        4. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        If heartBeat exceeds FORMS_TIMEOUT, user sessions will be terminated even when
+        actively using the application.
+      impact: |
+        Premature session termination causes user disruption and potential data loss.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - session-management
+      - heartbeat
+      - configuration
+      - medium
+
+  - rule_id: OFR-017
+    rule_name: Configure Forms Managed Server SSL
+    rule_description: |
+      The Forms Managed Server (WLS_FORMS) should have SSL/HTTPS enabled to secure
+      communications between Oracle HTTP Server and WebLogic Server.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Access WebLogic Administration Console
+        2. Navigate to Servers > WLS_FORMS > Configuration > General
+        3. Verify "SSL Listen Port Enabled" is checked
+        4. Navigate to Servers > WLS_FORMS > Configuration > SSL
+        5. Verify SSL is properly configured
+      check_command: |
+        # Check WebLogic SSL configuration via WLST
+        # connect('admin', 'password', 't3://localhost:7001')
+        # cd('Servers/WLS_FORMS')
+        # print('SSL Enabled:', cmo.isSSLEnabled())
+    remediation:
+      remediation_step: |
+        1. Obtain SSL certificates for WebLogic Server
+        2. Configure Custom Identity and Trust keystores
+        3. Enable SSL listen port on WLS_FORMS
+        4. Configure SSL settings (protocol version, ciphers)
+        5. Update forms.conf to use HTTPS for WebLogic connection
+        6. Restart Admin Server and WLS_FORMS
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "60 minutes"
+    context:
+      rationale: |
+        SSL between OHS and WebLogic protects sensitive data and credentials in transit.
+      impact: |
+        Unencrypted communication between tiers could expose sensitive data.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Using HTTPS with the Forms Listener Servlet"
+    tags:
+      - ssl
+      - tls
+      - weblogic
+      - high
+
+  - rule_id: OFR-018
+    rule_name: Restrict Restricted URL Characters
+    rule_description: |
+      The restrictedURLchars parameter should be configured to prevent potentially
+      dangerous characters from being used in URL parameters.
+    category: Access Control
+    subcategory: URL Security
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check formsweb.cfg for restrictedURLchars parameter
+        2. Verify potentially dangerous characters are restricted
+        3. Common characters to restrict: < > " ' ; & | `
+      check_command: |
+        grep -E "^restrictedURLchars=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Edit formsweb.cfg file
+        2. Set restrictedURLchars to include dangerous characters
+        3. Example: restrictedURLchars=<,>,",',;,&,|,`
+        4. Restart the Forms managed server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Restricting dangerous characters in URLs helps prevent injection attacks and
+        cross-site scripting.
+      impact: |
+        Unrestricted characters could enable various injection attacks.
+      false_positive_risk: Medium
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - url-security
+      - injection-prevention
+      - medium
+
+  - rule_id: OFR-019
+    rule_name: Disable New Connections During Maintenance
+    rule_description: |
+      The allowNewConnections parameter can be set to FALSE to prevent new Forms sessions
+      during maintenance windows while allowing existing sessions to complete.
+    category: Availability
+    subcategory: Maintenance
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. This is a maintenance parameter, verify it is set appropriately
+        2. Default is TRUE (new connections allowed)
+        3. Set to FALSE only during maintenance windows
+      check_command: |
+        grep -E "^allowNewConnections=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Before maintenance, set allowNewConnections=FALSE in formsweb.cfg [default] section
+        2. Configure connectionDisallowedURL to redirect users
+        3. Wait for existing sessions to complete
+        4. After maintenance, set allowNewConnections=TRUE
+        5. Restart is not required (read on every request)
+      rollback_supported: true
+      reboot_required: false
+      service_impact: New sessions blocked
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Controlling new connections during maintenance allows graceful service management.
+      impact: |
+        This is a maintenance control, not a security vulnerability.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - maintenance
+      - availability
+      - low
+
+  - rule_id: OFR-020
+    rule_name: Configure JVM Controller Security
+    rule_description: |
+      JVM Controllers for Java integration must be properly secured with appropriate
+      access controls and logging configuration.
+    category: Java Security
+    subcategory: JVM Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check JVM Controller configuration in Fusion Middleware Control
+        2. Verify logging level is appropriate
+        3. Check network proxy settings if applicable
+        4. Verify JVM Controller is only accessible from authorized Forms instances
+      check_command: |
+        # Check JVM configuration files
+        ls -la $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/jvm/
+    remediation:
+      remediation_step: |
+        1. Configure JVM logging appropriately using Fusion Middleware Control
+        2. Set log directory location
+        3. Configure network proxy settings if needed
+        4. Use startup parameters to control JVM behavior
+        5. Test Java integration functionality
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        JVM Controllers execute Java code and must be secured to prevent unauthorized
+        access and execution.
+      impact: |
+        Insecure JVM configuration could allow unauthorized code execution.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Configuring and Managing Java Virtual Machines"
+    tags:
+      - java-security
+      - jvm
+      - configuration
+      - medium
+
+  - rule_id: OFR-021
+    rule_name: Enable Forms Diagnostics Agent for Monitoring
+    rule_description: |
+      Forms Diagnostics Agent should be configured to collect performance and session
+      data for security monitoring and troubleshooting.
+    category: Monitoring
+    subcategory: Diagnostics
+    assessment:
+      severity: Low
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: |
+        1. Verify Forms Diagnostics Agent is deployed
+        2. Check data source configuration in WebLogic
+        3. Verify database schema exists for diagnostics data
+        4. Check agent is collecting data
+      check_command: |
+        # Check if diagnostics agent is deployed
+        # curl http://localhost:port/forms/diagnostics/health
+    remediation:
+      remediation_step: |
+        1. Create database schema for diagnostics data
+        2. Configure data source in WebLogic
+        3. Deploy Forms Diagnostics Agent application
+        4. Configure data collection parameters
+        5. Test agent functionality
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "60 minutes"
+    context:
+      rationale: |
+        Diagnostics data enables monitoring for security events and performance issues.
+      impact: |
+        Without diagnostics, security incidents may go undetected.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Forms Diagnostics Agent"
+    tags:
+      - monitoring
+      - diagnostics
+      - low
+
+  - rule_id: OFR-022
+    rule_name: Configure WebLogic Connection Filters
+    rule_description: |
+      WebLogic Server connection filters should be configured to restrict network access
+      to the Forms Managed Server to authorized clients only.
+    category: Network Security
+    subcategory: Connection Filtering
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Access WebLogic Administration Console
+        2. Navigate to Domain > Security > Filter
+        3. Verify Connection Filter is configured
+        4. Check connection filter rules
+      check_command: |
+        # Check WebLogic connection filter via WLST
+        # cd('/')
+        # print('Connection Filter:', cmo.getSecurityConfiguration().getConnectionFilter())
+    remediation:
+      remediation_step: |
+        1. Create or update connection filter rules file
+        2. Configure Connection Filter in WebLogic Console
+        3. Set Connection Logger Enabled for auditing
+        4. Define rules to allow only authorized networks
+        5. Restart Admin Server and WLS_FORMS
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Connection filters provide network-level access control to protect against
+        unauthorized access attempts.
+      impact: |
+        Without connection filters, the server is accessible from any network.
+      false_positive_risk: Medium
+      references:
+        - type: Oracle Documentation
+          reference: "Securing a Production Environment for Oracle WebLogic Server"
+    tags:
+      - network-security
+      - connection-filter
+      - weblogic
+      - high
+
+  - rule_id: OFR-023
+    rule_name: Disable allow_debug Test Commands
+    rule_description: |
+      When allow_debug is set to TRUE or TESTMODE, test commands like info, admin, setcookie
+      are enabled. These must be disabled in production.
+    category: Access Control
+    subcategory: Debug Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Verify allow_debug is not set to TRUE or TESTMODE
+        2. Test that /forms/frmservlet/info returns an error
+        3. Verify admin command is not accessible
+      check_command: |
+        grep -E "^allow_debug=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+        curl -s http://localhost:9001/forms/frmservlet/info 2>/dev/null | head -5
+    remediation:
+      remediation_step: |
+        1. Edit formsweb.cfg file
+        2. Set allow_debug=FALSE (or remove the parameter)
+        3. Verify testMode frmservlet init parameter is not set to TRUE
+        4. Restart the Forms managed server
+        5. Verify test commands are blocked
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Test commands can expose system information and provide administrative access
+        to unauthorized users.
+      impact: |
+        Enabled test commands could allow information disclosure or unauthorized
+        administrative actions.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - debug
+      - test-commands
+      - access-control
+      - high
+
+  - rule_id: OFR-024
+    rule_name: Secure Forms Archive JAR Files
+    rule_description: |
+      Archive JAR files (frmall.jar and custom JARs) must be properly secured and
+      code-signed if they contain sensitive application logic.
+    category: Application Security
+    subcategory: Code Security
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: |
+        1. Check archive parameter in formsweb.cfg
+        2. Verify JAR files have appropriate file permissions
+        3. Check if custom JARs are code-signed
+        4. Verify JAR files are not world-writable
+      check_command: |
+        grep -E "^archive=" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+        ls -la $ORACLE_HOME/forms/java/*.jar 2>/dev/null | head -10
+    remediation:
+      remediation_step: |
+        1. Ensure archive JARs have restricted file permissions (read-only)
+        2. Code-sign custom JAR files
+        3. Verify archive path points to secure location
+        4. Configure imageBase=codeBase if using JARs for icons/images
+        5. Test application functionality after changes
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application restart may be needed
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Unsigned or insecure JAR files could be modified to inject malicious code.
+      impact: |
+        Compromised JAR files could execute arbitrary code on client machines.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Deploying Fonts, Icons, and Images"
+    tags:
+      - code-security
+      - jar-files
+      - signing
+      - medium
+
+  - rule_id: OFR-025
+    rule_name: Configure Proper Error Handling
+    rule_description: |
+      Forms applications must be configured with proper error handling to avoid exposing
+      sensitive information in error messages.
+    category: Error Handling
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: |
+        1. Review error message configuration
+        2. Test various error scenarios
+        3. Verify stack traces are not displayed to users
+        4. Check that error messages don't reveal system information
+      check_command: |
+        # This requires manual testing of error scenarios
+        # Check formsweb.cfg for error-related parameters
+        grep -E "ssoErrorUrl|ssoCancelUrl|connectionDisallowedURL" $DOMAIN_HOME/config/fmwconfig/components/FORMS/instances/*/server/formsweb.cfg
+    remediation:
+      remediation_step: |
+        1. Configure ssoErrorUrl to redirect to custom error page
+        2. Configure ssoCancelUrl for SSO cancellation handling
+        3. Configure connectionDisallowedURL for connection denied scenarios
+        4. Create custom error pages that don't reveal system details
+        5. Test all error scenarios
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Detailed error messages can reveal system information useful to attackers.
+      impact: |
+        Information disclosure through error messages aids reconnaissance attacks.
+      false_positive_risk: Low
+      references:
+        - type: Oracle Documentation
+          reference: "Working with Oracle Forms - Web Configuration Parameters"
+    tags:
+      - error-handling
+      - information-disclosure
+      - medium
