@@ -1,0 +1,1945 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: Microsoft Security Hardening for Windows Server 2025
+  version: 1.0.0
+  description: Security hardening rules based on Microsoft official documentation for Windows Server 2025
+  platform: Windows Server 2025
+  benchmark: Microsoft Security Documentation
+  author: Microsoft Corporation
+  created: '2026-03-14T00:00:00Z'
+  modified: '2026-03-14T00:00:00Z'
+  compatible_platforms:
+  - Windows Server 2025
+compliance_info:
+  framework: NIST
+  version: 1.0.0
+  profile: Microsoft Security Baseline
+profile:
+  name: Microsoft Security Hardening
+  description: Security hardening rules from Microsoft official documentation for Windows Server 2025
+  level: 1
+rules:
+- rule_id: MS-001
+  rule_name: Enable Microsoft Defender Antivirus
+  rule_description: Microsoft Defender Antivirus provides real-time protection against malware, viruses, and other threats. It should be enabled and running on Windows Server 2025.
+  category: Malware Protection
+  subcategory: Antivirus
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify Microsoft Defender Antivirus service is running and real-time protection is enabled.'
+    check_command: Get-MpComputerStatus | Select-Object AntivirusEnabled, RealTimeProtectionEnabled
+    expected_value: 'AntivirusEnabled -eq True AND RealTimeProtectionEnabled -eq True'
+  remediation:
+    remediation_step: |
+      Enable Microsoft Defender Antivirus using PowerShell:
+      1. Set-MpPreference -DisableRealtimeMonitoring $false
+      2. Start-Service -Name WinDefend
+      3. Set-Service -Name WinDefend -StartupType Automatic
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  context:
+    rationale: Microsoft Defender Antivirus provides immediate and active protection against known malware and can regularly update antimalware definitions through Windows Update.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/windows-defender/windows-defender-overview-windows-server
+  tags:
+  - antivirus
+  - malware-protection
+  - microsoft
+
+- rule_id: MS-002
+  rule_name: Update Microsoft Defender Antivirus Definitions
+  rule_description: Microsoft Defender Antivirus definitions should be kept up to date to ensure protection against the latest threats.
+  category: Malware Protection
+  subcategory: Antivirus
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the last update time of Microsoft Defender definitions. Definitions should be no more than 24 hours old.'
+    check_command: Get-MpComputerStatus | Select-Object AntispywareSignatureLastUpdated, AntivirusSignatureLastUpdated
+    expected_value: 'SignatureLastUpdated within last 24 hours'
+  remediation:
+    remediation_step: |
+      Update Microsoft Defender definitions:
+      1. Update-MpSignature
+      Or configure automatic updates via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus > Signature Updates
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  context:
+    rationale: Outdated antivirus definitions leave the system vulnerable to newly discovered threats.
+    impact: High
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/windows-defender/windows-defender-overview-windows-server
+  tags:
+  - antivirus
+  - definitions
+  - microsoft
+
+- rule_id: MS-003
+  rule_name: Enable Microsoft Defender Real-Time Protection
+  rule_description: Real-time protection monitors the system for malicious activity and should be enabled to provide continuous protection.
+  category: Malware Protection
+  subcategory: Antivirus
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify real-time protection is enabled in Microsoft Defender.'
+    check_command: Get-MpPreference | Select-Object DisableRealtimeMonitoring
+    expected_value: 'DisableRealtimeMonitoring -eq False'
+  remediation:
+    remediation_step: |
+      Enable real-time protection:
+      Set-MpPreference -DisableRealtimeMonitoring $false
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  context:
+    rationale: Real-time protection continuously monitors for malware and suspicious activity, providing immediate threat detection and mitigation.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/windows-defender/windows-defender-overview-windows-server
+  tags:
+  - antivirus
+  - real-time-protection
+  - microsoft
+
+- rule_id: MS-004
+  rule_name: Enable Microsoft Defender Tamper Protection
+  rule_description: Tamper Protection helps protect security settings from being changed by malicious apps or unauthorized users.
+  category: Malware Protection
+  subcategory: Antivirus
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify Tamper Protection is enabled in Microsoft Defender.'
+    check_command: Get-MpComputerStatus | Select-Object IsTamperProtected
+    expected_value: 'IsTamperProtected -eq True'
+  remediation:
+    remediation_step: |
+      Enable Tamper Protection:
+      Set-MpPreference -DisableTamperProtection $false
+      
+      Or via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus
+      Enable 'Turn on Tamper Protection'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  context:
+    rationale: Tamper Protection prevents malicious apps and unauthorized users from changing important Microsoft Defender security settings.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/prevent-changes-to-security-settings-with-tamper-protection
+  tags:
+  - antivirus
+  - tamper-protection
+  - microsoft
+
+- rule_id: MS-005
+  rule_name: Verify Credential Guard is Enabled
+  rule_description: Credential Guard is enabled by default in Windows Server 2025. Verify it is running to protect against credential theft attacks.
+  category: Identity Protection
+  subcategory: Credential Protection
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Credential Guard is enabled on the system.'
+    check_command: Get-ComputerInfo | Select-Object DeviceGuardSmartStatus
+    expected_value: 'DeviceGuardSmartStatus -eq 1 OR DeviceGuardSmartStatus -eq 2'
+  remediation:
+    remediation_step: |
+      Credential Guard is enabled by default in Windows Server 2025. If disabled, re-enable via Group Policy:
+      1. Computer Configuration > Administrative Templates > System > Device Guard
+      2. Enable 'Turn on Virtualization Based Security'
+      3. Select 'Enabled with UEFI lock' for Credential Guard
+      
+      Or via registry:
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'LsaCfgFlags' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect some legacy applications
+    estimated_time: 15 minutes
+  context:
+    rationale: Windows Server 2025 enables Credential Guard by default. This feature prevents credential theft attacks by protecting NTLM password hashes, Kerberos TGTs, and credentials stored by applications.
+    impact: Critical
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/identity-protection/credential-guard/credential-guard
+  tags:
+  - credential-protection
+  - virtualization-based-security
+  - pass-the-hash
+  - microsoft
+
+- rule_id: MS-006
+  rule_name: Verify VBS is Enabled
+  rule_description: Virtualization-Based Security (VBS) is enabled by default in Windows Server 2025. Verify it is running to provide hardware-based security isolation.
+  category: System Security
+  subcategory: Virtualization Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if VBS is enabled on the system.'
+    check_command: Get-ComputerInfo | Select-Object DeviceGuardRequiredSecurityProperties
+    expected_value: 'VBS should be enabled'
+  remediation:
+    remediation_step: |
+      VBS is enabled by default in Windows Server 2025. If disabled, re-enable via Group Policy:
+      Computer Configuration > Administrative Templates > System > Device Guard
+      Enable 'Turn on Virtualization Based Security'
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Requires virtualization support in hardware
+    estimated_time: 15 minutes
+  context:
+    rationale: VBS uses hardware virtualization to create an isolated region of memory for security operations, protecting against kernel-level attacks.
+    impact: Critical
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
+  tags:
+  - vbs
+  - virtualization-security
+  - microsoft
+
+- rule_id: MS-007
+  rule_name: Disable TLS 1.0 Server and Client
+  rule_description: TLS 1.0 is a legacy protocol with known security vulnerabilities. It should be disabled on both server and client sides.
+  category: Network Security
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the registry to verify TLS 1.0 is disabled for server and client connections.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server' -Name Enabled -ErrorAction SilentlyContinue; Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Client' -Name Enabled -ErrorAction SilentlyContinue
+    expected_value: 'Enabled -eq 0 for both server and client'
+  remediation:
+    remediation_step: |
+      Disable TLS 1.0 server and client:
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server' -Name 'Enabled' -Value 0 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server' -Name 'DisabledByDefault' -Value 1 -Type DWORD
+      
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Client' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Client' -Name 'Enabled' -Value 0 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Client' -Name 'DisabledByDefault' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect legacy clients and servers
+    estimated_time: 5 minutes
+  context:
+    rationale: TLS 1.0 has known vulnerabilities including POODLE, BEAST, and other cryptographic weaknesses. Disabling it prevents protocol downgrade attacks.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/tls/tls-registry-settings
+  tags:
+  - tls
+  - encryption
+  - network-security
+  - microsoft
+
+- rule_id: MS-008
+  rule_name: Disable TLS 1.1 Server and Client
+  rule_description: TLS 1.1 is a legacy protocol that should be disabled in favor of TLS 1.2 or higher.
+  category: Network Security
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the registry to verify TLS 1.1 is disabled for server and client connections.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server' -Name Enabled -ErrorAction SilentlyContinue; Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Client' -Name Enabled -ErrorAction SilentlyContinue
+    expected_value: 'Enabled -eq 0 for both server and client'
+  remediation:
+    remediation_step: |
+      Disable TLS 1.1 server and client:
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server' -Name 'Enabled' -Value 0 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server' -Name 'DisabledByDefault' -Value 1 -Type DWORD
+      
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Client' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Client' -Name 'Enabled' -Value 0 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Client' -Name 'DisabledByDefault' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect legacy clients and servers
+    estimated_time: 5 minutes
+  context:
+    rationale: TLS 1.1 is deprecated and should be disabled to ensure only modern, secure TLS versions are used.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/tls/tls-registry-settings
+  tags:
+  - tls
+  - encryption
+  - network-security
+  - microsoft
+
+- rule_id: MS-009
+  rule_name: Enable TLS 1.2 and TLS 1.3
+  rule_description: TLS 1.2 and TLS 1.3 should be enabled for secure communications on both client and server sides.
+  category: Network Security
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the registry to verify TLS 1.2 and TLS 1.3 are enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server' -Name Enabled -ErrorAction SilentlyContinue; Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server' -Name Enabled -ErrorAction SilentlyContinue
+    expected_value: 'Enabled -eq 1 for both TLS 1.2 and TLS 1.3'
+  remediation:
+    remediation_step: |
+      Enable TLS 1.2:
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server' -Name 'Enabled' -Value 1 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server' -Name 'DisabledByDefault' -Value 0 -Type DWORD
+      
+      Enable TLS 1.3:
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server' -Name 'Enabled' -Value 1 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server' -Name 'DisabledByDefault' -Value 0 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: None expected
+    estimated_time: 5 minutes
+  context:
+    rationale: TLS 1.2 and TLS 1.3 provide strong encryption and should be the only enabled TLS versions for secure communications. TLS 1.3 offers improved security and performance.
+    impact: High
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/tls/tls-registry-settings
+  tags:
+  - tls
+  - encryption
+  - tls1.3
+  - microsoft
+
+- rule_id: MS-010
+  rule_name: Disable SSL 2.0 and SSL 3.0
+  rule_description: SSL 2.0 and SSL 3.0 are deprecated and insecure protocols that should be disabled on all systems.
+  category: Network Security
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check the registry to verify SSL 2.0 and SSL 3.0 are disabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Server' -Name Enabled -ErrorAction SilentlyContinue; Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server' -Name Enabled -ErrorAction SilentlyContinue
+    expected_value: 'Enabled -eq 0 for both SSL 2.0 and SSL 3.0'
+  remediation:
+    remediation_step: |
+      Disable SSL 2.0 and SSL 3.0:
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Server' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Server' -Name 'Enabled' -Value 0 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 2.0\Server' -Name 'DisabledByDefault' -Value 1 -Type DWORD
+      
+      New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server' -Force
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server' -Name 'Enabled' -Value 0 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server' -Name 'DisabledByDefault' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: None expected
+    estimated_time: 5 minutes
+  context:
+    rationale: SSL 2.0 and SSL 3.0 have multiple critical vulnerabilities including POODLE and should never be used in production environments.
+    impact: Critical
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/tls/tls-registry-settings
+  tags:
+  - ssl
+  - encryption
+  - network-security
+  - microsoft
+
+- rule_id: MS-011
+  rule_name: Enable Remote Credential Guard
+  rule_description: Remote Credential Guard protects credentials over Remote Desktop connections by redirecting Kerberos requests back to the client device.
+  category: Identity Protection
+  subcategory: Credential Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Remote Credential Guard is configured.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name DisableRestrictedAdmin -ErrorAction SilentlyContinue
+    expected_value: 'DisableRestrictedAdmin -eq 0'
+  remediation:
+    remediation_step: |
+      Enable delegation of nonexportable credentials on remote hosts:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'DisableRestrictedAdmin' -Value 0 -Type DWORD
+      
+      Configure clients to use Remote Credential Guard via Group Policy:
+      Computer Configuration > Administrative Templates > System > Credentials Delegation
+      Enable 'Restrict delegation of credentials to remote servers' and select 'Require Remote Credential Guard'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect RDP connections to non-domain systems
+    estimated_time: 10 minutes
+  context:
+    rationale: Remote Credential Guard prevents credential theft during RDP sessions by keeping credentials on the client device. If the remote host is compromised, credentials are not exposed.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/identity-protection/remote-credential-guard
+  tags:
+  - credential-protection
+  - remote-desktop
+  - microsoft
+
+- rule_id: MS-012
+  rule_name: Enable Windows Firewall for All Profiles
+  rule_description: Windows Firewall should be enabled for all profiles (Domain, Private, Public) to protect the system from unauthorized network access.
+  category: Network Security
+  subcategory: Firewall
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Windows Firewall is enabled for all profiles.'
+    check_command: Get-NetFirewallProfile | Select-Object Name, Enabled
+    expected_value: 'Enabled -eq True for all profiles'
+  remediation:
+    remediation_step: |
+      Enable Windows Firewall for all profiles:
+      Set-NetFirewallProfile -All -Enabled True
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May block unauthorized network traffic
+    estimated_time: 1 minute
+  context:
+    rationale: Windows Firewall provides host-based network security by controlling inbound and outbound traffic based on configurable rules.
+    impact: Critical
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - firewall
+  - network-security
+  - microsoft
+
+- rule_id: MS-013
+  rule_name: Block Default Inbound Traffic on Windows Firewall
+  rule_description: Windows Firewall should be configured to block all inbound connections by default, only allowing explicitly authorized traffic.
+  category: Network Security
+  subcategory: Firewall
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if default inbound action is set to Block for all firewall profiles.'
+    check_command: Get-NetFirewallProfile | Select-Object Name, DefaultInboundAction
+    expected_value: 'DefaultInboundAction -eq Block for all profiles'
+  remediation:
+    remediation_step: |
+      Configure default inbound action to Block:
+      Set-NetFirewallProfile -All -DefaultInboundAction Block
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Only explicitly allowed inbound connections will be permitted
+    estimated_time: 1 minute
+  context:
+    rationale: Blocking inbound traffic by default follows the principle of least privilege and reduces the attack surface.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - firewall
+  - network-security
+  - microsoft
+
+- rule_id: MS-014
+  rule_name: Enable User Account Control
+  rule_description: User Account Control (UAC) should be enabled to prevent unauthorized changes to the system and reduce the risk of malware elevation.
+  category: Access Control
+  subcategory: User Account Control
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if User Account Control is enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA
+    expected_value: 'EnableLUA -eq 1'
+  remediation:
+    remediation_step: |
+      Enable User Account Control:
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'EnableLUA' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Users will be prompted for administrative actions
+    estimated_time: 5 minutes
+  context:
+    rationale: UAC helps prevent malware from making unauthorized changes by requiring administrator approval for elevated actions.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - uac
+  - access-control
+  - microsoft
+
+- rule_id: MS-015
+  rule_name: Enable Secure Boot
+  rule_description: Secure Boot should be enabled to ensure the system boots using only trusted software, protecting against rootkits and boot-level malware.
+  category: System Security
+  subcategory: Boot Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Secure Boot is enabled in firmware.'
+    check_command: Confirm-SecureBootUEFI
+    expected_value: 'True'
+  remediation:
+    remediation_step: |
+      Enable Secure Boot in system firmware (UEFI):
+      1. Restart the computer and enter BIOS/UEFI setup (usually F2, F10, F12, or Del key)
+      2. Navigate to Security or Boot settings
+      3. Enable Secure Boot
+      4. Save and exit
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May prevent booting from unauthorized media
+    estimated_time: 10 minutes
+  context:
+    rationale: Secure Boot is a security standard that helps ensure the system boots using only trusted software, protecting against boot-level attacks and rootkits.
+    impact: Critical
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/identity-protection/credential-guard/credential-guard
+  tags:
+  - secure-boot
+  - boot-security
+  - microsoft
+
+- rule_id: MS-016
+  rule_name: Configure Windows Update for Security Updates
+  rule_description: Windows Update should be configured to automatically install security updates to protect against known vulnerabilities.
+  category: Patch Management
+  subcategory: Windows Update
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if automatic updates are enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name AUOptions -ErrorAction SilentlyContinue
+    expected_value: 'AUOptions -eq 3 OR AUOptions -eq 4'
+  remediation:
+    remediation_step: |
+      Configure automatic updates via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Windows Update
+      Enable 'Configure Automatic Updates' and select option 4 (Auto download and schedule install)
+      
+      Or via registry:
+      New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Force
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'AUOptions' -Value 4 -Type DWORD
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Automatic reboots may occur for updates
+    estimated_time: 5 minutes
+  context:
+    rationale: Keeping systems updated with the latest security patches is critical for protecting against known vulnerabilities and exploits.
+    impact: Critical
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - patch-management
+  - windows-update
+  - microsoft
+
+- rule_id: MS-017
+  rule_name: Verify SMBv1 is Disabled
+  rule_description: SMBv1 protocol should be disabled as it has known vulnerabilities including the EternalBlue exploit used in WannaCry ransomware attacks.
+  category: Network Security
+  subcategory: Protocol Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if SMBv1 is disabled on the server.'
+    check_command: Get-WindowsFeature -Name FS-SMB1 | Select-Object InstallState
+    expected_value: 'InstallState -eq Available'
+  remediation:
+    remediation_step: |
+      Disable SMBv1:
+      Remove-WindowsFeature -Name FS-SMB1
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters' -Name 'SMB1' -Value 0 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Legacy clients requiring SMBv1 will be unable to connect
+    estimated_time: 5 minutes
+  context:
+    rationale: SMBv1 has multiple critical vulnerabilities and should be disabled to prevent exploitation via EternalBlue and other SMBv1-based attacks.
+    impact: Critical
+    false_positive_risk: None
+    cve_references:
+    - CVE-2017-0144
+    - CVE-2017-0145
+    - CVE-2017-0146
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - smb
+  - network-security
+  - microsoft
+
+- rule_id: MS-018
+  rule_name: Enable SMBv3 Encryption
+  rule_description: SMB 3.0 and later support encryption which should be enabled to protect data in transit over SMB connections.
+  category: Network Security
+  subcategory: Protocol Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if SMB encryption is required on SMB shares.'
+    check_command: Get-SmbShare | Get-SmbShareAccess | Select-Object EncryptData
+    expected_value: 'EncryptData -eq True for sensitive shares'
+  remediation:
+    remediation_step: |
+      Enable SMB encryption for a share:
+      Set-SmbShare -Name 'ShareName' -EncryptData $true
+      
+      Enable SMB encryption server-wide:
+      Set-SmbServerConfiguration -EncryptData $true -Force
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Legacy SMB clients without encryption support will be unable to connect
+    estimated_time: 5 minutes
+  context:
+    rationale: SMB encryption protects data in transit from interception and tampering, providing end-to-end protection for file sharing.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-security
+  tags:
+  - smb
+  - encryption
+  - network-security
+  - microsoft
+
+- rule_id: MS-019
+  rule_name: Enable SMB Signing
+  rule_description: SMB signing should be enabled to prevent man-in-the-middle attacks on SMB connections.
+  category: Network Security
+  subcategory: Protocol Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if SMB signing is required.'
+    check_command: Get-SmbServerConfiguration | Select-Object RequireSecuritySignature
+    expected_value: 'RequireSecuritySignature -eq True'
+  remediation:
+    remediation_step: |
+      Enable SMB signing requirement:
+      Set-SmbServerConfiguration -RequireSecuritySignature $true -Force
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Performance impact on SMB transfers
+    estimated_time: 5 minutes
+  context:
+    rationale: SMB signing prevents man-in-the-middle attacks by ensuring the authenticity of SMB packets.
+    impact: High
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-security
+  tags:
+  - smb
+  - network-security
+  - microsoft
+
+- rule_id: MS-020
+  rule_name: Enable PowerShell Script Block Logging
+  rule_description: PowerShell Script Block Logging should be enabled to capture and log PowerShell script execution for security monitoring and forensics.
+  category: Auditing
+  subcategory: PowerShell Logging
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if PowerShell Script Block Logging is enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Name EnableScriptBlockLogging -ErrorAction SilentlyContinue
+    expected_value: 'EnableScriptBlockLogging -eq 1'
+  remediation:
+    remediation_step: |
+      Enable PowerShell Script Block Logging via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell
+      Enable 'Turn on PowerShell Script Block Logging'
+      
+      Or via registry:
+      New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Force
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Name 'EnableScriptBlockLogging' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Increased logging volume
+    estimated_time: 5 minutes
+  context:
+    rationale: PowerShell is commonly used by attackers for lateral movement and persistence. Script block logging provides visibility into PowerShell execution for detection and forensics.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - powershell
+  - auditing
+  - logging
+  - microsoft
+
+- rule_id: MS-021
+  rule_name: Enable PowerShell Module Logging
+  rule_description: PowerShell Module Logging should be enabled to capture module execution details for security monitoring.
+  category: Auditing
+  subcategory: PowerShell Logging
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if PowerShell Module Logging is enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging' -Name EnableModuleLogging -ErrorAction SilentlyContinue
+    expected_value: 'EnableModuleLogging -eq 1'
+  remediation:
+    remediation_step: |
+      Enable PowerShell Module Logging via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Windows PowerShell
+      Enable 'Turn on Module Logging' and specify modules to log (use * for all)
+      
+      Or via registry:
+      New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging' -Force
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging' -Name 'EnableModuleLogging' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Increased logging volume
+    estimated_time: 5 minutes
+  context:
+    rationale: Module logging complements script block logging by capturing module-level execution details, useful for detecting malicious PowerShell activity.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - powershell
+  - auditing
+  - logging
+  - microsoft
+
+- rule_id: MS-022
+  rule_name: Configure Security Audit Policy
+  rule_description: Security audit policies should be configured to log important security events including logon events, privilege use, and object access.
+  category: Auditing
+  subcategory: Audit Policy
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check security audit policy settings.'
+    check_command: auditpol /get /category:*
+    expected_value: 'Success and Failure auditing enabled for key categories'
+  remediation:
+    remediation_step: |
+      Configure security audit policy via Group Policy:
+      Computer Configuration > Windows Settings > Security Settings > Advanced Audit Policy Configuration
+      
+      Recommended settings:
+      - Account Logon: Success and Failure
+      - Logon/Logoff: Success and Failure
+      - Object Access: Success and Failure (for sensitive objects)
+      - Privilege Use: Failure
+      - Policy Change: Success and Failure
+      - Account Management: Success and Failure
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Increased logging volume
+    estimated_time: 10 minutes
+  context:
+    rationale: Security audit policies enable logging of security-relevant events for monitoring, detection, and forensic analysis.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - auditing
+  - audit-policy
+  - microsoft
+
+- rule_id: MS-023
+  rule_name: Disable Guest Account
+  rule_description: The built-in Guest account should be disabled to prevent unauthorized access through this account.
+  category: Access Control
+  subcategory: Account Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if the Guest account is disabled.'
+    check_command: Get-LocalUser -Name Guest | Select-Object Enabled
+    expected_value: 'Enabled -eq False'
+  remediation:
+    remediation_step: |
+      Disable the Guest account:
+      Disable-LocalUser -Name Guest
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None expected
+    estimated_time: 1 minute
+  context:
+    rationale: The Guest account provides a potential entry point for attackers and should be disabled on all systems.
+    impact: Critical
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - access-control
+  - account-security
+  - microsoft
+
+- rule_id: MS-024
+  rule_name: Rename Administrator Account
+  rule_description: The built-in Administrator account should be renamed to make it harder for attackers to guess the account name.
+  category: Access Control
+  subcategory: Account Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if the Administrator account has been renamed.'
+    check_command: Get-LocalUser | Where-Object { $_.SID -like '*-500' } | Select-Object Name
+    expected_value: 'Name -ne Administrator'
+  remediation:
+    remediation_step: |
+      Rename the Administrator account:
+      Rename-LocalUser -Name 'Administrator' -NewName 'NewAdminName'
+      
+      Or via Group Policy:
+      Computer Configuration > Windows Settings > Security Settings > Local Policies > Security Options
+      Accounts: Rename administrator account
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Users must use the new account name
+    estimated_time: 5 minutes
+  context:
+    rationale: Renaming the Administrator account makes it harder for attackers to perform brute-force attacks against the well-known administrator account.
+    impact: Medium
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - access-control
+  - account-security
+  - microsoft
+
+- rule_id: MS-025
+  rule_name: Configure Account Lockout Policy
+  rule_description: Account lockout policy should be configured to lock accounts after a specified number of failed login attempts to prevent brute-force attacks.
+  category: Access Control
+  subcategory: Account Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check account lockout policy settings.'
+    check_command: net accounts | findstr /i "Lockout"
+    expected_value: 'Lockout threshold between 3-10 invalid attempts AND Lockout duration 15+ minutes'
+  remediation:
+    remediation_step: |
+      Configure account lockout policy via Group Policy:
+      Computer Configuration > Windows Settings > Security Settings > Account Policies > Account Lockout Policy
+      
+      Recommended settings:
+      - Account lockout threshold: 3-10 invalid logon attempts
+      - Account lockout duration: 15-30 minutes
+      - Reset account lockout counter after: 15-30 minutes
+      
+      Or via command line:
+      net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Accounts may be locked after failed login attempts
+    estimated_time: 5 minutes
+  context:
+    rationale: Account lockout policies protect against brute-force password attacks by temporarily disabling accounts after multiple failed login attempts.
+    impact: High
+    false_positive_risk: Medium
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - access-control
+  - account-security
+  - microsoft
+
+- rule_id: MS-026
+  rule_name: Enable BitLocker Drive Encryption
+  rule_description: BitLocker Drive Encryption should be enabled on system drives to protect data at rest from unauthorized access.
+  category: Data Protection
+  subcategory: Encryption
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if BitLocker is enabled on system drives.'
+    check_command: Get-BitLockerVolume -MountPoint 'C:' | Select-Object VolumeStatus, ProtectionStatus
+    expected_value: 'VolumeStatus -eq FullyEncrypted AND ProtectionStatus -eq On'
+  remediation:
+    remediation_step: |
+      Enable BitLocker on system drive:
+      1. Enable-BitLocker -MountPoint 'C:' -EncryptionMethod XtsAes256 -UsedSpaceOnly -TpmProtector
+      2. Backup recovery key to Active Directory or secure location:
+         Backup-BitLockerKeyProtector -MountPoint 'C:' -KeyProtectorId (Get-BitLockerVolume -MountPoint 'C:').KeyProtector[0].KeyProtectorId
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Encryption process may impact performance during initial encryption
+    estimated_time: 30 minutes
+  context:
+    rationale: BitLocker encrypts data at rest, protecting against data theft if the physical drive is removed or accessed without authorization.
+    impact: Critical
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - encryption
+  - data-protection
+  - bitlocker
+  - microsoft
+
+- rule_id: MS-027
+  rule_name: Configure BitLocker with AES-256 Encryption
+  rule_description: BitLocker should be configured to use AES-256 encryption for maximum security.
+  category: Data Protection
+  subcategory: Encryption
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check BitLocker encryption method.'
+    check_command: Get-BitLockerVolume | Select-Object EncryptionMethod
+    expected_value: 'EncryptionMethod -eq XtsAes256'
+  remediation:
+    remediation_step: |
+      Configure BitLocker with AES-256 via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > BitLocker Drive Encryption
+      Set 'Choose drive encryption method and cipher strength' to 'AES-256'
+      
+      Or when enabling BitLocker:
+      Enable-BitLocker -MountPoint 'C:' -EncryptionMethod XtsAes256
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None after encryption is complete
+    estimated_time: 5 minutes
+  context:
+    rationale: AES-256 provides stronger encryption than the default, offering better protection against brute-force attacks.
+    impact: High
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - encryption
+  - data-protection
+  - bitlocker
+  - microsoft
+
+- rule_id: MS-028
+  rule_name: Disable NTLMv1 Authentication
+  rule_description: NTLMv1 authentication should be disabled as it is vulnerable to various attacks including pass-the-hash and relay attacks.
+  category: Identity Protection
+  subcategory: Authentication
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check NTLM authentication level settings.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name LmCompatibilityLevel -ErrorAction SilentlyContinue
+    expected_value: 'LmCompatibilityLevel -ge 3 AND LmCompatibilityLevel -le 5'
+  remediation:
+    remediation_step: |
+      Configure NTLM authentication level via Group Policy:
+      Computer Configuration > Windows Settings > Security Settings > Local Policies > Security Options
+      Network security: LAN Manager authentication level = Send NTLMv2 response only. Refuse LM & NTLM
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'LmCompatibilityLevel' -Value 5 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Legacy systems requiring NTLMv1 will be unable to authenticate
+    estimated_time: 5 minutes
+  context:
+    rationale: NTLMv1 is a weak authentication protocol vulnerable to multiple attacks. Disabling it forces the use of more secure NTLMv2 or Kerberos authentication.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - authentication
+  - ntlm
+  - microsoft
+
+- rule_id: MS-029
+  rule_name: Enable Remote Desktop Network Level Authentication
+  rule_description: Network Level Authentication (NLA) should be required for Remote Desktop connections to provide stronger authentication before establishing the session.
+  category: Network Security
+  subcategory: Remote Access
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if NLA is required for RDP connections.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication
+    expected_value: 'UserAuthentication -eq 1'
+  remediation:
+    remediation_step: |
+      Enable NLA for RDP via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Remote Desktop Services > Remote Desktop Session Host > Security
+      Enable 'Require user authentication for remote connections by using Network Level Authentication'
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'UserAuthentication' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Legacy RDP clients without NLA support will be unable to connect
+    estimated_time: 5 minutes
+  context:
+    rationale: NLA provides stronger authentication by authenticating the user before establishing a full RDP session, reducing the attack surface and protecting against certain RDP-based attacks.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - remote-desktop
+  - authentication
+  - microsoft
+
+- rule_id: MS-030
+  rule_name: Configure LSASS Protection
+  rule_description: Local Security Authority Subsystem Service (LSASS) should be configured to run as a Protected Process to prevent credential dumping attacks.
+  category: Identity Protection
+  subcategory: Credential Protection
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if LSASS is running as a protected process.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue
+    expected_value: 'RunAsPPL -eq 1'
+  remediation:
+    remediation_step: |
+      Enable LSASS protection via Group Policy:
+      Computer Configuration > Administrative Templates > System > Local Security Authority
+      Enable 'Configure LSASS to run as a protected process'
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'RunAsPPL' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Some legacy security tools may be unable to access LSASS
+    estimated_time: 5 minutes
+  context:
+    rationale: LSASS stores credentials in memory. Running it as a protected process prevents tools like Mimikatz from dumping credentials from memory.
+    impact: Critical
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - credential-protection
+  - lsass
+  - microsoft
+
+- rule_id: MS-031
+  rule_name: Disable LLMNR
+  rule_description: Link-Local Multicast Name Resolution (LLMNR) should be disabled to prevent name resolution spoofing attacks.
+  category: Network Security
+  subcategory: Name Resolution
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if LLMNR is disabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Name EnableMulticast -ErrorAction SilentlyContinue
+    expected_value: 'EnableMulticast -eq 0'
+  remediation:
+    remediation_step: |
+      Disable LLMNR via Group Policy:
+      Computer Configuration > Administrative Templates > Network > DNS Client
+      Enable 'Turn off Multicast Name Resolution'
+      
+      Or via registry:
+      New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Force
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Name 'EnableMulticast' -Value 0 -Type DWORD
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Local name resolution via LLMNR will not be available
+    estimated_time: 5 minutes
+  context:
+    rationale: LLMNR is vulnerable to spoofing attacks where attackers can respond to name resolution requests and capture credentials. Disabling it eliminates this attack vector.
+    impact: High
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - network-security
+  - name-resolution
+  - llmnr
+  - microsoft
+
+- rule_id: MS-032
+  rule_name: Disable NetBIOS over TCP/IP
+  rule_description: NetBIOS over TCP/IP should be disabled to prevent legacy name resolution attacks.
+  category: Network Security
+  subcategory: Name Resolution
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check NetBIOS over TCP/IP settings on network adapters.'
+    check_command: Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Where-Object { $_.TcpipNetbiosOptions -ne $null } | Select-Object IPAddress, TcpipNetbiosOptions
+    expected_value: 'TcpipNetbiosOptions -eq 2'
+  remediation:
+    remediation_step: |
+      Disable NetBIOS over TCP/IP via Group Policy or registry:
+      
+      Via registry for each network adapter:
+      Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Where-Object { $_.TcpipNetbiosOptions -ne $null } | ForEach-Object { $_.SetTcpipNetbios(2) }
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Legacy applications requiring NetBIOS may be affected
+    estimated_time: 5 minutes
+  context:
+    rationale: NetBIOS is a legacy protocol vulnerable to various attacks. Disabling it reduces the attack surface while modern networks use DNS for name resolution.
+    impact: Medium
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - network-security
+  - name-resolution
+  - netbios
+  - microsoft
+
+- rule_id: MS-033
+  rule_name: Configure Windows SmartScreen
+  rule_description: Windows SmartScreen should be enabled to help protect against malicious applications and websites.
+  category: Application Security
+  subcategory: Reputation-Based Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check SmartScreen settings.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name EnableSmartScreen -ErrorAction SilentlyContinue
+    expected_value: 'EnableSmartScreen -eq 1'
+  remediation:
+    remediation_step: |
+      Enable SmartScreen via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > File Explorer
+      Enable 'Configure Windows SmartScreen'
+      
+      Or via registry:
+      New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Force
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name 'EnableSmartScreen' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Users may see warnings for unrecognized applications
+    estimated_time: 5 minutes
+  context:
+    rationale: SmartScreen uses reputation-based analysis to warn users about potentially malicious applications and websites, providing an additional layer of protection.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - application-security
+  - smartscreen
+  - microsoft
+
+- rule_id: MS-034
+  rule_name: Enable Exploit Protection
+  rule_description: Windows Exploit Protection should be enabled to protect against memory-based attacks and exploitation techniques.
+  category: System Security
+  subcategory: Exploit Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Exploit Protection system-wide mitigations are enabled.'
+    check_command: Get-ProcessMitigation -System | Select-Object DEP, ASLR, HighEntropy, StrictHandle
+    expected_value: 'System mitigations should be enabled'
+  remediation:
+    remediation_step: |
+      Enable Exploit Protection via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Exploit Guard > Exploit Protection
+      Configure 'Use a common set of exploit protection settings'
+      
+      Or via PowerShell:
+      Set-ProcessMitigation -System -Enable DEP,EmulateAtlThunks,BottomUp,HighEntropy,StrictHandle,DisableWin32kSystemCalls
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect compatibility with some legacy applications
+    estimated_time: 10 minutes
+  context:
+    rationale: Exploit Protection provides memory integrity and code execution protections against common exploitation techniques used by attackers.
+    impact: High
+    false_positive_risk: Medium
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/enable-exploit-protection
+  tags:
+  - exploit-protection
+  - system-security
+  - microsoft
+
+- rule_id: MS-035
+  rule_name: Enable Controlled Folder Access
+  rule_description: Controlled Folder Access (Ransomware protection) should be enabled to protect important files from unauthorized changes by malicious applications.
+  category: Malware Protection
+  subcategory: Ransomware Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Controlled Folder Access is enabled.'
+    check_command: Get-MpPreference | Select-Object EnableControlledFolderAccess
+    expected_value: 'EnableControlledFolderAccess -eq Enabled OR EnableControlledFolderAccess -eq AuditMode'
+  remediation:
+    remediation_step: |
+      Enable Controlled Folder Access via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus > Microsoft Defender Exploit Guard > Controlled Folder Access
+      Enable 'Configure Controlled folder access'
+      
+      Or via PowerShell:
+      Set-MpPreference -EnableControlledFolderAccess Enabled
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May block legitimate applications from modifying protected folders
+    estimated_time: 5 minutes
+  context:
+    rationale: Controlled Folder Access protects key folders from unauthorized changes, providing protection against ransomware and other malicious file encryption attacks.
+    impact: High
+    false_positive_risk: Medium
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/controlled-folders
+  tags:
+  - ransomware-protection
+  - controlled-folder-access
+  - microsoft
+
+- rule_id: MS-036
+  rule_name: Enable Attack Surface Reduction Rules
+  rule_description: Attack Surface Reduction (ASR) rules should be enabled to reduce attack vectors commonly used by malware.
+  category: Malware Protection
+  subcategory: Attack Surface Reduction
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if ASR rules are enabled.'
+    check_command: Get-MpPreference | Select-Object AttackSurfaceReductionRules_Ids, AttackSurfaceReductionRules_Actions
+    expected_value: 'ASR rules should be configured with Block or Audit actions'
+  remediation:
+    remediation_step: |
+      Enable ASR rules via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus > Microsoft Defender Exploit Guard > Attack Surface Reduction
+      Enable 'Configure Attack surface reduction rules'
+      
+      Or via PowerShell:
+      Add-MpPreference -AttackSurfaceReductionRules_Ids <rule_id> -AttackSurfaceReductionRules_Actions Enabled
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect some legitimate application behaviors
+    estimated_time: 10 minutes
+  context:
+    rationale: ASR rules provide intelligent protection against common attack techniques such as Office macro abuse, script-based attacks, and email-based threats.
+    impact: High
+    false_positive_risk: Medium
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/attack-surface-reduction
+  tags:
+  - attack-surface-reduction
+  - asr
+  - microsoft
+
+- rule_id: MS-037
+  rule_name: Enable Network Protection
+  rule_description: Network Protection should be enabled to prevent users from accessing dangerous domains that host phishing scams and malicious content.
+  category: Network Security
+  subcategory: Web Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Network Protection is enabled.'
+    check_command: Get-MpPreference | Select-Object EnableNetworkProtection
+    expected_value: 'EnableNetworkProtection -eq Enabled OR EnableNetworkProtection -eq AuditMode'
+  remediation:
+    remediation_step: |
+      Enable Network Protection via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender Antivirus > Microsoft Defender Exploit Guard > Network Protection
+      Enable 'Prevent users and apps from accessing dangerous websites'
+      
+      Or via PowerShell:
+      Set-MpPreference -EnableNetworkProtection Enabled
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May block access to some websites
+    estimated_time: 5 minutes
+  context:
+    rationale: Network Protection helps prevent employees from accessing malicious websites through any browser or network connection, reducing the attack surface for web-based threats.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/network-protection
+  tags:
+  - network-protection
+  - web-protection
+  - microsoft
+
+- rule_id: MS-038
+  rule_name: Enable Hypervisor-Protected Code Integrity (HVCI)
+  rule_description: HVCI uses virtualization-based security to isolate code integrity checks and protect the kernel from malicious code injection.
+  category: System Security
+  subcategory: Kernel Protection
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if HVCI is enabled.'
+    check_command: Get-ComputerInfo | Select-Object DeviceGuardRequiredSecurityProperties, DeviceGuardSmartStatus
+    expected_value: 'HVCI should be enabled'
+  remediation:
+    remediation_step: |
+      Enable HVCI via Group Policy:
+      Computer Configuration > Administrative Templates > System > Device Guard
+      Enable 'Turn on Virtualization Based Security' and select 'Enabled with UEFI lock' for Virtualization Based Protection of Code Integrity
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -Value 1 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard' -Name 'RequirePlatformSecurityFeatures' -Value 3 -Type DWORD
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' -Name 'Enabled' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect some legacy drivers
+    estimated_time: 15 minutes
+  context:
+    rationale: HVCI protects against kernel-mode malware by ensuring only trusted code can run in kernel mode, preventing code injection attacks.
+    impact: Critical
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity
+  tags:
+  - hvci
+  - kernel-protection
+  - virtualization-based-security
+  - microsoft
+
+- rule_id: MS-039
+  rule_name: Enable Microsoft Defender Application Control
+  rule_description: Microsoft Defender Application Control (WDAC) should be configured to control which applications can run on the system.
+  category: Application Security
+  subcategory: Application Control
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: 'Check if WDAC policies are configured.'
+    check_command: Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard
+    expected_value: 'Application control policies should be configured'
+  remediation:
+    remediation_step: |
+      Configure WDAC via Group Policy or PowerShell:
+      Computer Configuration > Administrative Templates > System > Device Guard
+      Enable 'Turn on Virtualization Based Security' and configure 'Deploy Code Integrity Policies'
+      
+      Or create and deploy WDAC policies using PowerShell:
+      New-CIPolicy -Level Publisher -FilePath 'C:\Policies\WDAC.xml' -UserPEs
+      ConvertFrom-CIPolicy -XmlFilePath 'C:\Policies\WDAC.xml' -BinaryFilePath 'C:\Policies\WDAC.p7b'
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Only allowed applications will be able to run
+    estimated_time: 30 minutes
+  context:
+    rationale: WDAC provides strong application control by ensuring only trusted applications can run, preventing malware execution and unauthorized software.
+    impact: High
+    false_positive_risk: High
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/windows-defender-application-control/windows-defender-application-control
+  tags:
+  - application-control
+  - wdac
+  - microsoft
+
+- rule_id: MS-040
+  rule_name: Enable Windows LAPS
+  rule_description: Windows Local Administrator Password Solution (LAPS) should be enabled to automatically manage and rotate local administrator passwords.
+  category: Identity Protection
+  subcategory: Password Management
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Windows LAPS is enabled.'
+    check_command: Get-LapsSettings
+    expected_value: 'LAPS should be configured with password rotation enabled'
+  remediation:
+    remediation_step: |
+      Enable Windows LAPS via Group Policy:
+      Computer Configuration > Administrative Templates > System > LAPS
+      Configure 'Enable Local Administrator Password Solution' and related settings
+      
+      Or via PowerShell:
+      Set-LapsADComputerSelfPermission -Identity 'OU=Servers,DC=domain,DC=com'
+      New-LapsADPasswordResetPermission -Identity 'OU=Servers,DC=domain,DC=com' -AllowedPrincipals 'Domain Admins'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Local administrator passwords will be automatically rotated
+    estimated_time: 15 minutes
+  context:
+    rationale: LAPS automatically manages local administrator passwords, preventing password reuse and reducing the risk of lateral movement attacks.
+    impact: High
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-overview
+  tags:
+  - laps
+  - password-management
+  - microsoft
+
+- rule_id: MS-041
+  rule_name: Enable Secured-Core Server Features
+  rule_description: Secured-core server features should be enabled on compatible hardware to provide hardware-based protection against advanced threats.
+  category: System Security
+  subcategory: Hardware Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: 'Check if Secured-core server features are enabled.'
+    check_command: Get-ComputerInfo | Select-Object DeviceGuardSmartStatus, SecureBootRequired
+    expected_value: 'VBS and Secure Boot should be enabled'
+  remediation:
+    remediation_step: |
+      Enable Secured-core server features:
+      1. Enable Secure Boot in BIOS/UEFI
+      2. Enable TPM in BIOS/UEFI
+      3. Enable Virtualization-Based Security (VBS) via Group Policy:
+         Computer Configuration > Administrative Templates > System > Device Guard
+         Enable 'Turn on Virtualization Based Security'
+      4. Enable HVCI and Credential Guard
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Requires compatible hardware
+    estimated_time: 30 minutes
+  context:
+    rationale: Secured-core server combines hardware and software security features to protect against firmware-level attacks and provide strong isolation of sensitive data.
+    impact: Critical
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/secured-core-server
+  tags:
+  - secured-core
+  - hardware-security
+  - microsoft
+
+- rule_id: MS-042
+  rule_name: Configure Kernel DMA Protection
+  rule_description: Kernel DMA Protection should be enabled to prevent Direct Memory Access (DMA) attacks via Thunderbolt and other DMA-capable ports.
+  category: System Security
+  subcategory: Hardware Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Kernel DMA Protection is enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DmaSecurity' -Name AllowExternalDevicesToConnect -ErrorAction SilentlyContinue
+    expected_value: 'AllowExternalDevicesToConnect -eq 0 or properly configured'
+  remediation:
+    remediation_step: |
+      Enable Kernel DMA Protection via Group Policy:
+      Computer Configuration > Administrative Templates > System > Device Guard
+      Configure DMA protection settings
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DmaSecurity' -Name 'AllowExternalDevicesToConnect' -Value 0 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: DMA devices may require additional authorization
+    estimated_time: 5 minutes
+  context:
+    rationale: Kernel DMA Protection prevents DMA attacks that can bypass OS security and directly access memory to steal credentials or inject malware.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/information-protection/kernel-dma-protection-for-thunderbolt
+  tags:
+  - dma-protection
+  - hardware-security
+  - microsoft
+
+- rule_id: MS-043
+  rule_name: Configure DNS over HTTPS
+  rule_description: DNS over HTTPS (DoH) should be enabled to encrypt DNS queries and prevent eavesdropping on DNS traffic.
+  category: Network Security
+  subcategory: DNS Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if DNS over HTTPS is configured.'
+    check_command: Get-DnsClientDohServerAddress
+    expected_value: 'DoH server addresses should be configured'
+  remediation:
+    remediation_step: |
+      Configure DNS over HTTPS via Group Policy:
+      Computer Configuration > Administrative Templates > Network > DNS Client
+      Enable 'Configure DNS over HTTPS (DoH)'
+      
+      Or via PowerShell:
+      Add-DnsClientDohServerAddress -ServerAddress '1.1.1.1' -DohTemplate 'https://cloudflare-dns.com/dns-query' -AllowFallbackToUdp $false -AutoUpgrade $true
+    rollback_supported: true
+    reboot_required: false
+    service_impact: DNS resolution will use encrypted HTTPS
+    estimated_time: 5 minutes
+  context:
+    rationale: DNS over HTTPS encrypts DNS queries, preventing eavesdropping and manipulation of DNS traffic by attackers.
+    impact: Medium
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/networking/dns/doh
+  tags:
+  - dns
+  - encryption
+  - network-security
+  - microsoft
+
+- rule_id: MS-044
+  rule_name: Configure Trusted Platform Module (TPM)
+  rule_description: TPM should be enabled and configured to provide hardware-based security features including secure key storage and attestation.
+  category: System Security
+  subcategory: Hardware Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if TPM is enabled and ready.'
+    check_command: Get-Tpm | Select-Object TpmReady, TpmEnabled
+    expected_value: 'TpmReady -eq True AND TpmEnabled -eq True'
+  remediation:
+    remediation_step: |
+      Enable TPM via BIOS/UEFI:
+      1. Restart the computer and enter BIOS/UEFI setup
+      2. Navigate to Security settings
+      3. Enable TPM (may be labeled as fTPM, PTT, or Security Device)
+      4. Save and exit
+      
+      Initialize TPM in Windows:
+      Initialize-Tpm
+    rollback_supported: true
+    reboot_required: true
+    service_impact: None expected
+    estimated_time: 10 minutes
+  context:
+    rationale: TPM provides hardware-based security functions including secure key storage, device attestation, and supports features like BitLocker and Credential Guard.
+    impact: High
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/information-protection/tpm/trusted-platform-module-overview
+  tags:
+  - tpm
+  - hardware-security
+  - microsoft
+
+- rule_id: MS-045
+  rule_name: Enable Memory Integrity
+  rule_description: Memory Integrity (also known as Hypervisor-protected Code Integrity) should be enabled to protect core system processes from memory attacks.
+  category: System Security
+  subcategory: Memory Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Memory Integrity is enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\SystemGuard' -Name Enabled -ErrorAction SilentlyContinue
+    expected_value: 'Enabled -eq 1'
+  remediation:
+    remediation_step: |
+      Enable Memory Integrity via Group Policy:
+      Computer Configuration > Administrative Templates > System > Device Guard
+      Enable 'Turn on Virtualization Based Security' with Memory Integrity
+      
+      Or via Windows Security:
+      Windows Security > Device security > Core isolation details > Memory integrity > On
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\SystemGuard' -Name 'Enabled' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect compatibility with some drivers
+    estimated_time: 10 minutes
+  context:
+    rationale: Memory Integrity protects against malicious code injection into high-security processes, providing strong protection against kernel-mode exploits.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/device-guard/memory-integrity
+  tags:
+  - memory-integrity
+  - system-security
+  - microsoft
+
+- rule_id: MS-046
+  rule_name: Configure Windows Event Forwarding
+  rule_description: Windows Event Forwarding (WEF) should be configured to centralize event logs for security monitoring and analysis.
+  category: Auditing
+  subcategory: Log Collection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Windows Event Forwarding is configured.'
+    check_command: Get-WinEvent -ListLog 'ForwardedEvents' | Select-Object IsEnabled
+    expected_value: 'ForwardedEvents log should be enabled'
+  remediation:
+    remediation_step: |
+      Configure Windows Event Forwarding:
+      1. Enable Windows Remote Management (WinRM):
+         winrm quickconfig
+      2. Configure WEF via Group Policy:
+         Computer Configuration > Administrative Templates > Windows Components > Event Forwarding
+         Configure 'Configure target Subscription Manager'
+      
+      Or via PowerShell:
+      New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventForwarding\SubscriptionManager' -Force
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventForwarding\SubscriptionManager' -Name '1' -Value 'Server=http://weccollector:5985/wsman/SubscriptionManager/WEC'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Events will be forwarded to central collector
+    estimated_time: 15 minutes
+  context:
+    rationale: Centralized event log collection enables better security monitoring, correlation, and incident response across the enterprise.
+    impact: Medium
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - event-forwarding
+  - log-collection
+  - microsoft
+
+- rule_id: MS-047
+  rule_name: Enable Enhanced Phishing Protection
+  rule_description: Enhanced Phishing Protection in Microsoft Defender SmartScreen should be enabled to protect against phishing attacks.
+  category: Malware Protection
+  subcategory: Phishing Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Enhanced Phishing Protection is enabled.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SmartScreenEnabled' -ErrorAction SilentlyContinue
+    expected_value: 'SmartScreenEnabled should be enabled'
+  remediation:
+    remediation_step: |
+      Enable Enhanced Phishing Protection via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Microsoft Defender SmartScreen
+      Enable 'Configure Microsoft Defender SmartScreen'
+      
+      Or via registry:
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name 'SmartScreenEnabled' -Value 'Enabled' -Type String
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Users may see warnings for suspicious websites
+    estimated_time: 5 minutes
+  context:
+    rationale: Enhanced Phishing Protection helps protect users from malicious websites and phishing attempts by analyzing website reputation and content.
+    impact: High
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/phishing-protection
+  tags:
+  - phishing-protection
+  - smartscreen
+  - microsoft
+
+- rule_id: MS-048
+  rule_name: Configure Attack Surface Reduction for Office
+  rule_description: ASR rules specific to Microsoft Office should be enabled to prevent macro-based and Office-related attacks.
+  category: Malware Protection
+  subcategory: Attack Surface Reduction
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if Office-related ASR rules are enabled.'
+    check_command: Get-MpPreference | Select-Object AttackSurfaceReductionRules_Ids
+    expected_value: 'Office ASR rules should be enabled'
+  remediation:
+    remediation_step: |
+      Enable Office ASR rules via Group Policy or PowerShell:
+      
+      Block Office applications from creating executable content:
+      Add-MpPreference -AttackSurfaceReductionRules_Ids 3b576869-a4ec-4529-8536-b80a7769e899 -AttackSurfaceReductionRules_Actions Enabled
+      
+      Block Office applications from injecting code into other processes:
+      Add-MpPreference -AttackSurfaceReductionRules_Ids 75668c1f-73b5-4cf0-bb93-3ecf5cb7cc84 -AttackSurfaceReductionRules_Actions Enabled
+      
+      Block Office communication application from creating child processes:
+      Add-MpPreference -AttackSurfaceReductionRules_Ids 26190899-1602-49e8-8b27-eb1d0bb1dcc8 -AttackSurfaceReductionRules_Actions Enabled
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect some Office add-ins and macros
+    estimated_time: 10 minutes
+  context:
+    rationale: Office applications are common vectors for malware delivery. ASR rules specifically targeting Office help prevent macro-based attacks and code injection.
+    impact: High
+    false_positive_risk: Medium
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/attack-surface-reduction-rules-reference
+  tags:
+  - asr
+  - office-security
+  - microsoft
+
+- rule_id: MS-049
+  rule_name: Configure Post-Quantum Cryptography
+  rule_description: Windows Server 2025 supports post-quantum cryptography. Configure support for quantum-resistant algorithms where appropriate.
+  category: System Security
+  subcategory: Cryptography
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if post-quantum cryptography is configured.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Cryptography\Configuration\Local\SSL\00010003' -ErrorAction SilentlyContinue
+    expected_value: 'Post-quantum algorithms should be available'
+  remediation:
+    remediation_step: |
+      Configure post-quantum cryptography:
+      Windows Server 2025 includes support for post-quantum algorithms. Enable via Group Policy or registry as needed for your environment.
+      
+      Note: Post-quantum cryptography is an evolving area. Consult Microsoft documentation for the latest guidance on deployment.
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect compatibility with older systems
+    estimated_time: 15 minutes
+  context:
+    rationale: Post-quantum cryptography prepares the system for the future threat of quantum computers that could break current cryptographic algorithms.
+    impact: Medium
+    false_positive_risk: Low
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/security/tls/tls-registry-settings
+  tags:
+  - cryptography
+  - post-quantum
+  - microsoft
+
+- rule_id: MS-050
+  rule_name: Configure Windows Telemetry Security
+  rule_description: Windows telemetry settings should be configured to limit data collection to security-related information only.
+  category: System Security
+  subcategory: Privacy
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check Windows telemetry level.'
+    check_command: Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name AllowTelemetry -ErrorAction SilentlyContinue
+    expected_value: 'AllowTelemetry -eq 0 OR AllowTelemetry -eq 1'
+  remediation:
+    remediation_step: |
+      Configure telemetry via Group Policy:
+      Computer Configuration > Administrative Templates > Windows Components > Data Collection and Preview Builds
+      Set 'Allow Telemetry' to 'Security' or 'Basic'
+      
+      Or via registry:
+      New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Force
+      Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name 'AllowTelemetry' -Value 1 -Type DWORD
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Limited diagnostic data available for troubleshooting
+    estimated_time: 5 minutes
+  context:
+    rationale: Limiting telemetry to security-related data reduces data exposure while still allowing Microsoft to provide security updates.
+    impact: Medium
+    false_positive_risk: None
+    references:
+    - type: Microsoft
+      reference: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  tags:
+  - privacy
+  - telemetry
+  - microsoft
