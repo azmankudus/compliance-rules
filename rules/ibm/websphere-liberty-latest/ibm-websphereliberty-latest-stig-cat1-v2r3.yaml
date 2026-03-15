@@ -1,0 +1,220 @@
+schema_version: 1.0.0
+metadata:
+  name: IBM WebSphere Liberty Server STIG - Category I
+  version: '2.3'
+  description: DISA IBM WebSphere Liberty Server Security Technical Implementation Guide V2R3 - Category I (High Severity)
+  platform: IBM WebSphere Liberty
+  benchmark: IBM WebSphere Liberty Server STIG V2R3
+  author: Compliance Rules Team
+  created: '2026-03-15T00:00:00Z'
+  modified: '2026-03-15T00:00:00Z'
+  compatible_platforms:
+  - IBM WebSphere Liberty
+  - OpenLiberty
+  references:
+  - type: DISA STIG
+    reference: IBM WebSphere Liberty Server STIG V2R3
+  - type: DISA
+    reference: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_WebSphere_Liberty_Server_V2R3_STIG.zip
+  compatibility_notes: OpenLiberty shares the same codebase and configuration format as IBM WebSphere Liberty. All STIG rules are applicable to both platforms.
+compliance_info:
+  framework: STIG
+  version: '2.3'
+  profile: official
+rules:
+- rule_id: STIG-V-250326
+  legacy_ids:
+  - V-250326
+  - IBMW-LS-000050
+  rule_name: Users in the REST API admin role must be authorized.
+  rule_description: Users with console access and OS permissions to the folders where the Liberty Server is installed can make changes to the server. In addition, REST API calls that execute server management tasks are available and can be executed remotely. Adding a user to the admin role will allow that user to make changes to the server via the REST API calls. The admin role must be controlled and users who are in that role must be authorized.false
+  category: Access Control
+  subcategory: Authentication
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'As a user with access to ${server.config.dir}/server.xml, review the file and look for the admin role settings. grep -i administrator-role ${server.config.dir}/server.xml grep -i quickstartsecurity ${server.config.dir}/server.xml If the admin role has been created, users in that role must be documented and approved. However, using the basic registry or the quickstartsecurity methods are not acceptable. The preferred user registry method is to use a centralized access control method via LDAP. If no admin users exist at all, this is not a finding. If admin users in an LDAP user registry configuration are not documented and approved, this is a finding. If admin users exist in a basic user registry configuration, or in a quickstartsecurity user configuration, this is a finding. LDAP EXAMPLE: cn=bob,o=ibm,c=us BASIC REGISTRY EXAMPLE: bob group1 QUICKSTARTSECURITY EXAMPLE: restConnector-2.0'
+    check_command: 'As a user with access to ${server.config.dir}/server.xml, review the file and look for the admin role settings. grep -i administrator-role ${server.config.dir}/server.xml grep -i quickstartsecurity ${server.config.dir}/server.xml If the admin role has been created, users in that role must be documented and approved. However, using the basic registry or the quickstartsecurity methods are not acceptable. The preferred user registry method is to use a centralized access control method via LDAP. If no admin users exist at all, this is not a finding. If admin users in an LDAP user registry configuration are not documented and approved, this is a finding. If admin users exist in a basic user registry configuration, or in a quickstartsecurity user configuration, this is a finding. LDAP EXAMPLE: cn=bob,o=ibm,c=us BASIC REGISTRY EXAMPLE: bob group1 QUICKSTARTSECURITY EXAMPLE: restConnector-2.0'
+  remediation:
+    remediation_step: 'If an admin user exists in either a basic user registry or a quickstartsecurity registry, edit the ${server.config.dir}/server.xml file and remove the basic registry and/or quickstartsecurity registry settings. If an admin user exists via an LDAP user registry setting, document and approve the user(s) or group that have been assigned to the admin role and ensure anyone granted REST API admin rights is authorized. LDAP EXAMPLE: cn=bob,o=ibm,c=us BASIC REGISTRY EXAMPLE: bob group1 QUICKSTARTSECURITY EXAMPLE: restConnector-2.0'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: Users with console access and OS permissions to the folders where the Liberty Server is installed can make changes to the server. In addition, REST API calls that execute server management tasks are available and can be executed remotely. Adding a user to the admin role will allow that user to make changes to the server via the REST API calls. The admin role must be controlled and users who are in that role must be authorized.false
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - websphere-liberty
+  - openliberty
+  - ibm
+  - access-control
+- rule_id: STIG-V-250335
+  legacy_ids:
+  - V-250335
+  - IBMW-LS-000390
+  rule_name: Multifactor authentication for network access to privileged accounts must be used.
+  rule_description: 'Multifactor authentication creates a layered defense and makes it more difficult for an unauthorized person to access the application server. If one factor is compromised or broken, the attacker still has at least one more barrier to breach before successfully breaking into the target. Unlike a simple username/password scenario where the attacker could gain access by knowing both the username and password without the user knowing his account was compromised, multifactor authentication adds the requirement that the attacker must have something from the user, such as a token, or to biometrically be the user. When accessing the application server via a network connection, administrative access to the application server must be PKI Hardware Token enabled. The high level steps required for configuring Liberty Server to use certificate based authentication include the following: 1. Configure Web Application with client certificate authentication. 2. Configure Liberty SSL configuration
+    with client authentication. 3. Configure Liberty LDAP Security Configuration with certificate filter. Satisfies: SRG-APP-000149-AS-000102, SRG-APP-000151-AS-000103, SRG-APP-000402-AS-000247, SRG-APP-000403-AS-000248, SRG-APP-000177-AS-000126false'
+  category: Access Control
+  subcategory: Authentication
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'As a user with local file access to ${server.config.dir}/server.xml file, verify the TLS connection used for managing the server is configured to use clientAuthentication. appSecurity-2.0 ldapRegistry-3.0 transportSecurity-1.0 Verify the TLS connection used for managing the server is configured to use clientAuthentication. The following is used as an example. If the clientAuthentication setting for the TLS management application is not set to "true", this is a finding. EXAMPLE: Access the web management interface via a web browser and verify TLS secured connectivity to the web based management application.'
+    check_command: 'As a user with local file access to ${server.config.dir}/server.xml file, verify the TLS connection used for managing the server is configured to use clientAuthentication. appSecurity-2.0 ldapRegistry-3.0 transportSecurity-1.0 Verify the TLS connection used for managing the server is configured to use clientAuthentication. The following is used as an example. If the clientAuthentication setting for the TLS management application is not set to "true", this is a finding. EXAMPLE: Access the web management interface via a web browser and verify TLS secured connectivity to the web based management application.'
+  remediation:
+    remediation_step: 'Refer to IBM documentation on how to configure TLS and client based certificate authentication for additional configuration details. The following is a summary list of items needed to configure the system for certificate based authentication. Production systems and installations will vary. The application’s web.xml file must be configured to use client certs. EXAMPLE: CLIENT-CERT The server.xml features must be configured to use transportSecurity and an ldap configuration. appSecurity-2.0 ldapRegistry-3.0 transportSecurity-1.0 The server.xml TLS and LDAP settings must be configured. The following is an EXAMPLE only. "Default" verbiage and keystore information in the below SSL configuration will be different in production systems. Configure LDAP certificate filter settings according the certificates being used.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: Multifactor authentication creates a layered defense and makes it more difficult for an unauthorized person to access the application server. If one factor is compromised or broken, the attacker still has at least one more barrier to breach before successfully breaking into the target. Unlike a simple username/password scenario where the attacker could gain access by knowing both the username and password without the user knowing his account was compromised, multifactor authentication adds the r
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - websphere-liberty
+  - openliberty
+  - ibm
+  - access-control
+- rule_id: STIG-V-250336
+  legacy_ids:
+  - V-250336
+  - IBMW-LS-000440
+  rule_name: The WebSphere Liberty Server must store only encrypted representations of user passwords.
+  rule_description: 'WebSphere Liberty can either provide a local account store or integrate with enterprise account stores such as LDAP directories. If the application server stores application passwords in the server.xml configuration files, the application server must store encrypted representations of passwords rather than unencrypted, clear-text passwords. The Liberty Application Server provides a SecurityUtility tool that can take a plain-text or encoded password and convert it to an encrypted password. This tool does not update the ${server.config.dir/server.xml file directly; a manual update of the server.xml is needed once the utility is run. It is imperative that administrators understand that the SecurityUtility tool must be run for each application password that is stored within the server.xml file. Satisfies: SRG-APP-000171-AS-000119, SRG-APP-000428-AS-000265, SRG-APP-000429-AS-000157false'
+  category: Access Control
+  subcategory: Authentication
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: As a privileged user with file access to ${server.config.dir}/server.xml, review and ensure there are no clear-text passwords stored within the server.xml file. If any passwords appear in plain text, or if any passwords start with {xor}, this is a finding.
+    check_command: As a privileged user with file access to ${server.config.dir}/server.xml, review and ensure there are no clear-text passwords stored within the server.xml file. If any passwords appear in plain text, or if any passwords start with {xor}, this is a finding.
+  remediation:
+    remediation_step: 'For additional information regarding the use of the SecurityUtility command, refer to IBM’s website: https://www.ibm.com/docs/en/was-liberty/base?topic=applications-securityutility-command Create a new xml file with file permissions of 660. File owner and group membership is the same as the WebSphere Liberty server user. Add the following line to the new xml file: In the above, "mysecret" is the passphrase selected to create a cryptographic hash that represents the password. Save the file to a secured location. Note the path and name, as it will be needed when updating server.xml. Edit the server.xml file and add the following line: " /> For every unencrypted password in server.xml, run the following SecurityUtility command, which can be found in the Liberty Server install path: SecurityUtility encode --encoding=aes This will prompt the user to enter the plain-text password stored within the server.xml file. The SecurityUtility tool will generate an AES cryptographic
+      hash of the password. Copy and replace the plain-text password with the hashed value. This must be done for every plain-text password in server.xml. Restart the server by entering: server stop server start'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: WebSphere Liberty can either provide a local account store or integrate with enterprise account stores such as LDAP directories. If the application server stores application passwords in the server.xml configuration files, the application server must store encrypted representations of passwords rather than unencrypted, clear-text passwords. The Liberty Application Server provides a SecurityUtility tool that can take a plain-text or encoded password and convert it to an encrypted password. This t
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - websphere-liberty
+  - openliberty
+  - ibm
+  - access-control
+- rule_id: STIG-V-250337
+  legacy_ids:
+  - V-250337
+  - IBMW-LS-000450
+  rule_name: The WebSphere Liberty Server must use TLS-enabled LDAP.
+  rule_description: Passwords need to be protected at all times, and encryption is the standard method for protecting passwords during transmission. If passwords are not encrypted, they can be plainly read (i.e., clear text) and easily compromised. Application servers have the capability to use either certificates (tokens) or user IDs and passwords in order to authenticate. When the application server transmits or receives passwords, the passwords must be encrypted. The certificate used by LDAP to establish trust with incoming client requests must be imported into a trust keystore created on the Liberty Server (JDK ikeyman may be used to do this). The LDAP configuration must indicate it is using SSL, provide the BindDN and BindPassword and point to the trust keystore containing the LDAP certificate.false
+  category: Cryptography
+  subcategory: TLS/SSL
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: As a user with local file access to ${server.config.dir}/server.xml, verify TLS-enabled LDAP is in use. If TLS-Enabled LDAP is not defined within server.xml, this is a finding. appSecurity-2.0 ssl-1.0 ldapRegistry-3.0
+    check_command: As a user with local file access to ${server.config.dir}/server.xml, verify TLS-enabled LDAP is in use. If TLS-Enabled LDAP is not defined within server.xml, this is a finding. appSecurity-2.0 ssl-1.0 ldapRegistry-3.0
+  remediation:
+    remediation_step: 'To ensure the Liberty Server transmits only encrypted passwords, the ${server.config.dir}/server.xml must be configured as follows: appSecurity-2.0 ssl-1.0 ldapRegistry-3.0'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: Passwords need to be protected at all times, and encryption is the standard method for protecting passwords during transmission. If passwords are not encrypted, they can be plainly read (i.e., clear text) and easily compromised. Application servers have the capability to use either certificates (tokens) or user IDs and passwords in order to authenticate. When the application server transmits or receives passwords, the passwords must be encrypted. The certificate used by LDAP to establish trust w
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - websphere-liberty
+  - openliberty
+  - ibm
+  - cryptography
+- rule_id: STIG-V-250339
+  legacy_ids:
+  - V-250339
+  - IBMW-LS-000520
+  rule_name: The WebSphere Liberty Server must use FIPS 140-2 approved encryption modules when authenticating use
+  rule_description: 'Application servers must use and meet requirements of the DOD Enterprise PKI infrastructure for application authentication. Encryption is only as good as the encryption modules used. Unapproved cryptographic module algorithms cannot be verified and cannot be relied upon to provide confidentiality or integrity, and DOD data may be compromised due to weak algorithms. The use of TLS provides confidentiality of data in transit between the application server and client. TLS must be enabled and non-FIPS-approved SSL versions must be disabled. NIST SP 800-52 specifies the preferred configurations for government systems. Satisfies: SRG-APP-000179-AS-000129, SRG-APP-000224-AS-000152, SRG-APP-000416-AS-000140, SRG-APP-000439-AS-000155, SRG-APP-000442-AS-000259, SRG-APP-000514-AS-000136false'
+  category: Access Control
+  subcategory: Authentication
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'There are two ways to meet this requirement. Only one method is required. If IBM JDK 8 is installed and configured to run with WebSphere Liberty, proceed with method (I). If IBM Semeru Runtimes version 11 and above is installed and configured with WebSphere Liberty, proceed with method (II). Currently IBM Semeru supports FIPS on RedHat Enterprise Linux. Method (I) IBM JDK 8 is configured to run with WebSphere Liberty: 1. Review the ${server.config.dir}/jvm.options file. Verify FIPS is in use by checking the following lines: Dcom.ibm.jsse2.usefipsprovider=true Dcom.ibm.jsse2.usefipsProviderName=IBMJCEPlusFIPS If the properties are not set as shown in the ${server.config.dir}/jvm.options file, this is a finding. 2. Open ${JAVA_HOME}/jre/lib/security/java.security file. Locate the list of cryptographic providers and confirm the following entries in the provider list: com.ibm.jsse2.IBMJSSEProvider2 com.ibm.crypto.plus.provider.IBMJCEPlusFIPS com.ibm.crypto.provider.IBMJCE
+      com.ibm.crypto.plus.provider.IBMJCEPlus If the entries are not set as shown in the ${JAVA_HOME}/jre/lib/security/java.security file, this is a finding. Method (II) Semeru Runtimes version 11 and above is installed and configured with WebSphere Liberty. Requires RedHat Enterprise Linux as the Host Operating System. 1. Run the following command on the RedHat Enterprise Linux. Verify FIPS mode is enabled. # fips-mode-setup --check If FIPS mode is not enabled, this is a finding. 2. Review the ${server.config.dir}/jvm.options file. Verify "semeru.fips" property is set to true. Dsemeru.fips=true If the property is not set as shown in the ${server.config.dir}/jvm.options file, this is a finding. 3. Confirm NSS packages are installed by running "# dnf install nss" in a terminal. # dnf install nss Updating Subscription Management repositories. Last metadata expiration check: 0:56:30 ago on Wed 13 Sep 2023 07:29:35 AM PDT. Package nss-3.79.0-11.el8_7.x86_64 is already installed. Dependencies
+      resolved. Nothing to do. Complete! If the command does not return output stating NSS is installed, this is a finding. 4. Confirm NSS Database has the keystore imported by running "# certutil -L -d /etc/pki/nssdb" in a terminal. # certutil -L -d /etc/pki/nssdb Certificate Nickname Trust Attributes SSL,S/MIME,JAR/XPI default CTu,Cu,Cu If the command does not return the results as shown, this is a finding. 5. Review the ${server.config.dir}/server.xml and confirm the following entries: name = NSS-FIPS library = /usr/lib64/libsoftokn3.so slot = 3 showInfo = true If the entries are not set as shown in the ${server.config.dir}/server.xml file, this is a finding. 6. Review the ${server.config.dir}/server.xml file with the following steps: 6.1 Locate configuration that is specifying the default SSL configuration for Liberty. 6.2 Locate the "keyStoreRef" attribute in the configuration and find the referenced configuration. 6.3 Verify the "provider" attribute is set to either "SunPKCS11-NSS-FIPS"
+      or "PKCS11-NSS-FIPS" in the configuration. 6.4 Verify the "type" attribute is set to "PKCS11". 6.5 Verify the "fileBased" attribute is set to "false". 6.6 Find the "location" attribute for the configuration file of NSS keystore database (In the example below, it is "/tmp/pkcs11cfg.cfg"). 6.7 Verify the file is in a location accessible to Liberty. Snippet of server.xml: If the entries are not set as shown in the ${server.config.dir}/server.xml file, this is a finding.'
+    check_command: 'There are two ways to meet this requirement. Only one method is required. If IBM JDK 8 is installed and configured to run with WebSphere Liberty, proceed with method (I). If IBM Semeru Runtimes version 11 and above is installed and configured with WebSphere Liberty, proceed with method (II). Currently IBM Semeru supports FIPS on RedHat Enterprise Linux. Method (I) IBM JDK 8 is configured to run with WebSphere Liberty: 1. Review the ${server.config.dir}/jvm.options file. Verify FIPS is in use by checking the following lines: Dcom.ibm.jsse2.usefipsprovider=true Dcom.ibm.jsse2.usefipsProviderName=IBMJCEPlusFIPS If the properties are not set as shown in the ${server.config.dir}/jvm.options file, this is a finding. 2. Open ${JAVA_HOME}/jre/lib/security/java.security file. Locate the list of cryptographic providers and confirm the following entries in the provider list: com.ibm.jsse2.IBMJSSEProvider2 com.ibm.crypto.plus.provider.IBMJCEPlusFIPS com.ibm.crypto.provider.IBMJCE
+      com.ibm.crypto.plus.provider.IBMJCEPlus If the entries are not set as shown in the ${JAVA_HOME}/jre/lib/security/java.security file, this is a finding. Method (II) Semeru Runtimes version 11 and above is installed and configured with WebSphere Liberty. Requires RedHat Enterprise Linux as the Host Operating System. 1. Run the following command on the RedHat Enterprise Linux. Verify FIPS mode is enabled. # fips-mode-setup --check If FIPS mode is not enabled, this is a finding. 2. Review the ${server.config.dir}/jvm.options file. Verify "semeru.fips" property is set to true. Dsemeru.fips=true If the property is not set as shown in the ${server.config.dir}/jvm.options file, this is a finding. 3. Confirm NSS packages are installed by running "# dnf install nss" in a terminal. # dnf install nss Updating Subscription Management repositories. Last metadata expiration check: 0:56:30 ago on Wed 13 Sep 2023 07:29:35 AM PDT. Package nss-3.79.0-11.el8_7.x86_64 is already installed. Dependencies
+      resolved. Nothing to do. Complete! If the command does not return output stating NSS is installed, this is a finding. 4. Confirm NSS Database has the keystore imported by running "# certutil -L -d /etc/pki/nssdb" in a terminal. # certutil -L -d /etc/pki/nssdb Certificate Nickname Trust Attributes SSL,S/MIME,JAR/XPI default CTu,Cu,Cu If the command does not return the results as shown, this is a finding. 5. Review the ${server.config.dir}/server.xml and confirm the following entries: name = NSS-FIPS library = /usr/lib64/libsoftokn3.so slot = 3 showInfo = true If the entries are not set as shown in the ${server.config.dir}/server.xml file, this is a finding. 6. Review the ${server.config.dir}/server.xml file with the following steps: 6.1 Locate configuration that is specifying the default SSL configuration for Liberty. 6.2 Locate the "keyStoreRef" attribute in the configuration and find the referenced configuration. 6.3 Verify the "provider" attribute is set to either "SunPKCS11-NSS-FIPS"
+      or "PKCS11-NSS-FIPS" in the configuration. 6.4 Verify the "type" attribute is set to "PKCS11". 6.5 Verify the "fileBased" attribute is set to "false". 6.6 Find the "location" attribute for the configuration file of NSS keystore database (In the example below, it is "/tmp/pkcs11cfg.cfg"). 6.7 Verify the file is in a location accessible to Liberty. Snippet of server.xml: If the entries are not set as shown in the ${server.config.dir}/server.xml file, this is a finding.'
+  remediation:
+    remediation_step: 'There are two ways to meet this requirement. Only one method is required. If IBM JDK 8 is installed and configured to run with WebSphere Liberty, proceed with method (I). If IBM Semeru Runtimes version 11 and above is installed and configured with WebSphere Liberty, proceed with method (II). Currently IBM Semeru supports FIPS on RedHat Enterprise Linux. Method (I) IBM JDK 8 is configured to run with WebSphere Liberty: 1. Edit/create the ${server.config.dir}/jvm.options file. Edit/add the following two properties: Dcom.ibm.jsse2.usefipsprovider=true Dcom.ibm.jsse2.usefipsProviderName=IBMJCEPlusFIPS 2. Edit ${JAVA_HOME}/jre/lib/security/java.security file and locate the list of cryptographic providers. Edit/add the following four providers: security.provider.1=com.ibm.jsse2.IBMJSSEProvider2 security.provider.2=com.ibm.crypto.plus.provider.IBMJCEPlusFIPS security.provider.3=com.ibm.crypto.provider.IBMJCE security.provider.4=com.ibm.crypto.plus.provider.IBMJCEPlus Method
+      (II) Semeru Runtimes version 11 and above is installed and configured with WebSphere Liberty. Requires RedHat Enterprise Linux as the Host Operating System. 1. Log in as root or super user. 2. Enable FIPS on the RedHat Enterprise Linux. $ fips-mode-setup --enable $ fips-mode-setup --check 3. Update/create the ${server.config.dir}/jvm.options. Edit/add the following property: Dsemeru.fips=true 4. Install NSS packages. Run "$ dnf install nss". 5. Import keystores to NSS Database by using "pk12util" command. Replace "changeit" for -W option to the desired password. $ pk12util -i resources/security/key.p12 -W changeit -d /etc/pki/nssdb pk12util: PKCS12 IMPORT SUCCESSFUL 6. Mark the imported certificates as a trusted certificate authority (CA). $ certutil -M -n default -t "CT,CT,CT" -d /etc/pki/nssdb 7. List the contents of the NSS Database to confirm the alias name and the Trust Attributes. $ certutil -L -d /etc/pki/nssdb Certificate Nickname Trust Attributes SSL,S/MIME,JAR/XPI default
+      CTu,Cu,Cu 8. Create a config file (pkcs11cfg.cfg) with the contents below. It will be used by ${server.config.dir}/server.xml. name = NSS-FIPS library = /usr/lib64/libsoftokn3.so slot = 3 showInfo = true 9. Update the ${server.config.dir}/server.xml file to use the configuration file in its SSL configuration. 9.1 Find the configuration referenced in the ssl configuration as "keyStoreRef". 9.2 Set "provider" attribute to either "SunPKCS11-NSS-FIPS" or "PKCS11-NSS-FIPS". 9.3 Set the "type" attribute to "PKCS11". 9.4 Set the "fileBased" attribute to "false". 9.5 Set the "location" attribute to point to the NSS keystore configuration created in step 8 (pkcs11.cfg.cfg). 9.6 Verify the file is in a location accessible to Liberty.'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: Application servers must use and meet requirements of the DOD Enterprise PKI infrastructure for application authentication. Encryption is only as good as the encryption modules used. Unapproved cryptographic module algorithms cannot be verified and cannot be relied upon to provide confidentiality or integrity, and DOD data may be compromised due to weak algorithms. The use of TLS provides confidentiality of data in transit between the application server and client. TLS must be enabled and non-FI
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - websphere-liberty
+  - openliberty
+  - ibm
+  - access-control
+- rule_id: STIG-V-250341
+  legacy_ids:
+  - V-250341
+  - IBMW-LS-000770
+  rule_name: Application security must be enabled on the WebSphere Liberty Server.
+  rule_description: 'Application security enables security for the applications in the environment. This type of security provides application isolation and requirements for authenticating application users. When a user enables security, both administrative and application security is enabled. Application security is in effect only when administrative security is enabled via the security feature. If the application server is to be used for only web applications, only the servlet-3.1 feature needs to be defined. If the application server is to be used for only ejb applications, only the ejbLite-3.1 feature needs to be defined. If both web and ejb applications are to be deployed on the application server, then both the servlet-3.1 and ejbLite-3.1 features need to be defined. The check and fix assumes that the application server will have both web and ejb applications deployed. Satisfies: SRG-APP-000315-AS-000094, SRG-APP-000014-AS-000009false'
+  category: Configuration
+  subcategory: General
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: As a user with local file access to ${server.config.dir}/server.xml file, verify application security is enabled. If the appSecurity-2.0 feature is not defined within server.xml, this is a finding. appSecurity-2.0
+    check_command: As a user with local file access to ${server.config.dir}/server.xml file, verify application security is enabled. If the appSecurity-2.0 feature is not defined within server.xml, this is a finding. appSecurity-2.0
+  remediation:
+    remediation_step: Configure the ${server.config.dir}/server.xml file and add the appSecurity-2.0 feature. appSecurity-2.0 Review ${server.config.dir}/logs/messages.log Validate log entry that indicates "Security service is ready".
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: Application security enables security for the applications in the environment. This type of security provides application isolation and requirements for authenticating application users. When a user enables security, both administrative and application security is enabled. Application security is in effect only when administrative security is enabled via the security feature. If the application server is to be used for only web applications, only the servlet-3.1 feature needs to be defined. If t
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - websphere-liberty
+  - openliberty
+  - ibm
+  - configuration

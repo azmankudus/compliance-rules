@@ -1,0 +1,808 @@
+schema_version: 1.0.0
+metadata:
+  name: IBM WebSphere Liberty / OpenLiberty Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules from official IBM WebSphere Liberty and OpenLiberty
+    documentation
+  platform: IBM WebSphere Liberty
+  benchmark: IBM/OpenLiberty Official Security Documentation
+  author: Compliance Rules Team
+  created: '2026-03-15T00:00:00Z'
+  modified: '2026-03-15T00:00:00Z'
+  compatible_platforms:
+  - IBM WebSphere Liberty
+  - OpenLiberty
+  references:
+  - type: IBM Documentation
+    reference: https://www.ibm.com/docs/en/was-liberty/core
+  - type: OpenLiberty Documentation
+    reference: https://openliberty.io/docs/
+  - type: OpenLiberty GitHub
+    reference: https://github.com/OpenLiberty/open-liberty
+  compatibility_notes: 'OpenLiberty is the open-source version of IBM WebSphere Liberty.
+    Both share the same codebase and configuration format (server.xml). All security
+    rules apply to both platforms.'
+compliance_info:
+  framework: ibm
+  version: '1.0.0'
+  profile: official
+rules:
+- rule_id: IBM-SEC-001
+  legacy_ids: []
+  rule_name: Configure SSL/TLS endpoints
+  rule_description: |
+    Configure SSL/TLS endpoints for secure HTTPS communication. Liberty supports multiple endpoints with different SSL configurations.
+  category: Cryptography
+  subcategory: SSL Endpoints
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for SSL endpoint configuration:
+      
+      grep -E 'httpEndpoint|httpsPort|sslRef' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify HTTPS endpoint is configured:
+      <httpEndpoint id="defaultHttpsEndpoint"
+                    httpPort="-1"
+                    httpsPort="9443"
+                    sslRef="defaultSSLConfig" />
+      
+      If HTTPS endpoint is not configured, this is a finding.
+    check_command: grep -E 'httpEndpoint|httpsPort' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: HTTPS endpoint configured
+  remediation:
+    remediation_step: |
+      Configure HTTPS endpoint in server.xml:
+      
+      <httpEndpoint id="defaultHttpsEndpoint"
+                    httpPort="-1"
+                    httpsPort="9443"
+                    sslRef="defaultSSLConfig"
+                    host="*" />
+      
+      <ssl id="defaultSSLConfig"
+           keyStoreRef="defaultKeyStore"
+           sslProtocol="TLSv1.2" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: HTTPS endpoints provide secure communication for web applications and APIs.
+    impact: Requires SSL certificates
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - ssl
+  - tls
+  - https
+
+- rule_id: IBM-SEC-002
+  legacy_ids: []
+  rule_name: Enable password encoding
+  rule_description: |
+    Use encoded passwords in configuration files instead of plain text. Liberty supports XOR encoding and AES encryption for passwords.
+  category: Access Control
+  subcategory: Credential Management
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for plain text passwords in server.xml:
+      
+      grep -E 'password="[a-zA-Z0-9]+"' /opt/ibm/wlp/usr/servers/*/server.xml | grep -v 'password="{xor}' | grep -v 'password="{aes}'
+      
+      Check for encoded passwords:
+      
+      grep -E 'password="{xor}|password="{aes}' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      If plain text passwords are found, this is a finding.
+    check_command: grep -E 'password=' /opt/ibm/wlp/usr/servers/*/server.xml | head -20
+    expected_value: Encoded passwords only
+  remediation:
+    remediation_step: |
+      Encode passwords using securityUtility:
+      
+      XOR encoding (basic):
+      securityUtility encode --encoding=xor myPassword
+      
+      AES encryption (stronger):
+      securityUtility encode --encoding=aes myPassword
+      
+      Use the encoded value in server.xml:
+      <keyStore id="defaultKeyStore" password="{xor}encoded_password" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Encoding passwords prevents them from being easily read in configuration files.
+    impact: Requires password management procedures
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - passwords
+  - credentials
+  - security
+
+- rule_id: IBM-SEC-003
+  legacy_ids: []
+  rule_name: Configure CORS policy
+  rule_description: |
+    Configure Cross-Origin Resource Sharing (CORS) policy to control which domains can access Liberty resources.
+  category: Network Security
+  subcategory: CORS
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for CORS configuration:
+      
+      grep -E 'cors' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Also check for cors feature:
+      
+      grep 'cors-1.0' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      If CORS is needed but not configured, this is a finding. If CORS allows all origins (*), this is a finding.
+    check_command: grep -E 'cors' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: CORS properly configured with specific origins
+  remediation:
+    remediation_step: |
+      Enable and configure CORS in server.xml:
+      
+      <featureManager>
+          <feature>cors-1.0</feature>
+      </featureManager>
+      
+      <cors domain="/api/*"
+            allowedOrigins="https://trusted.example.com"
+            allowedMethods="GET,POST,PUT,DELETE"
+            allowedHeaders="Content-Type,Authorization"
+            allowCredentials="true"
+            maxAge="3600" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Proper CORS configuration prevents unauthorized cross-origin requests while allowing legitimate API access.
+    impact: Cross-origin requests will be restricted to configured domains
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - cors
+  - api-security
+  - network-security
+
+- rule_id: IBM-SEC-004
+  legacy_ids: []
+  rule_name: Enable MicroProfile JWT authentication
+  rule_description: |
+    Configure MicroProfile JWT authentication for securing microservices APIs.
+  category: Authentication
+  subcategory: JWT Authentication
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for JWT configuration:
+      
+      grep -E 'mpJwt|microProfile-jwt' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify JWT feature is enabled:
+      <feature>microProfile-3.0</feature>
+      
+      And JWT configuration exists:
+      <mpJwt audiences="https://myapp.example.com"
+             issuers="https://auth.example.com" />
+      
+      If JWT authentication is required but not configured, this is a finding.
+    check_command: grep -E 'mpJwt|microProfile' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: JWT authentication configured if required
+  remediation:
+    remediation_step: |
+      Enable MicroProfile JWT in server.xml:
+      
+      <featureManager>
+          <feature>microProfile-3.0</feature>
+      </featureManager>
+      
+      <mpJwt id="myJwtConfig"
+             audiences="https://myapp.example.com"
+             issuers="https://auth.example.com"
+             publicKey="classpath:/publickey.pem" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 20 minutes
+  context:
+    rationale: JWT provides secure, stateless authentication for microservices.
+    impact: Requires JWT infrastructure and key management
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - jwt
+  - microprofile
+  - authentication
+  - microservices
+
+- rule_id: IBM-SEC-005
+  legacy_ids: []
+  rule_name: Configure OAuth 2.0 provider
+  rule_description: |
+    Configure Liberty as an OAuth 2.0 provider for API authorization.
+  category: Authentication
+  subcategory: OAuth 2.0
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for OAuth configuration:
+      
+      grep -E 'oauthProvider|oauth-2.0' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify OAuth feature and provider configuration:
+      <feature>oauth-2.0</feature>
+      <oauthProvider ... />
+      
+      If OAuth is required but not configured, this is a finding.
+    check_command: grep -E 'oauthProvider|oauth-2.0' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: OAuth provider configured if required
+  remediation:
+    remediation_step: |
+      Configure OAuth provider in server.xml:
+      
+      <featureManager>
+          <feature>oauth-2.0</feature>
+      </featureManager>
+      
+      <oauthProvider id="myOAuthProvider"
+                     oauthOnly="false">
+          <autoAuthorizeClient>client1</autoAuthorizeClient>
+      </oauthProvider>
+      
+      <oauth-roles>
+          <authenticated>client1</authenticated>
+      </oauth-roles>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: OAuth 2.0 provides secure delegated authorization for APIs.
+    impact: Requires OAuth client registration
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - oauth
+  - authorization
+  - api-security
+
+- rule_id: IBM-SEC-006
+  legacy_ids: []
+  rule_name: Configure distributed map for session persistence
+  rule_description: |
+    Configure distributed map (session caching) for scalable session management in clustered environments.
+  category: Session Management
+  subcategory: Session Persistence
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for distributed map configuration:
+      
+      grep -E 'distributedMap|sessionCache' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check for sessionDatabase feature:
+      
+      grep 'sessionCache-1.0' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      If session persistence is required in a clustered environment but not configured, this is a finding.
+    check_command: grep -E 'distributedMap|sessionCache|httpSession' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Session persistence configured if required
+  remediation:
+    remediation_step: |
+      Configure session caching in server.xml:
+      
+      <featureManager>
+          <feature>sessionCache-1.0</feature>
+      </featureManager>
+      
+      <httpSession cookieSecure="true" cookieHttpOnly="true">
+          <sessionCache ref="distributedMap" />
+      </httpSession>
+      
+      <distributedMap>
+          <mapJndiName>services/cache/distributedmap</mapJndiName>
+      </distributedMap>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 20 minutes
+  context:
+    rationale: Session persistence enables session failover in clustered environments.
+    impact: Requires cache infrastructure (e.g., JCache provider)
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - session
+  - caching
+  - clustering
+
+- rule_id: IBM-SEC-007
+  legacy_ids: []
+  rule_name: Enable request logging
+  rule_description: |
+    Configure HTTP request logging for monitoring and security analysis.
+  category: Logging and Auditing
+  subcategory: Request Logs
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for HTTP access logging:
+      
+      grep -E 'accessLog|httpAccessLog' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check for httpEndpoint logging configuration:
+      
+      grep -A5 'httpEndpoint' /opt/ibm/wlp/usr/servers/*/server.xml | grep -E 'accessLog|logging'
+      
+      If request logging is not configured, this is a finding.
+    check_command: grep -E 'accessLog|httpAccessLog' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Request logging enabled
+  remediation:
+    remediation_step: |
+      Configure HTTP access logging in server.xml:
+      
+      <httpEndpoint id="defaultHttpEndpoint"
+                    httpPort="9080"
+                    httpsPort="9443">
+          <accessLogging
+              filepath="${server.output.dir}/logs/http_defaultEndpoint_access.log"
+              logFormat='%h %u %t "%r" %s %b %D %{Cookie}i %{Set-Cookie}o' />
+      </httpEndpoint>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Request logging enables monitoring of HTTP traffic for security analysis.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - logging
+  - http
+  - monitoring
+
+- rule_id: IBM-SEC-008
+  legacy_ids: []
+  rule_name: Configure rate limiting
+  rule_description: |
+    Configure rate limiting to protect APIs from abuse and DoS attacks.
+  category: Network Security
+  subcategory: Rate Limiting
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for rate limiting configuration:
+      
+      grep -E 'rate|throttle|concurrentRequests' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check for MicroProfile Rate Limiting:
+      
+      grep 'mpRateLimiting' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      If rate limiting is required but not configured, this is a finding.
+    check_command: grep -E 'rate|throttle|mpRateLimiting' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Rate limiting configured if required
+  remediation:
+    remediation_step: |
+      Configure rate limiting in server.xml (MicroProfile):
+      
+      <featureManager>
+          <feature>mpRateLimiting-1.0</feature>
+      </featureManager>
+      
+      Apply rate limiting annotation in application code:
+      @RateLimit(value = 10, window = 60, unit = ChronoUnit.SECONDS)
+      
+      Or use webContainer throttle:
+      <webContainer throttle="100"/>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 20 minutes
+  context:
+    rationale: Rate limiting protects against DoS attacks and ensures fair resource allocation.
+    impact: Excessive requests will be rejected
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - rate-limiting
+  - dos-protection
+  - microprofile
+
+- rule_id: IBM-SEC-009
+  legacy_ids: []
+  rule_name: Configure secure JMX remote access
+  rule_description: |
+    Secure JMX remote access with SSL and authentication if JMX monitoring is required.
+  category: Access Control
+  subcategory: JMX Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check if JMX is enabled:
+      
+      grep -E 'monitor-1.0|jmx' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check for JMX connector configuration:
+      
+      grep -E 'remoteJMXConnector|jmxConnector' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      If JMX is enabled without SSL/authentication, this is a finding.
+    check_command: grep -E 'monitor|jmx|remoteJMXConnector' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: JMX secured with SSL and authentication if enabled
+  remediation:
+    remediation_step: |
+      Secure JMX in server.xml:
+      
+      <featureManager>
+          <feature>monitor-1.0</feature>
+      </featureManager>
+      
+      <remoteJMXConnector sslEnabled="true"
+                          sslRef="defaultSSLConfig"
+                          enabled="true">
+          <basicAuth enabled="true" />
+      </remoteJMXConnector>
+      
+      Ensure admin user exists:
+      <basicRegistry id="basic">
+          <user name="monitor" password="{xor}encoded_password" />
+      </basicRegistry>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 20 minutes
+  context:
+    rationale: Unsecured JMX can expose sensitive server information and allow remote code execution.
+    impact: JMX clients must authenticate and use SSL
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - jmx
+  - monitoring
+  - ssl
+
+- rule_id: IBM-SEC-010
+  legacy_ids: []
+  rule_name: Configure Health Check endpoint securely
+  rule_description: |
+    Configure MicroProfile Health endpoint for Kubernetes/container health probes with appropriate security.
+  category: Configuration
+  subcategory: Health Checks
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for Health configuration:
+      
+      grep -E 'health|mpHealth' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check for MicroProfile Health feature:
+      
+      grep 'mpHealth' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify health endpoint is appropriately secured if it exposes sensitive information.
+    check_command: grep -E 'health|mpHealth' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Health check configured appropriately
+  remediation:
+    remediation_step: |
+      Enable MicroProfile Health in server.xml:
+      
+      <featureManager>
+          <feature>mpHealth-2.0</feature>
+      </featureManager>
+      
+      The health endpoint is available at /health. Secure it if needed:
+      
+      <webApplicationSecurity allowFailOverToBasicAuth="false" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Health endpoints enable container orchestration systems to monitor application health.
+    impact: Health endpoint will be accessible
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - health-check
+  - kubernetes
+  - microprofile
+
+- rule_id: IBM-SEC-011
+  legacy_ids: []
+  rule_name: Configure Metrics endpoint security
+  rule_description: |
+    Configure MicroProfile Metrics endpoint with appropriate authentication for monitoring.
+  category: Configuration
+  subcategory: Metrics
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for Metrics configuration:
+      
+      grep -E 'mpMetrics|metrics' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check for MicroProfile Metrics feature:
+      
+      grep 'mpMetrics' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify metrics endpoint is secured (not publicly accessible).
+    check_command: grep -E 'mpMetrics|metrics' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Metrics endpoint secured
+  remediation:
+    remediation_step: |
+      Enable MicroProfile Metrics in server.xml:
+      
+      <featureManager>
+          <feature>mpMetrics-2.0</feature>
+      </featureManager>
+      
+      <mpMetrics authentication="true" />
+      
+      Or restrict access via role mapping:
+      <enterpriseApplication id="com.ibm.websphere.appserver.mpMetrics">
+          <application-bnd>
+              <security-role name="MonitorRole">
+                  <group name="Monitors" />
+              </security-role>
+          </application-bnd>
+      </enterpriseApplication>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Metrics can expose sensitive operational data and should be protected.
+    impact: Metrics require authentication
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - metrics
+  - monitoring
+  - microprofile
+
+- rule_id: IBM-SEC-012
+  legacy_ids: []
+  rule_name: Disable directory listing
+  rule_description: |
+    Disable directory listing to prevent exposure of file contents.
+  category: Configuration
+  subcategory: File Serving
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for directory browsing configuration:
+      
+      grep -E 'directoryBrowsingEnabled|browsing' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check webContainer settings:
+      
+      grep -A10 'webContainer' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      If directoryBrowsingEnabled is set to true or not explicitly disabled, this is a finding.
+    check_command: grep -E 'directoryBrowsingEnabled|webContainer' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: directoryBrowsingEnabled="false"
+  remediation:
+    remediation_step: |
+      Disable directory browsing in server.xml:
+      
+      <webContainer directoryBrowsingEnabled="false" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Directory listing can expose sensitive file names and structure.
+    impact: Users cannot browse directories (expected behavior)
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - directory-listing
+  - information-disclosure
+  - hardening
+
+- rule_id: IBM-SEC-013
+  legacy_ids: []
+  rule_name: Configure OpenID Connect client
+  rule_description: |
+    Configure Liberty as an OpenID Connect client for single sign-on with identity providers.
+  category: Authentication
+  subcategory: OpenID Connect
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for OIDC configuration:
+      
+      grep -E 'oidcClient|openidConnectClient' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Check for OIDC feature:
+      
+      grep 'openidconnectclient' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      If OIDC SSO is required but not configured, this is a finding.
+    check_command: grep -E 'oidcClient|openidConnectClient|openidconnectclient' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: OIDC client configured if SSO is required
+  remediation:
+    remediation_step: |
+      Configure OIDC client in server.xml:
+      
+      <featureManager>
+          <feature>openidconnectclient-1.0</feature>
+      </featureManager>
+      
+      <openidConnectClient id="oidcClient"
+                           clientId="liberty-app"
+                           clientSecret="{xor}encoded_secret"
+                           discoveryEndpointUrl="https://idp.example.com/.well-known/openid-configuration"
+                           signatureAlgorithm="RS256"
+                           userIdentityToCreateSubject="sub" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: OIDC enables enterprise SSO with identity providers like Keycloak, Okta, or Azure AD.
+    impact: Requires identity provider configuration
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - oidc
+  - sso
+  - authentication
+
+- rule_id: IBM-SEC-014
+  legacy_ids: []
+  rule_name: Secure Liberty server directories
+  rule_description: |
+    Set appropriate file permissions on Liberty server directories to prevent unauthorized access.
+  category: Access Control
+  subcategory: File Permissions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: runtime
+    detection_step: |
+      Check permissions on Liberty server directories:
+      
+      ls -la /opt/ibm/wlp/usr/servers/
+      ls -la /opt/ibm/wlp/usr/servers/*/server.xml
+      ls -la /opt/ibm/wlp/usr/servers/*/resources/security/
+      
+      Verify:
+      - Server directories are not world-writable
+      - Configuration files are readable only by owner/group
+      - Security directory (keystores) has restricted access
+      
+      If permissions are too permissive, this is a finding.
+    check_command: ls -la /opt/ibm/wlp/usr/servers/*/server.xml && ls -la /opt/ibm/wlp/usr/servers/*/resources/security/
+    expected_value: Restricted file permissions
+  remediation:
+    remediation_step: |
+      Set appropriate permissions:
+      
+      chmod 750 /opt/ibm/wlp/usr/servers/*
+      chmod 640 /opt/ibm/wlp/usr/servers/*/server.xml
+      chmod 700 /opt/ibm/wlp/usr/servers/*/resources/security/
+      chmod 600 /opt/ibm/wlp/usr/servers/*/resources/security/*.jks
+      
+      Ensure proper ownership:
+      chown -R liberty:liberty /opt/ibm/wlp/usr/servers/
+      
+      No restart required.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 10 minutes
+  context:
+    rationale: Proper file permissions prevent unauthorized modification or access to configuration and credentials.
+    impact: Only authorized users can access server files
+    false_positive_risk: Low
+  tags:
+  - ibm
+  - openliberty
+  - websphere-liberty
+  - file-permissions
+  - access-control
+  - hardening

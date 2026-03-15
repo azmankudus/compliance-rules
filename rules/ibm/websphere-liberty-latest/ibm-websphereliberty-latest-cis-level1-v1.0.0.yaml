@@ -1,0 +1,748 @@
+schema_version: 1.0.0
+metadata:
+  name: CIS IBM WebSphere Liberty Benchmark - Level 1
+  version: '1.0.0'
+  description: CIS IBM WebSphere Liberty Benchmark v1.0.0 - Level 1 (Server)
+  platform: IBM WebSphere Liberty
+  benchmark: CIS IBM WebSphere Liberty Benchmark v1.0.0
+  author: Compliance Rules Team
+  created: '2026-03-15T00:00:00Z'
+  modified: '2026-03-15T00:00:00Z'
+  compatible_platforms:
+  - IBM WebSphere Liberty
+  - OpenLiberty
+  references:
+  - type: CIS Benchmark
+    reference: CIS IBM WebSphere Liberty Benchmark v1.0.0
+  - type: CIS
+    reference: https://www.cisecurity.org/benchmark/websphere_liberty
+  compatibility_notes: 'OpenLiberty shares the same codebase and configuration format
+    (server.xml) as IBM WebSphere Liberty. All CIS benchmark rules are applicable
+    to both platforms.'
+compliance_info:
+  framework: CIS
+  version: '1.0.0'
+  profile: Level 1 - Server
+rules:
+- rule_id: CIS-1.1.1
+  legacy_ids:
+  - 1.1.1
+  rule_name: Enable Liberty security features
+  rule_description: |
+    Ensure the Liberty security feature is enabled to provide authentication and authorization capabilities.
+  category: Configuration
+  subcategory: Security Features
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml configuration file for security feature:
+      
+      grep -E 'feature.*appSecurity' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Or check for:
+      
+      grep -E '<feature>appSecurity-.*</feature>' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Expected output should include:
+      <feature>appSecurity-2.0</feature>
+      
+      If the appSecurity feature is not enabled, this is a finding.
+    check_command: grep -E 'feature.*appSecurity|<feature>appSecurity' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: appSecurity feature enabled
+  remediation:
+    remediation_step: |
+      Add the appSecurity feature to server.xml:
+      
+      <featureManager>
+          <feature>appSecurity-2.0</feature>
+      </featureManager>
+      
+      Restart the Liberty server:
+      server stop <serverName>
+      server start <serverName>
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: The appSecurity feature provides essential authentication and authorization capabilities for Liberty applications.
+    impact: Applications requiring security will not function properly without this feature
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - security
+  - features
+
+- rule_id: CIS-1.2.1
+  legacy_ids:
+  - 1.2.1
+  rule_name: Configure TLS 1.2 or higher
+  rule_description: |
+    Configure Liberty to use TLS 1.2 or higher for all SSL/TLS connections.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for SSL configuration:
+      
+      grep -E 'sslProtocol|ssl-.*sslProtocol' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Expected configuration:
+      <ssl id="defaultSSLConfig" sslProtocol="TLSv1.2" />
+      
+      Or in endpoint configuration:
+      <sslEndpoint id="defaultHttpsEndpoint" sslProtocol="TLSv1.2" />
+      
+      If TLS 1.2 or higher is not configured, this is a finding.
+    check_command: grep -E 'sslProtocol' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: sslProtocol="TLSv1.2" or TLSv1.3
+  remediation:
+    remediation_step: |
+      Configure TLS 1.2 or higher in server.xml:
+      
+      <ssl id="defaultSSLConfig" 
+           keyStoreRef="defaultKeyStore"
+           sslProtocol="TLSv1.2"
+           enabledCiphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256" />
+      
+      Restart the Liberty server:
+      server stop <serverName>
+      server start <serverName>
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: TLS 1.2 and higher provide strong encryption and address vulnerabilities in older SSL/TLS versions.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: CIS-1.2.2
+  legacy_ids:
+  - 1.2.2
+  rule_name: Disable weak SSL ciphers
+  rule_description: |
+    Configure Liberty to use only strong cipher suites and disable weak ciphers.
+  category: Cryptography
+  subcategory: Cipher Suites
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for cipher configuration:
+      
+      grep -E 'enabledCiphers|disabledCiphers' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify that weak ciphers (NULL, MD5, 3DES, RC4, DES) are disabled.
+      
+      Expected configuration should explicitly list strong ciphers or disable weak ones:
+      enabledCiphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+      
+      If weak ciphers are allowed, this is a finding.
+    check_command: grep -E 'enabledCiphers|disabledCiphers' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Strong ciphers only
+  remediation:
+    remediation_step: |
+      Configure strong ciphers in server.xml:
+      
+      <ssl id="defaultSSLConfig"
+           keyStoreRef="defaultKeyStore"
+           sslProtocol="TLSv1.2"
+           enabledCiphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                          TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                          TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+                          TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Strong cipher suites protect against cryptographic attacks and ensure data confidentiality.
+    impact: Some older clients may not support modern ciphers
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - tls
+  - ciphers
+  - encryption
+
+- rule_id: CIS-2.1.1
+  legacy_ids:
+  - 2.1.1
+  rule_name: Configure secure session cookies
+  rule_description: |
+    Configure Liberty to set the Secure and HttpOnly flags on session cookies.
+  category: Session Management
+  subcategory: Cookie Security
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for web application configuration:
+      
+      grep -E 'httpSession|cookie' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Expected configuration:
+      <webAppSecurity allowOverrideHttpSessionAuth="false"/>
+      <httpSession cookieSecure="true" cookieHttpOnly="true"/>
+      
+      If secure cookie settings are not configured, this is a finding.
+    check_command: grep -E 'httpSession|cookieSecure|cookieHttpOnly' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: cookieSecure="true" cookieHttpOnly="true"
+  remediation:
+    remediation_step: |
+      Configure secure session cookies in server.xml:
+      
+      <httpSession cookieSecure="true" cookieHttpOnly="true" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Secure and HttpOnly flags protect session cookies from being intercepted or accessed via JavaScript.
+    impact: Minimal - improves cookie security
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - session
+  - cookies
+  - security
+
+- rule_id: CIS-2.2.1
+  legacy_ids:
+  - 2.2.1
+  rule_name: Set session timeout
+  rule_description: |
+    Configure an appropriate session timeout to limit the duration of user sessions.
+  category: Session Management
+  subcategory: Session Timeout
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for session timeout configuration:
+      
+      grep -E 'httpSession.*timeout' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Also check web.xml for session-config:
+      
+      grep -A2 'session-config' /opt/ibm/wlp/usr/servers/*/apps/*/WEB-INF/web.xml
+      
+      Expected timeout: 30 minutes or less (1800 seconds or less)
+      
+      <httpSession timeout="30"/>
+      
+      If session timeout is not set or exceeds 30 minutes, this is a finding.
+    check_command: grep -E 'httpSession.*timeout' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: timeout of 30 minutes or less
+  remediation:
+    remediation_step: |
+      Configure session timeout in server.xml:
+      
+      <httpSession timeout="30" cookieSecure="true" cookieHttpOnly="true"/>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Session timeouts limit the window of opportunity for session hijacking attacks.
+    impact: Users will need to re-authenticate after the timeout period
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - session
+  - timeout
+
+- rule_id: CIS-3.1.1
+  legacy_ids:
+  - 3.1.1
+  rule_name: Configure user registry
+  rule_description: |
+    Configure a user registry for authentication (LDAP, database, or federated registry).
+  category: Access Control
+  subcategory: User Registry
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for user registry configuration:
+      
+      grep -E 'basicRegistry|ldapRegistry|federatedRepository' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify that a user registry is configured (not using default basic registry in production):
+      
+      <ldapRegistry id="ldap"
+                    host="ldap.example.com"
+                    port="389"
+                    baseDN="dc=example,dc=com" />
+      
+      If no user registry is configured or basic registry is used in production, this is a finding.
+    check_command: grep -E 'basicRegistry|ldapRegistry|federatedRepository' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Appropriate user registry configured
+  remediation:
+    remediation_step: |
+      Configure LDAP registry in server.xml:
+      
+      <ldapRegistry id="ldap"
+                    host="ldap.example.com"
+                    port="636"
+                    baseDN="dc=example,dc=com"
+                    bindDN="cn=admin,dc=example,dc=com"
+                    bindPassword="encrypted:password"
+                    ldapType="IBM Tivoli Directory Server"
+                    sslEnabled="true" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: A centralized user registry enables proper authentication and user management.
+    impact: Requires LDAP or other directory service
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - authentication
+  - ldap
+  - user-registry
+
+- rule_id: CIS-3.2.1
+  legacy_ids:
+  - 3.2.1
+  rule_name: Configure admin role authorization
+  rule_description: |
+    Restrict administrator role access to authorized users only.
+  category: Access Control
+  subcategory: Role-Based Access
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for administrator role mapping:
+      
+      grep -A5 'administrator-role' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Or check for quickStartSecurity (development only):
+      
+      grep 'quickStartSecurity' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify that:
+      1. quickStartSecurity is NOT used in production
+      2. Administrator role is mapped to specific users/groups
+      
+      If administrator access is not properly restricted, this is a finding.
+    check_command: grep -E 'administrator-role|quickStartSecurity' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Proper admin role mapping
+  remediation:
+    remediation_step: |
+      Configure administrator role mapping in server.xml:
+      
+      <administrator-role>
+          <user>admin1</user>
+          <user>admin2</user>
+          <group>WASAdmins</group>
+      </administrator-role>
+      
+      Remove quickStartSecurity from production configurations.
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Restricting administrative access reduces the attack surface and prevents unauthorized configuration changes.
+    impact: Only authorized users can access admin functions
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - access-control
+  - admin
+  - authorization
+
+- rule_id: CIS-4.1.1
+  legacy_ids:
+  - 4.1.1
+  rule_name: Enable audit logging
+  rule_description: |
+    Enable Liberty audit logging to track security-relevant events.
+  category: Logging and Auditing
+  subcategory: Audit Logs
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for audit logging configuration:
+      
+      grep -E 'audit|auditLog' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Also check if audit feature is enabled:
+      
+      grep 'audit-.*feature' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Expected configuration:
+      <feature>audit-1.0</feature>
+      <auditLog maxFileSize="20" maxFiles="10"/>
+      
+      If audit logging is not configured, this is a finding.
+    check_command: grep -E 'audit|auditLog' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Audit logging enabled
+  remediation:
+    remediation_step: |
+      Enable audit logging in server.xml:
+      
+      <featureManager>
+          <feature>audit-1.0</feature>
+      </featureManager>
+      
+      <auditLog maxFileSize="20" maxFiles="10" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Audit logs are essential for security monitoring, incident response, and compliance requirements.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - logging
+  - auditing
+
+- rule_id: CIS-4.1.2
+  legacy_ids:
+  - 4.1.2
+  rule_name: Configure message logging
+  rule_description: |
+    Configure Liberty message logging for operational monitoring and troubleshooting.
+  category: Logging and Auditing
+  subcategory: Message Logs
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for logging configuration:
+      
+      grep -E 'logging|messageLog' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Expected configuration:
+      <logging traceSpecification="*=info" 
+               maxFileSize="20" 
+               maxFiles="10"
+               consoleLogLevel="INFO"/>
+      
+      If logging is not configured or log level is too low, this is a finding.
+    check_command: grep -E 'logging|messageLog' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Logging configured with appropriate level
+  remediation:
+    remediation_step: |
+      Configure logging in server.xml:
+      
+      <logging traceSpecification="*=info"
+               maxFileSize="20"
+               maxFiles="10"
+               consoleLogLevel="INFO" />
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper logging enables monitoring and troubleshooting of security events.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - logging
+
+- rule_id: CIS-5.1.1
+  legacy_ids:
+  - 5.1.1
+  rule_name: Configure HTTP headers for security
+  rule_description: |
+    Configure security-related HTTP headers to protect against common web vulnerabilities.
+  category: Application Security
+  subcategory: HTTP Headers
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml or application web.xml for security headers:
+      
+      grep -E 'X-Frame-Options|X-Content-Type-Options|X-XSS-Protection' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Also check for header configuration in webContainer:
+      
+      grep -A10 'webContainer' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify the following headers are configured:
+      - X-Frame-Options: DENY or SAMEORIGIN
+      - X-Content-Type-Options: nosniff
+      
+      If security headers are not configured, this is a finding.
+    check_command: grep -E 'X-Frame-Options|X-Content-Type-Options|webContainer' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Security headers configured
+  remediation:
+    remediation_step: |
+      Configure security headers using a custom filter or in webContainer settings:
+      
+      <webContainer deferServletLoad="false" 
+                    xFrameOptions="SAMEORIGIN"
+                    xContentTypeOptions="nosniff" />
+      
+      Or configure in application web.xml:
+      
+      <filter>
+          <filter-name>SecurityHeadersFilter</filter-name>
+          <filter-class>com.example.SecurityHeadersFilter</filter-class>
+      </filter>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Security headers provide defense-in-depth protection against common web attacks.
+    impact: May affect application behavior if not properly configured
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - security-headers
+  - xss-protection
+
+- rule_id: CIS-6.1.1
+  legacy_ids:
+  - 6.1.1
+  rule_name: Secure keystore configuration
+  rule_description: |
+    Configure keystores securely with appropriate passwords and file permissions.
+  category: Cryptography
+  subcategory: Key Management
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for keystore configuration:
+      
+      grep -E 'keyStore' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify that:
+      1. Keystore passwords are encrypted (not plain text)
+      2. Keystore files have restricted permissions (600 or 400)
+      
+      Check file permissions:
+      
+      ls -la /opt/ibm/wlp/usr/servers/*/resources/security/
+      
+      If keystores are not properly secured, this is a finding.
+    check_command: grep -E 'keyStore' /opt/ibm/wlp/usr/servers/*/server.xml && ls -la /opt/ibm/wlp/usr/servers/*/resources/security/
+    expected_value: Keystores with encrypted passwords and restricted file permissions
+  remediation:
+    remediation_step: |
+      Configure keystore with encrypted password in server.xml:
+      
+      <keyStore id="defaultKeyStore"
+                location="key.jks"
+                type="JKS"
+                password="{xor}encrypted_password" />
+      
+      Set file permissions:
+      
+      chmod 600 /opt/ibm/wlp/usr/servers/*/resources/security/*.jks
+      
+      Use securityUtility to encode passwords:
+      securityUtility encode --encoding=xor myPassword
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Securing keystores prevents unauthorized access to private keys and certificates.
+    impact: Requires password management procedures
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - ssl
+  - keystore
+  - encryption
+
+- rule_id: CIS-7.1.1
+  legacy_ids:
+  - 7.1.1
+  rule_name: Disable unnecessary features
+  rule_description: |
+    Remove or disable any unnecessary Liberty features to reduce the attack surface.
+  category: Configuration
+  subcategory: Feature Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: |
+      List all enabled features in server.xml:
+      
+      grep -E '<feature>' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Review each feature and verify it is required for the application.
+      
+      Common unnecessary features to check:
+      - localConnector-1.0 (only needed for local development)
+      - quickStartSecurity (development only)
+      - restConnector-1.0 (only if REST admin is needed)
+      
+      If unnecessary features are enabled, this is a finding.
+    check_command: grep -E '<feature>' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Only required features enabled
+  remediation:
+    remediation_step: |
+      Review and remove unnecessary features from server.xml:
+      
+      Keep only required features:
+      <featureManager>
+          <feature>servlet-4.0</feature>
+          <feature>appSecurity-2.0</feature>
+          <feature>ssl-1.0</feature>
+          <!-- Remove unnecessary features -->
+      </featureManager>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Reducing enabled features minimizes the attack surface and resource consumption.
+    impact: May affect application functionality if required features are removed
+    false_positive_risk: Medium
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - features
+  - hardening
+
+- rule_id: CIS-8.1.1
+  legacy_ids:
+  - 8.1.1
+  rule_name: Configure connection pool limits
+  rule_description: |
+    Configure appropriate connection pool limits to prevent resource exhaustion.
+  category: Configuration
+  subcategory: Resource Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the server.xml for connection pool configuration:
+      
+      grep -E 'connectionPool|dataSource.*maxPoolSize' /opt/ibm/wlp/usr/servers/*/server.xml
+      
+      Verify connection pool settings:
+      - maxPoolSize is set to an appropriate value
+      - minPoolSize is configured
+      - connectionTimeout is set
+      
+      Example configuration:
+      <connectionManager id="ConnMgr" maxPoolSize="50" minPoolSize="10"/>
+      
+      If connection pool limits are not configured, this is a finding.
+    check_command: grep -E 'connectionPool|connectionManager|maxPoolSize' /opt/ibm/wlp/usr/servers/*/server.xml
+    expected_value: Connection pool limits configured
+  remediation:
+    remediation_step: |
+      Configure connection pool limits in server.xml:
+      
+      <connectionManager id="ConnMgr" 
+                         maxPoolSize="50" 
+                         minPoolSize="10"
+                         connectionTimeout="30"
+                         agedTimeout="7200" />
+      
+      <dataSource id="DefaultDataSource" 
+                  connectionManagerRef="ConnMgr"
+                  ...>
+      </dataSource>
+      
+      Restart the Liberty server.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Connection pool limits prevent resource exhaustion from database connections.
+    impact: May limit concurrent database connections
+    false_positive_risk: Low
+  tags:
+  - cis
+  - websphere-liberty
+  - openliberty
+  - connection-pool
+  - resource-management
