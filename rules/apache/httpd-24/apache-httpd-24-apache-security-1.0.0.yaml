@@ -1,0 +1,820 @@
+schema_version: "1.0.0"
+metadata:
+  name: Apache HTTP Server 2.4 Security Hardening
+  version: "1.0.0"
+  description: Security hardening rules for Apache HTTP Server 2.4 based on Apache official documentation
+  platform: Apache HTTP Server 2.4
+  benchmark: Apache HTTP Server Security Best Practices
+  author: Compliance Rules Team
+  created: "2026-03-14T00:00:00Z"
+  modified: "2026-03-14T00:00:00Z"
+  compatible_platforms:
+    - Apache HTTP Server 2.4.0
+    - Apache HTTP Server 2.4.x
+  references:
+    - type: Apache Documentation
+      reference: "https://httpd.apache.org/docs/2.4/misc/security_tips.html"
+    - type: Apache Security
+      reference: "https://httpd.apache.org/security/vulnerabilities_24.html"
+
+compliance_info:
+  framework: CIS
+  version: "1.0.0"
+  profile: Production
+
+rules:
+  - rule_id: APACHE-001
+    rule_name: Run Apache as Dedicated User
+    rule_description: |
+      Apache must run as a dedicated, non-privileged user and group.
+      The User and Group directives should be set to 'apache', 'www-data',
+      or similar service account.
+    category: Access Control
+    subcategory: User Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check User and Group directives in httpd.conf
+        2. Verify processes are not running as root
+      check_command: |
+        grep -E "^User|^Group" /etc/httpd/conf/httpd.conf /etc/apache2/apache2.conf 2>/dev/null
+        ps aux | grep httpd | grep -v grep | awk '{print $1}'
+    remediation:
+      remediation_step: |
+        1. Create dedicated apache user:
+           useradd -r -s /sbin/nologin apache
+        2. Configure in httpd.conf:
+           User apache
+           Group apache
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Non-root limits impact of exploitation.
+      false_positive_risk: Low
+    id: APACHE-001
+    title: Run Apache as Dedicated User
+    description: Apache must run as dedicated non-root user.
+    severity: Critical
+    tags:
+      - access-control
+      - user-configuration
+      - critical
+
+  - rule_id: APACHE-002
+    rule_name: Protect Server Files
+    rule_description: |
+      Server files including configuration files must be protected from
+      unauthorized access. The ServerRoot should be owned by root and
+      not writable by non-root users.
+    category: File Security
+    subcategory: Configuration Protection
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ServerRoot permissions
+        2. Verify configuration file permissions
+      check_command: |
+        ls -la /etc/httpd/ 2>/dev/null
+        ls -la /etc/httpd/conf/ 2>/dev/null
+        stat -c "%a %U:%G" /etc/httpd/conf/httpd.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Set ServerRoot permissions:
+           chown -R root:root /etc/httpd
+           chmod 755 /etc/httpd
+           chmod 640 /etc/httpd/conf/httpd.conf
+        2. Protect log directory:
+           chmod 750 /var/log/httpd
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Config files contain sensitive information.
+      false_positive_risk: Low
+    id: APACHE-002
+    title: Protect Server Files
+    description: Server files must be protected.
+    severity: High
+    tags:
+      - file-security
+      - configuration-protection
+
+  - rule_id: APACHE-003
+    rule_name: Disable Server-Side Includes
+    rule_description: |
+      Server-Side Includes (SSI) should be disabled if not required.
+      SSI can be exploited for cross-site scripting and other attacks.
+    category: Feature Hardening
+    subcategory: SSI Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for SSI configuration
+        2. Check for Includes option
+      check_command: |
+        grep -r "Includes\|mod_include" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        apachectl -M 2>/dev/null | grep include
+    remediation:
+      remediation_step: |
+        1. Disable Includes option:
+           Options -Includes
+        2. Or disable mod_include:
+           #LoadModule include_module modules/mod_include.so
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: SSI can be exploited for XSS attacks.
+      false_positive_risk: Medium
+    id: APACHE-003
+    title: Disable Server-Side Includes
+    description: SSI should be disabled if not required.
+    severity: Medium
+    tags:
+      - feature-hardening
+      - ssi
+
+  - rule_id: APACHE-004
+    rule_name: Disable CGI Execution
+    rule_description: |
+      CGI execution should be disabled if not required. CGI scripts
+      can be exploited to execute arbitrary commands on the server.
+    category: Feature Hardening
+    subcategory: CGI Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for CGI configuration
+        2. Check for ExecCGI option and mod_cgi
+      check_command: |
+        grep -r "ExecCGI\|mod_cgi\|ScriptAlias" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        apachectl -M 2>/dev/null | grep cgi
+    remediation:
+      remediation_step: |
+        1. Disable ExecCGI option:
+           Options -ExecCGI
+        2. Disable mod_cgi:
+           #LoadModule cgi_module modules/mod_cgi.so
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: CGI allows command execution.
+      false_positive_risk: Medium
+    id: APACHE-004
+    title: Disable CGI Execution
+    description: CGI should be disabled if not required.
+    severity: High
+    tags:
+      - feature-hardening
+      - cgi
+
+  - rule_id: APACHE-005
+    rule_name: Configure SymLinksIfOwnerMatch
+    rule_description: |
+      Symbolic links should be restricted using SymLinksIfOwnerMatch
+      instead of FollowSymLinks to prevent directory traversal attacks.
+    category: Directory Security
+    subcategory: Symlink Handling
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Options directive for symlink settings
+        2. Verify FollowSymLinks or SymLinksIfOwnerMatch
+      check_command: |
+        grep -r "Options.*SymLinks" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Use SymLinksIfOwnerMatch instead of FollowSymLinks:
+           Options SymLinksIfOwnerMatch
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: FollowSymLinks can be exploited for directory traversal.
+      false_positive_risk: Medium
+    id: APACHE-005
+    title: Configure SymLinksIfOwnerMatch
+    description: Symlinks should be restricted.
+    severity: Medium
+    tags:
+      - directory-security
+      - symlinks
+
+  - rule_id: APACHE-006
+    rule_name: Protect .htaccess Files
+    rule_description: |
+      Access to .htaccess files must be denied to prevent exposure of
+      configuration directives and potential security bypass.
+    category: File Security
+    subcategory: Dotfile Protection
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for Files directive protecting .ht files
+        2. Verify access is denied
+      check_command: |
+        grep -A5 "Files.*ht" /etc/httpd/conf/httpd.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Add protection in httpd.conf:
+           <Files "^\.ht">
+               Require all denied
+           </Files>
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: .htaccess files contain access control directives.
+      false_positive_risk: Low
+    id: APACHE-006
+    title: Protect .htaccess Files
+    description: Access to .htaccess files must be denied.
+    severity: High
+    tags:
+      - file-security
+      - dotfile-protection
+      - htaccess
+
+  - rule_id: APACHE-007
+    rule_name: Configure LimitRequestFields
+    rule_description: |
+      LimitRequestFields must be configured to prevent HTTP header
+      injection and resource exhaustion attacks.
+    category: Request Limits
+    subcategory: Header Limits
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LimitRequestFields directive
+        2. Verify it is set to a reasonable value
+      check_command: |
+        grep -r "LimitRequestFields" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure LimitRequestFields in httpd.conf:
+           LimitRequestFields 50
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Limits prevent header-based DoS attacks.
+      false_positive_risk: Low
+    id: APACHE-007
+    title: Configure LimitRequestFields
+    description: Request field limits must be configured.
+    severity: Medium
+    tags:
+      - request-limits
+      - header-limits
+
+  - rule_id: APACHE-008
+    rule_name: Configure LimitRequestFieldSize
+    rule_description: |
+      LimitRequestFieldSize must be configured to prevent oversized
+      HTTP headers from causing denial of service.
+    category: Request Limits
+    subcategory: Header Size
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LimitRequestFieldSize directive
+        2. Verify it is set to a reasonable value
+      check_command: |
+        grep -r "LimitRequestFieldSize" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure LimitRequestFieldSize in httpd.conf:
+           LimitRequestFieldSize 8190
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Limits prevent header-based DoS attacks.
+      false_positive_risk: Low
+    id: APACHE-008
+    title: Configure LimitRequestFieldSize
+    description: Request field size must be limited.
+    severity: Medium
+    tags:
+      - request-limits
+      - header-size
+
+  - rule_id: APACHE-009
+    rule_name: Configure LimitRequestLine
+    rule_description: |
+      LimitRequestLine must be configured to prevent oversized request
+      lines from causing denial of service.
+    category: Request Limits
+    subcategory: Request Line Size
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LimitRequestLine directive
+        2. Verify it is set to a reasonable value
+      check_command: |
+        grep -r "LimitRequestLine" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure LimitRequestLine in httpd.conf:
+           LimitRequestLine 8190
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Limits prevent request-based DoS attacks.
+      false_positive_risk: Low
+    id: APACHE-009
+    title: Configure LimitRequestLine
+    description: Request line size must be limited.
+    severity: Medium
+    tags:
+      - request-limits
+      - request-line
+
+  - rule_id: APACHE-010
+    rule_name: Configure LimitXMLRequestBody
+    rule_description: |
+      LimitXMLRequestBody must be configured to prevent XML-based
+      denial of service attacks like billion laughs.
+    category: Request Limits
+    subcategory: XML Request Size
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LimitXMLRequestBody directive
+        2. Verify it is set to a reasonable value
+      check_command: |
+        grep -r "LimitXMLRequestBody" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure LimitXMLRequestBody in httpd.conf:
+           LimitXMLRequestBody 1048576
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: XML attacks can cause DoS.
+      false_positive_risk: Low
+    id: APACHE-010
+    title: Configure LimitXMLRequestBody
+    description: XML request body size must be limited.
+    severity: Medium
+    tags:
+      - request-limits
+      - xml
+
+  - rule_id: APACHE-011
+    rule_name: Configure HostnameLookups
+    rule_description: |
+      HostnameLookups should be set to Off for performance reasons.
+      DNS lookups add latency to each request.
+    category: Performance
+    subcategory: DNS Configuration
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check HostnameLookups directive
+        2. Verify it is set to Off
+      check_command: |
+        grep -r "HostnameLookups" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Set HostnameLookups to Off:
+           HostnameLookups Off
+        2. Use logresolve for post-processing if needed
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "1 minute"
+    context:
+      rationale: DNS lookups impact performance.
+      false_positive_risk: Low
+    id: APACHE-011
+    title: Configure HostnameLookups
+    description: HostnameLookups should be Off.
+    severity: Low
+    tags:
+      - performance
+      - dns
+
+  - rule_id: APACHE-012
+    rule_name: Configure Listen Directive
+    rule_description: |
+      The Listen directive should be configured to bind to specific
+      IP addresses and ports rather than all interfaces.
+    category: Network Security
+    subcategory: Binding Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Listen directive
+        2. Verify specific IP is used
+      check_command: |
+        grep -r "^Listen" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure specific IP binding:
+           Listen 192.168.1.100:80
+           Listen 192.168.1.100:443
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Specific binding reduces attack surface.
+      false_positive_risk: Low
+    id: APACHE-012
+    title: Configure Listen Directive
+    description: Listen should bind to specific IP addresses.
+    severity: Medium
+    tags:
+      - network-security
+      - binding
+
+  - rule_id: APACHE-013
+    rule_name: Disable Proxy Module
+    rule_description: |
+      The mod_proxy module should be disabled if not required.
+      Proxy modules can be exploited for SSRF and proxying attacks.
+    category: Module Configuration
+    subcategory: Proxy Modules
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if proxy modules are loaded
+        2. Verify proxy is required
+      check_command: |
+        apachectl -M 2>/dev/null | grep proxy
+        grep -r "LoadModule.*proxy" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Disable proxy modules if not required:
+           #LoadModule proxy_module modules/mod_proxy.so
+           #LoadModule proxy_http_module modules/mod_proxy_http.so
+        2. If proxy is required, restrict with:
+           <Proxy *>
+               Require ip 10.0.0.0/8
+           </Proxy>
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Proxy can be exploited for SSRF attacks.
+      false_positive_risk: Medium
+    id: APACHE-013
+    title: Disable Proxy Module
+    description: Proxy module should be disabled if not required.
+    severity: High
+    tags:
+      - modules
+      - proxy
+      - ssrf
+
+  - rule_id: APACHE-014
+    rule_name: Configure Content Security Policy
+    rule_description: |
+      Content-Security-Policy header should be configured to prevent
+      XSS and content injection attacks.
+    category: Security Headers
+    subcategory: CSP Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for Content-Security-Policy header
+        2. Verify CSP is configured
+      check_command: |
+        grep -r "Content-Security-Policy" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI http://localhost 2>/dev/null | grep -i "Content-Security-Policy"
+    remediation:
+      remediation_step: |
+        1. Add CSP header in httpd.conf:
+           Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+        2. Ensure mod_headers is loaded
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: CSP prevents XSS and content injection.
+      false_positive_risk: Medium
+    id: APACHE-014
+    title: Configure Content Security Policy
+    description: CSP header should be configured.
+    severity: High
+    tags:
+      - security-headers
+      - csp
+      - xss
+
+  - rule_id: APACHE-015
+    rule_name: Configure Referrer-Policy Header
+    rule_description: |
+      Referrer-Policy header should be configured to control
+      referrer information sent to other sites.
+    category: Security Headers
+    subcategory: Privacy
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for Referrer-Policy header
+        2. Verify it is configured
+      check_command: |
+        grep -r "Referrer-Policy" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI http://localhost 2>/dev/null | grep -i "Referrer-Policy"
+    remediation:
+      remediation_step: |
+        1. Add Referrer-Policy header:
+           Header always set Referrer-Policy "strict-origin-when-cross-origin"
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Referrer-Policy protects sensitive URL data.
+      false_positive_risk: Low
+    id: APACHE-015
+    title: Configure Referrer-Policy Header
+    description: Referrer-Policy header should be configured.
+    severity: Medium
+    tags:
+      - security-headers
+      - privacy
+      - referrer
+
+  - rule_id: APACHE-016
+    rule_name: Configure Permissions-Policy Header
+    rule_description: |
+      Permissions-Policy header should be configured to control
+      browser features like camera, microphone, geolocation.
+    category: Security Headers
+    subcategory: Feature Policy
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for Permissions-Policy header
+        2. Verify it is configured
+      check_command: |
+        grep -r "Permissions-Policy" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI http://localhost 2>/dev/null | grep -i "Permissions-Policy"
+    remediation:
+      remediation_step: |
+        1. Add Permissions-Policy header:
+           Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Permissions-Policy restricts browser features.
+      false_positive_risk: Low
+    id: APACHE-016
+    title: Configure Permissions-Policy Header
+    description: Permissions-Policy header should be configured.
+    severity: Medium
+    tags:
+      - security-headers
+      - feature-policy
+
+  - rule_id: APACHE-017
+    rule_name: Configure RequestReadTimeout
+    rule_description: |
+      RequestReadTimeout should be configured to prevent slow loris
+      attacks by limiting the time for receiving requests.
+    category: DoS Protection
+    subcategory: Timeout Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check RequestReadTimeout directive
+        2. Verify timeout values are configured
+      check_command: |
+        grep -r "RequestReadTimeout" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure RequestReadTimeout:
+           RequestReadTimeout header=20-40,MinRate=500 body=20,MinRate=500
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Prevents slow loris DoS attacks.
+      false_positive_risk: Low
+    id: APACHE-017
+    title: Configure RequestReadTimeout
+    description: RequestReadTimeout must be configured.
+    severity: High
+    tags:
+      - dos-protection
+      - timeout
+      - slow-loris
+
+  - rule_id: APACHE-018
+    rule_name: Configure MaxRequestWorkers
+    rule_description: |
+      MaxRequestWorkers must be configured appropriately based on
+      server resources to prevent resource exhaustion.
+    category: Performance
+    subcategory: Worker Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check MaxRequestWorkers directive
+        2. Verify it is set appropriately
+      check_command: |
+        grep -r "MaxRequestWorkers\|MaxClients" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure MaxRequestWorkers based on available memory:
+           # For prefork MPM
+           MaxRequestWorkers 150
+           # For worker/event MPM
+           MaxRequestWorkers 300
+        2. Calculate based on: (Total RAM - OS RAM) / Avg Process Size
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Proper limits prevent resource exhaustion.
+      false_positive_risk: Low
+    id: APACHE-018
+    title: Configure MaxRequestWorkers
+    description: MaxRequestWorkers must be configured appropriately.
+    severity: Medium
+    tags:
+      - performance
+      - workers
+      - resource-limits
+
+  - rule_id: APACHE-019
+    rule_name: Disable UserDir Module
+    rule_description: |
+      The mod_userdir module should be disabled to prevent users
+      from serving content from their home directories.
+    category: Module Configuration
+    subcategory: User Directories
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if userdir module is loaded
+        2. Verify UserDir is disabled
+      check_command: |
+        apachectl -M 2>/dev/null | grep userdir
+        grep -r "UserDir" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Disable mod_userdir:
+           #LoadModule userdir_module modules/mod_userdir.so
+        2. Or disable UserDir:
+           UserDir disabled
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: UserDir allows serving content from home directories.
+      false_positive_risk: Low
+    id: APACHE-019
+    title: Disable UserDir Module
+    description: UserDir module should be disabled.
+    severity: Medium
+    tags:
+      - modules
+      - userdir
+
+  - rule_id: APACHE-020
+    rule_name: Configure Log Rotation
+    rule_description: |
+      Log rotation must be configured to prevent disk space exhaustion
+      and ensure logs are retained appropriately.
+    category: Logging
+    subcategory: Log Management
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for logrotate configuration
+        2. Verify logs are being rotated
+      check_command: |
+        cat /etc/logrotate.d/httpd 2>/dev/null
+        ls -la /etc/logrotate.d/ | grep httpd
+    remediation:
+      remediation_step: |
+        1. Create logrotate configuration:
+           /var/log/httpd/*log {
+               daily
+               rotate 30
+               compress
+               missingok
+               notifempty
+               sharedscripts
+               postrotate
+                   /sbin/service httpd reload > /dev/null 2>/dev/null || true
+               endscript
+           }
+        2. Test: logrotate -d /etc/logrotate.d/httpd
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: Log rotation prevents disk exhaustion.
+      false_positive_risk: Low
+    id: APACHE-020
+    title: Configure Log Rotation
+    description: Log rotation must be configured.
+    severity: Medium
+    tags:
+      - logging
+      - log-rotation

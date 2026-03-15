@@ -1,0 +1,915 @@
+schema_version: "1.0.0"
+metadata:
+  name: Apache HTTP Server 2.4 CIS Benchmark
+  version: "2.3.0"
+  description: CIS Apache HTTP Server 2.4 Benchmark v2.3.0 security hardening rules
+  platform: Apache HTTP Server 2.4
+  benchmark: CIS Apache HTTP Server 2.4 Benchmark
+  author: Compliance Rules Team
+  created: "2026-03-14T00:00:00Z"
+  modified: "2026-03-14T00:00:00Z"
+  compatible_platforms:
+    - Apache HTTP Server 2.4.0
+    - Apache HTTP Server 2.4.1
+    - Apache HTTP Server 2.4.x
+  references:
+    - type: CIS Benchmark
+      reference: "CIS Apache HTTP Server 2.4 Benchmark v2.3.0"
+    - type: Apache Documentation
+      reference: "https://httpd.apache.org/docs/2.4/"
+
+compliance_info:
+  framework: CIS
+  version: "2.3.0"
+  profile: Level 1
+
+rules:
+  - rule_id: CIS-1.1
+    rule_name: Run as Non-Privileged User
+    rule_description: |
+      Apache must run as a non-privileged user and group. The User and Group
+      directives must be set to a non-root user such as 'apache', 'www-data',
+      or 'daemon' to limit the impact of potential security vulnerabilities.
+    category: Initial Setup
+    subcategory: User Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check httpd.conf for User and Group directives
+        2. Verify the user is not root
+      check_command: |
+        grep -E "^User|^Group" /etc/httpd/conf/httpd.conf /etc/apache2/apache2.conf 2>/dev/null
+        ps -ef | grep httpd | grep -v grep
+    remediation:
+      remediation_step: |
+        1. Edit httpd.conf and set:
+           User apache
+           Group apache
+        2. Ensure the apache user exists:
+           useradd -r -s /sbin/nologin apache
+        3. Restart Apache: systemctl restart httpd
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Running as non-root limits damage from exploits.
+      impact: Root allows complete system compromise.
+      false_positive_risk: Low
+    id: CIS-1.1
+    title: Run as Non-Privileged User
+    description: Apache must run as non-root user.
+    severity: Critical
+    tags:
+      - user-configuration
+      - initial-setup
+      - critical
+
+  - rule_id: CIS-2.1
+    rule_name: Disable WebDAV Modules
+    rule_description: |
+      WebDAV modules (mod_dav and mod_dav_fs) must be disabled if not required.
+      WebDAV allows remote file manipulation and can be exploited for
+      unauthorized file access and modification.
+    category: Module Configuration
+    subcategory: Dangerous Modules
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if WebDAV modules are loaded
+        2. Verify they are disabled or commented out
+      check_command: |
+        apachectl -M 2>/dev/null | grep -i dav
+        grep -r "LoadModule.*dav" /etc/httpd/conf/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Comment out WebDAV modules in configuration:
+           #LoadModule dav_module modules/mod_dav.so
+           #LoadModule dav_fs_module modules/mod_dav_fs.so
+        2. Or use a2dismod on Debian/Ubuntu:
+           a2dismod dav dav_fs
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: WebDAV allows remote file manipulation.
+      false_positive_risk: Low
+    id: CIS-2.1
+    title: Disable WebDAV Modules
+    description: WebDAV modules must be disabled if not required.
+    severity: High
+    tags:
+      - modules
+      - webdav
+      - high
+
+  - rule_id: CIS-2.2
+    rule_name: Disable Status Module
+    rule_description: |
+      The mod_status module must be disabled or restricted to trusted IPs only.
+      The server-status page reveals sensitive information about server
+      configuration, connections, and performance.
+    category: Module Configuration
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if status module is loaded
+        2. Check if access is restricted
+      check_command: |
+        apachectl -M 2>/dev/null | grep status
+        grep -r "server-status\|<Location.*status" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Disable the module or restrict access:
+           #LoadModule status_module modules/mod_status.so
+        2. Or restrict to localhost only:
+           <Location /server-status>
+               SetHandler server-status
+               Require ip 127.0.0.1
+           </Location>
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Status page reveals server information.
+      false_positive_risk: Low
+    id: CIS-2.2
+    title: Disable Status Module
+    description: Status module must be disabled or restricted.
+    severity: Medium
+    tags:
+      - modules
+      - status
+      - information-disclosure
+
+  - rule_id: CIS-2.3
+    rule_name: Disable Info Module
+    rule_description: |
+      The mod_info module must be disabled. The server-info page exposes
+      detailed server configuration including loaded modules, directives,
+      and file paths.
+    category: Module Configuration
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if info module is loaded
+        2. Verify it is disabled
+      check_command: |
+        apachectl -M 2>/dev/null | grep info
+        grep -r "server-info\|mod_info" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Comment out the module:
+           #LoadModule info_module modules/mod_info.so
+        2. Or disable with a2dismod info
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Info module exposes configuration details.
+      false_positive_risk: Low
+    id: CIS-2.3
+    title: Disable Info Module
+    description: Info module must be disabled.
+    severity: Medium
+    tags:
+      - modules
+      - info
+      - information-disclosure
+
+  - rule_id: CIS-2.4
+    rule_name: Disable Autoindex Module
+    rule_description: |
+      The mod_autoindex module must be disabled or directory indexing must be
+      turned off. Directory listings can reveal sensitive file names and
+      directory structure.
+    category: Module Configuration
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if autoindex module is loaded
+        2. Check if Indexes option is disabled
+      check_command: |
+        apachectl -M 2>/dev/null | grep autoindex
+        grep -r "Options.*Indexes" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Disable directory indexing in configuration:
+           Options -Indexes
+        2. Or disable the module:
+           #LoadModule autoindex_module modules/mod_autoindex.so
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Directory listings reveal file structure.
+      false_positive_risk: Low
+    id: CIS-2.4
+    title: Disable Autoindex Module
+    description: Directory indexing must be disabled.
+    severity: Medium
+    tags:
+      - modules
+      - autoindex
+      - information-disclosure
+
+  - rule_id: CIS-3.1
+    rule_name: Disable SSLv2 and SSLv3
+    rule_description: |
+      SSLv2 and SSLv3 must be disabled due to known security vulnerabilities
+      including POODLE, DROWN, and other attacks. Only TLS 1.2 or higher
+      should be enabled.
+    category: SSL/TLS Configuration
+    subcategory: Protocol Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSL protocol configuration
+        2. Verify SSLv2 and SSLv3 are disabled
+      check_command: |
+        grep -r "SSLProtocol\|SSLv2\|SSLv3" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure SSL protocols in ssl.conf or virtual host:
+           SSLProtocol -all +TLSv1.2 +TLSv1.3
+        2. For Apache 2.4.17+:
+           SSLProtocol all -SSLv2 -SSLv3 -TLSv1 -TLSv1.1
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: SSLv2/v3 have known vulnerabilities.
+      false_positive_risk: Low
+    id: CIS-3.1
+    title: Disable SSLv2 and SSLv3
+    description: SSLv2 and SSLv3 must be disabled.
+    severity: Critical
+    tags:
+      - ssl-tls
+      - protocols
+      - critical
+
+  - rule_id: CIS-3.2
+    rule_name: Disable Weak Ciphers
+    rule_description: |
+      Weak ciphers including NULL, EXPORT, DES, RC4, and 3DES must be disabled.
+      Only strong ciphers with adequate key lengths should be used.
+    category: SSL/TLS Configuration
+    subcategory: Cipher Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check cipher configuration
+        2. Verify weak ciphers are disabled
+      check_command: |
+        grep -r "SSLCipherSuite" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure strong ciphers:
+           SSLCipherSuite HIGH:!aNULL:!MD5:!3DES:!RC4:!EXP
+        2. For modern configuration:
+           SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Weak ciphers can be broken to decrypt traffic.
+      false_positive_risk: Low
+    id: CIS-3.2
+    title: Disable Weak Ciphers
+    description: Weak ciphers must be disabled.
+    severity: Critical
+    tags:
+      - ssl-tls
+      - ciphers
+      - critical
+
+  - rule_id: CIS-3.3
+    rule_name: Enable HSTS Header
+    rule_description: |
+      HTTP Strict Transport Security (HSTS) must be enabled to force browsers
+      to use HTTPS connections and prevent downgrade attacks.
+    category: SSL/TLS Configuration
+    subcategory: Security Headers
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for HSTS header configuration
+        2. Verify Strict-Transport-Security header is set
+      check_command: |
+        grep -r "Strict-Transport-Security\|HSTS" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI https://localhost 2>/dev/null | grep -i "Strict-Transport-Security"
+    remediation:
+      remediation_step: |
+        1. Add HSTS header in ssl.conf or virtual host:
+           Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        2. Ensure mod_headers is loaded
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: HSTS prevents downgrade attacks.
+      false_positive_risk: Low
+    id: CIS-3.3
+    title: Enable HSTS Header
+    description: HSTS header must be enabled.
+    severity: High
+    tags:
+      - ssl-tls
+      - hsts
+      - security-headers
+
+  - rule_id: CIS-4.1
+    rule_name: Set ServerTokens
+    rule_description: |
+      ServerTokens must be set to Prod or ProductOnly to minimize information
+      disclosure in HTTP response headers. Default settings reveal Apache
+      version and module information.
+    category: Information Disclosure
+    subcategory: Server Identification
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ServerTokens directive
+        2. Verify it is set to Prod
+      check_command: |
+        grep -r "ServerTokens" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI http://localhost 2>/dev/null | grep -i "Server:"
+    remediation:
+      remediation_step: |
+        1. Set ServerTokens in httpd.conf:
+           ServerTokens Prod
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "1 minute"
+    context:
+      rationale: Server version helps attackers identify vulnerabilities.
+      false_positive_risk: Low
+    id: CIS-4.1
+    title: Set ServerTokens
+    description: ServerTokens must be set to Prod.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - server-tokens
+      - hardening
+
+  - rule_id: CIS-4.2
+    rule_name: Disable ServerSignature
+    rule_description: |
+      ServerSignature must be set to Off to prevent Apache from displaying
+      server version information on error pages and directory listings.
+    category: Information Disclosure
+    subcategory: Server Identification
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ServerSignature directive
+        2. Verify it is set to Off
+      check_command: |
+        grep -r "ServerSignature" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Set ServerSignature in httpd.conf:
+           ServerSignature Off
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "1 minute"
+    context:
+      rationale: Server signature reveals version on error pages.
+      false_positive_risk: Low
+    id: CIS-4.2
+    title: Disable ServerSignature
+    description: ServerSignature must be Off.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - server-signature
+      - hardening
+
+  - rule_id: CIS-5.1
+    rule_name: Disable Trace HTTP Method
+    rule_description: |
+      The TRACE HTTP method must be disabled to prevent Cross-Site Tracing
+      (XST) attacks that can be used to steal cookies protected with HttpOnly.
+    category: Request Filtering
+    subcategory: HTTP Methods
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check TraceEnable directive
+        2. Verify it is set to Off
+      check_command: |
+        grep -r "TraceEnable" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Disable TRACE method in httpd.conf:
+           TraceEnable Off
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "1 minute"
+    context:
+      rationale: TRACE method enables XST attacks.
+      false_positive_risk: Low
+    id: CIS-5.1
+    title: Disable Trace HTTP Method
+    description: TRACE method must be disabled.
+    severity: Medium
+    tags:
+      - http-methods
+      - trace
+      - xst
+
+  - rule_id: CIS-5.2
+    rule_name: Limit Request Body Size
+    rule_description: |
+      The LimitRequestBody directive must be set to an appropriate value to
+      prevent denial of service attacks through large request bodies.
+    category: Request Filtering
+    subcategory: Request Limits
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LimitRequestBody directive
+        2. Verify it is set to a reasonable limit
+      check_command: |
+        grep -r "LimitRequestBody" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Set LimitRequestBody in httpd.conf:
+           LimitRequestBody 10485760
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Large requests can cause DoS.
+      false_positive_risk: Low
+    id: CIS-5.2
+    title: Limit Request Body Size
+    description: Request body size must be limited.
+    severity: Medium
+    tags:
+      - request-limits
+      - dos-protection
+
+  - rule_id: CIS-6.1
+    rule_name: Configure Error Document
+    rule_description: |
+      Custom error documents must be configured to prevent exposure of
+      sensitive server information in default error pages.
+    category: Error Handling
+    subcategory: Custom Errors
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for ErrorDocument directives
+        2. Verify custom error pages are configured
+      check_command: |
+        grep -r "ErrorDocument" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure custom error pages in httpd.conf:
+           ErrorDocument 400 /error/400.html
+           ErrorDocument 401 /error/401.html
+           ErrorDocument 403 /error/403.html
+           ErrorDocument 404 /error/404.html
+           ErrorDocument 500 /error/500.html
+        2. Create appropriate error pages
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Custom errors prevent information disclosure.
+      false_positive_risk: Low
+    id: CIS-6.1
+    title: Configure Error Document
+    description: Custom error documents must be configured.
+    severity: Medium
+    tags:
+      - error-handling
+      - custom-errors
+
+  - rule_id: CIS-7.1
+    rule_name: Configure Logging
+    rule_description: |
+      Logging must be configured to capture access and error information
+      for security monitoring and forensic analysis.
+    category: Logging
+    subcategory: Access Logging
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for LogFormat and CustomLog directives
+        2. Verify logging is enabled
+      check_command: |
+        grep -r "LogFormat\|CustomLog\|ErrorLog" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure logging in httpd.conf:
+           LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+           CustomLog logs/access_log combined
+           ErrorLog logs/error_log
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Logging is essential for security monitoring.
+      false_positive_risk: Low
+    id: CIS-7.1
+    title: Configure Logging
+    description: Logging must be properly configured.
+    severity: High
+    tags:
+      - logging
+      - auditing
+      - access-log
+
+  - rule_id: CIS-8.1
+    rule_name: Set Timeout Value
+    rule_description: |
+      The Timeout directive must be set to an appropriate value to prevent
+      slow loris attacks and resource exhaustion.
+    category: Performance
+    subcategory: Connection Settings
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Timeout directive
+        2. Verify it is set to a reasonable value
+      check_command: |
+        grep -r "^Timeout" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Set Timeout in httpd.conf:
+           Timeout 60
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "1 minute"
+    context:
+      rationale: High timeout values enable slow loris attacks.
+      false_positive_risk: Low
+    id: CIS-8.1
+    title: Set Timeout Value
+    description: Timeout must be set appropriately.
+    severity: Medium
+    tags:
+      - performance
+      - timeout
+      - dos-protection
+
+  - rule_id: CIS-8.2
+    rule_name: Configure KeepAlive Settings
+    rule_description: |
+      KeepAlive must be enabled with appropriate settings to balance
+      performance and resource usage.
+    category: Performance
+    subcategory: Connection Settings
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check KeepAlive settings
+        2. Verify MaxKeepAliveRequests and KeepAliveTimeout
+      check_command: |
+        grep -r "KeepAlive\|MaxKeepAliveRequests\|KeepAliveTimeout" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure KeepAlive in httpd.conf:
+           KeepAlive On
+           MaxKeepAliveRequests 100
+           KeepAliveTimeout 5
+        2. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Proper KeepAlive improves performance.
+      false_positive_risk: Low
+    id: CIS-8.2
+    title: Configure KeepAlive Settings
+    description: KeepAlive must be properly configured.
+    severity: Low
+    tags:
+      - performance
+      - keepalive
+
+  - rule_id: CIS-9.1
+    rule_name: Restrict Directory Access
+    rule_description: |
+      Directory access must be restricted by default using AllowOverride None
+      and Require all denied for the root directory.
+    category: Access Control
+    subcategory: Directory Restrictions
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check directory directives
+        2. Verify root directory is restricted
+      check_command: |
+        grep -A5 "<Directory" /etc/httpd/conf/httpd.conf 2>/dev/null | head -30
+    remediation:
+      remediation_step: |
+        1. Configure default deny in httpd.conf:
+           <Directory />
+               AllowOverride None
+               Require all denied
+           </Directory>
+        2. Explicitly allow only necessary directories
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Default deny prevents unauthorized file access.
+      false_positive_risk: Low
+    id: CIS-9.1
+    title: Restrict Directory Access
+    description: Directory access must be restricted by default.
+    severity: High
+    tags:
+      - access-control
+      - directory-restrictions
+
+  - rule_id: CIS-10.1
+    rule_name: Disable AllowOverride
+    rule_description: |
+      AllowOverride must be set to None to prevent users from overriding
+      security settings using .htaccess files.
+    category: Access Control
+    subcategory: Configuration Override
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check AllowOverride settings
+        2. Verify it is set to None or limited
+      check_command: |
+        grep -r "AllowOverride" /etc/httpd/ /etc/apache2/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Set AllowOverride to None in httpd.conf:
+           <Directory /var/www/html>
+               AllowOverride None
+           </Directory>
+        2. If .htaccess is required, limit to specific options:
+           AllowOverride AuthConfig
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: AllowOverride can bypass security settings.
+      false_positive_risk: Medium
+    id: CIS-10.1
+    title: Disable AllowOverride
+    description: AllowOverride must be restricted.
+    severity: Medium
+    tags:
+      - access-control
+      - allowoverride
+      - htaccess
+
+  - rule_id: CIS-11.1
+    rule_name: Configure X-Frame-Options Header
+    rule_description: |
+      X-Frame-Options header must be set to prevent clickjacking attacks.
+      The header should be set to DENY or SAMEORIGIN.
+    category: Security Headers
+    subcategory: Clickjacking Prevention
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for X-Frame-Options header
+        2. Verify it is configured
+      check_command: |
+        grep -r "X-Frame-Options" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI http://localhost 2>/dev/null | grep -i "X-Frame-Options"
+    remediation:
+      remediation_step: |
+        1. Add X-Frame-Options header in httpd.conf:
+           Header always set X-Frame-Options "SAMEORIGIN"
+        2. Ensure mod_headers is loaded
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: X-Frame-Options prevents clickjacking.
+      false_positive_risk: Low
+    id: CIS-11.1
+    title: Configure X-Frame-Options Header
+    description: X-Frame-Options header must be set.
+    severity: Medium
+    tags:
+      - security-headers
+      - clickjacking
+      - x-frame-options
+
+  - rule_id: CIS-11.2
+    rule_name: Configure X-Content-Type-Options Header
+    rule_description: |
+      X-Content-Type-Options header must be set to "nosniff" to prevent
+      MIME type sniffing attacks.
+    category: Security Headers
+    subcategory: MIME Sniffing Prevention
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for X-Content-Type-Options header
+        2. Verify it is configured
+      check_command: |
+        grep -r "X-Content-Type-Options" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI http://localhost 2>/dev/null | grep -i "X-Content-Type"
+    remediation:
+      remediation_step: |
+        1. Add X-Content-Type-Options header in httpd.conf:
+           Header always set X-Content-Type-Options "nosniff"
+        2. Ensure mod_headers is loaded
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: X-Content-Type-Options prevents MIME sniffing.
+      false_positive_risk: Low
+    id: CIS-11.2
+    title: Configure X-Content-Type-Options Header
+    description: X-Content-Type-Options header must be set.
+    severity: Medium
+    tags:
+      - security-headers
+      - mime-sniffing
+      - x-content-type-options
+
+  - rule_id: CIS-11.3
+    rule_name: Configure X-XSS-Protection Header
+    rule_description: |
+      X-XSS-Protection header must be enabled to activate browser XSS
+      filtering mechanisms.
+    category: Security Headers
+    subcategory: XSS Prevention
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for X-XSS-Protection header
+        2. Verify it is configured
+      check_command: |
+        grep -r "X-XSS-Protection" /etc/httpd/ /etc/apache2/ 2>/dev/null
+        curl -sI http://localhost 2>/dev/null | grep -i "X-XSS-Protection"
+    remediation:
+      remediation_step: |
+        1. Add X-XSS-Protection header in httpd.conf:
+           Header always set X-XSS-Protection "1; mode=block"
+        2. Ensure mod_headers is loaded
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: X-XSS-Protection enables browser XSS filtering.
+      false_positive_risk: Low
+    id: CIS-11.3
+    title: Configure X-XSS-Protection Header
+    description: X-XSS-Protection header must be enabled.
+    severity: Medium
+    tags:
+      - security-headers
+      - xss-protection
+
+  - rule_id: CIS-12.1
+    rule_name: Remove Default Content
+    rule_description: |
+      Default content including welcome pages, manual, and icons must be
+      removed or disabled to prevent information disclosure.
+    category: Configuration
+    subcategory: Default Content
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for default content directories
+        2. Verify welcome.conf is disabled
+      check_command: |
+        ls -la /var/www/html/ 2>/dev/null
+        ls -la /etc/httpd/conf.d/welcome.conf 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Remove or disable welcome.conf:
+           mv /etc/httpd/conf.d/welcome.conf /etc/httpd/conf.d/welcome.conf.disabled
+        2. Remove default content:
+           rm -rf /var/www/html/*
+        3. Restart Apache
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Default content reveals server presence.
+      false_positive_risk: Low
+    id: CIS-12.1
+    title: Remove Default Content
+    description: Default content must be removed.
+    severity: Medium
+    tags:
+      - configuration
+      - default-content
