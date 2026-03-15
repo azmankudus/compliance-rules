@@ -1,0 +1,621 @@
+schema_version: 1.0.0
+metadata:
+  name: Oracle Java 11 Runtime Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules for Oracle Java 11 Runtime Environment (LTS)
+    based on Oracle and OpenJDK security documentation
+  platform: Oracle Java 11
+  benchmark: Oracle/OpenJDK Security Documentation
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Oracle Java 11 (JDK/JRE)
+  - OpenJDK 11
+  - Amazon Corretto 11
+  - Adoptium (Temurin) 11
+  - Azul Zulu 11
+  - Microsoft Build of OpenJDK 11
+  references:
+  - type: Oracle Documentation
+    reference: https://docs.oracle.com/en/java/javase/11/security/
+  - type: OpenJDK Security
+    reference: https://openjdk.org/groups/security/
+compliance_info:
+  framework: oracle
+  version: '1.0.0'
+  profile: unofficial
+  source:
+    framework: oracle
+    benchmark: Oracle Java SE Security Guide
+    version: '11'
+    profile: unofficial
+    notes: No official CIS or STIG exists for Java Runtime. Rules derived from Oracle
+      and OpenJDK security documentation.
+rules:
+- rule_id: JAVA11-SEC-001
+  legacy_ids:
+  - JAVA-SEC-001
+  rule_name: Enable Java Security Manager
+  rule_description: |
+    The Java Security Manager is a security policy enforcement mechanism. Note: Security Manager is deprecated in Java 11 but still functional. Consider migrating to alternative security mechanisms for future Java versions.
+  category: Access Control
+  subcategory: Security Manager
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check if the Security Manager is enabled:
+      
+      ps -ef | grep java | grep -i "security.manager"
+      
+      Note: Security Manager is deprecated in Java 11 but still works.
+      
+      If the Security Manager is not enabled and application requires sandboxing, this is a finding.
+    check_command: ps -ef | grep java | grep -i "security.manager"
+    expected_value: -Djava.security.manager should be present if sandboxing required
+  remediation:
+    remediation_step: |
+      Enable the Java Security Manager:
+      
+      java -Djava.security.manager -Djava.security.policy=myapp.policy -jar myapp.jar
+      
+      Note: Plan migration away from Security Manager for Java 17+ as it may be removed in future releases.
+      
+      Alternative security mechanisms:
+      - Operating system sandboxing (containers, namespaces)
+      - Java modules with limited exports
+      - Security frameworks (Spring Security, Apache Shiro)
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Security Manager provides application-level sandboxing but is deprecated in Java 11.
+    impact: May affect application functionality
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - security-manager
+  - deprecated
+
+- rule_id: JAVA11-SEC-002
+  legacy_ids:
+  - JAVA-SEC-003
+  rule_name: Configure TLS 1.2 or TLS 1.3
+  rule_description: |
+    Configure Java 11 to use TLS 1.2 or TLS 1.3 for all SSL/TLS connections. Java 11 supports TLS 1.3.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check TLS configuration:
+      
+      grep -E "jdk.tls.disabledAlgorithms|jdk.tls.client.protocols" $JAVA_HOME/conf/security/java.security
+      
+      Verify TLSv1.3 is available:
+      
+      java -version 2>&1 | head -1
+      
+      If TLS 1.2+ is not enforced, this is a finding.
+    check_command: grep -E "jdk.tls.disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: TLSv1, TLSv1.1, SSLv3 should be disabled
+  remediation:
+    remediation_step: |
+      Edit java.security file:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, SSLv2Hello, DTLSv1.0
+      
+      Enable TLS 1.3:
+      jdk.tls.server.protocols=TLSv1.2, TLSv1.3
+      jdk.tls.client.protocols=TLSv1.2, TLSv1.3
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: TLS 1.3 provides improved security and performance over TLS 1.2.
+    impact: Legacy clients may not support TLS 1.3
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - tls
+  - tls1.3
+
+- rule_id: JAVA11-SEC-003
+  legacy_ids:
+  - JAVA-SEC-004
+  rule_name: Disable weak cryptographic algorithms
+  rule_description: |
+    Configure Java 11 to disable weak cryptographic algorithms. Java 11 has stricter defaults than Java 8.
+  category: Cryptography
+  subcategory: Algorithm Restrictions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check disabled algorithms:
+      
+      grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security
+      
+      Java 11 defaults are stricter than Java 8.
+      
+      If configuration has been weakened from defaults, this is a finding.
+    check_command: grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: Weak algorithms should be disabled
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure (Java 11 defaults or stricter):
+      jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1 jdkCA & usage TLSServer, \\
+          RSA keySize < 2048, DSA keySize < 2048, EC keySize < 224, \\
+          SHA1 usage SignedJAR & denyAfter 2019-01-01
+      
+      jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024, \\
+          DSA keySize < 1024
+      
+      jdk.tls.disabledAlgorithms=SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, \\
+          EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Java 11 has stronger defaults but should be reviewed and hardened as needed.
+    impact: Legacy systems may require algorithm updates
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - cryptography
+  - algorithms
+
+- rule_id: JAVA11-SEC-004
+  legacy_ids:
+  - JAVA-SEC-016
+  rule_name: Configure deserialization filters (JEP 290)
+  rule_description: |
+    Configure Java deserialization filters using JEP 290 which is fully supported in Java 11.
+  category: Application Security
+  subcategory: Deserialization
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check deserialization filter configuration:
+      
+      grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security
+      
+      Check JVM arguments:
+      
+      ps -ef | grep java | grep -i "serialFilter"
+      
+      If deserialization filters are not configured, this is a finding.
+    check_command: grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security 2>/dev/null; ps -ef | grep java | grep serialFilter | head -3
+    expected_value: jdk.serialFilter should be configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure deserialization filter:
+      jdk.serialFilter=pattern
+      
+      Examples:
+      # Allow only java.base module classes
+      jdk.serialFilter=java.base/*;!*
+      
+      # Allow specific packages
+      jdk.serialFilter=java.base/*;java.util.*;java.lang.*;!*
+      
+      # Set limits
+      jdk.serialFilter=maxdepth=100;maxarray=1000000;maxbytes=50000000
+      
+      Or via command line:
+      -Djdk.serialFilter=java.base/*;!*
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect serialization-heavy applications
+    estimated_time: 30 minutes
+  context:
+    rationale: JEP 290 provides built-in deserialization filtering in Java 11.
+    impact: Applications using serialization may need filter tuning
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java11
+  - deserialization
+  - jep290
+
+- rule_id: JAVA11-SEC-005
+  legacy_ids: []
+  rule_name: Configure module system security
+  rule_description: |
+    Leverage the Java Platform Module System (JPMS) introduced in Java 9 to limit module access and exports.
+  category: Access Control
+  subcategory: Module Security
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check module configuration:
+      
+      java --list-modules | head -20
+      
+      Check JVM module arguments:
+      
+      ps -ef | grep java | grep -E "--add-opens|--add-exports|--add-reads|--patch-module"
+      
+      If excessive module opens/exports are configured, this is a finding.
+    check_command: ps -ef | grep java | grep -E "--add-opens|--add-exports|--add-reads" | head -5
+    expected_value: Minimal module opens/exports
+  remediation:
+    remediation_step: |
+      Review and minimize module opens/exports:
+      
+      Remove unnecessary:
+      --add-opens java.base/java.lang=ALL-UNNAMED
+      
+      Keep only required:
+      --add-opens java.base/java.lang=com.example.mymodule
+      
+      Use explicit module declarations in module-info.java:
+      
+      module com.example.mymodule {
+          requires java.sql;
+          exports com.example.api;
+          // Do not open internal packages
+      }
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: The module system provides encapsulation that can enhance security by limiting access to internal APIs.
+    impact: Applications using reflection on internal APIs may need configuration
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java11
+  - modules
+  - jpms
+
+- rule_id: JAVA11-SEC-006
+  legacy_ids:
+  - JAVA-SEC-005
+  rule_name: Configure SecureRandom
+  rule_description: |
+    Configure SecureRandom to use a cryptographically strong random number generator.
+  category: Cryptography
+  subcategory: Random Number Generation
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SecureRandom configuration:
+      
+      grep -E "securerandom" $JAVA_HOME/conf/security/java.security
+      
+      Verify strong algorithms are configured.
+    check_command: grep -E "securerandom" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: Strong random source configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      securerandom.source=file:/dev/urandom
+      securerandom.strongAlgorithms=NativePRNGBlocking:SUN,SHA1PRNG:SUN,DRBG:SUN
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Strong random number generation is critical for cryptographic operations.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - securerandom
+  - cryptography
+
+- rule_id: JAVA11-SEC-007
+  legacy_ids:
+  - JAVA-SEC-006
+  rule_name: Change keystore default password
+  rule_description: |
+    Change the default password for the Java cacerts keystore from 'changeit'.
+  category: Cryptography
+  subcategory: Keystore Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Test if default password works:
+      
+      keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>/dev/null | head -5
+      
+      If this succeeds, password is still 'changeit' - this is a finding.
+    check_command: keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>&1 | head -3
+    expected_value: Command should fail if password is changed
+  remediation:
+    remediation_step: |
+      Change keystore password:
+      
+      keytool -storepasswd -keystore $JAVA_HOME/lib/security/cacerts
+      
+      Enter old password (changeit) and new strong password.
+      
+      Store password securely in a password manager.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Applications using cacerts need password update
+    estimated_time: 15 minutes
+  context:
+    rationale: Default keystore password is well-known and must be changed.
+    impact: All applications using cacerts need password update
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - keystore
+  - password
+
+- rule_id: JAVA11-SEC-008
+  legacy_ids:
+  - JAVA-SEC-017
+  rule_name: Secure JMX remote access
+  rule_description: |
+    Disable or secure JMX remote access with SSL and authentication.
+  category: Network Security
+  subcategory: JMX Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JMX configuration:
+      
+      ps -ef | grep java | grep -E "com.sun.management.jmxremote"
+      
+      If JMX remote is enabled without authentication and SSL, this is a finding.
+    check_command: ps -ef | grep java | grep -E "com.sun.management.jmxremote" | head -3
+    expected_value: JMX secured with SSL and authentication
+  remediation:
+    remediation_step: |
+      Secure JMX:
+      
+      -Dcom.sun.management.jmxremote.port=9010
+      -Dcom.sun.management.jmxremote.rmi.port=9010
+      -Dcom.sun.management.jmxremote.authenticate=true
+      -Dcom.sun.management.jmxremote.ssl=true
+      -Dcom.sun.management.jmxremote.ssl.need.client.auth=true
+      -Dcom.sun.management.jmxremote.registry.ssl=true
+      -Dcom.sun.management.jmxremote.password.file=/path/to/jmxremote.password
+      -Dcom.sun.management.jmxremote.access.file=/path/to/jmxremote.access
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: JMX requires authentication
+    estimated_time: 20 minutes
+  context:
+    rationale: Unsecured JMX can lead to remote code execution.
+    impact: Monitoring tools need credentials
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - jmx
+  - ssl
+
+- rule_id: JAVA11-SEC-009
+  legacy_ids:
+  - JAVA-SEC-014
+  rule_name: Set appropriate file permissions
+  rule_description: |
+    Set appropriate file permissions on Java installation directory.
+  category: Access Control
+  subcategory: File Permissions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check permissions:
+      
+      ls -la $JAVA_HOME/ | head -10
+      ls -la $JAVA_HOME/lib/security/ | head -10
+      
+      If files are world-writable, this is a finding.
+    check_command: ls -la $JAVA_HOME/ | head -5; ls -la $JAVA_HOME/lib/security/ 2>/dev/null | head -5
+    expected_value: Restricted permissions
+  remediation:
+    remediation_step: |
+      Set permissions:
+      
+      chown -R root:root $JAVA_HOME/
+      chmod -R 755 $JAVA_HOME/
+      chmod 644 $JAVA_HOME/lib/security/java.security
+      chmod 600 $JAVA_HOME/lib/security/cacerts
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper file permissions prevent unauthorized modifications.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - file-permissions
+
+- rule_id: JAVA11-SEC-010
+  legacy_ids:
+  - JAVA-SEC-009
+  rule_name: Configure JVM memory limits
+  rule_description: |
+    Configure appropriate JVM memory limits.
+  category: Configuration
+  subcategory: Memory Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JVM memory settings:
+      
+      ps -ef | grep java | grep -E "Xmx|Xms"
+      
+      If memory limits are not configured, this is a finding.
+    check_command: ps -ef | grep java | grep -E "Xmx|Xms" | head -5
+    expected_value: Memory limits configured
+  remediation:
+    remediation_step: |
+      Configure memory:
+      
+      java -Xms256m -Xmx2g -XX:MaxMetaspaceSize=256m -jar myapp.jar
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Memory limits prevent resource exhaustion.
+    impact: May cause OutOfMemoryError if too low
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - memory
+  - jvm
+
+- rule_id: JAVA11-SEC-011
+  legacy_ids:
+  - JAVA-SEC-010
+  rule_name: Configure logging
+  rule_description: |
+    Configure Java logging for security monitoring.
+  category: Logging and Auditing
+  subcategory: Security Logging
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check logging configuration:
+      
+      cat $JAVA_HOME/conf/logging.properties | head -20
+      
+      If logging is not configured, this is a finding.
+    check_command: cat $JAVA_HOME/conf/logging.properties 2>/dev/null | head -15
+    expected_value: Logging configured
+  remediation:
+    remediation_step: |
+      Configure logging:
+      
+      vi $JAVA_HOME/conf/logging.properties
+      
+      .level=INFO
+      java.util.logging.FileHandler.level=INFO
+      java.util.logging.FileHandler.pattern=/var/log/java/java%u.log
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Security logging enables monitoring and forensic analysis.
+    impact: Disk space for logs
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - logging
+  - auditing
+
+- rule_id: JAVA11-SEC-012
+  legacy_ids:
+  - JAVA-SEC-013
+  rule_name: Enable FIPS mode if required
+  rule_description: |
+    Configure Java for FIPS 140-2 compliance if required.
+  category: Cryptography
+  subcategory: FIPS Compliance
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for FIPS configuration:
+      
+      grep -i fips $JAVA_HOME/conf/security/java.security
+      ps -ef | grep java | grep -i fips
+      
+      If FIPS is required but not configured, this is a finding.
+    check_command: grep -i fips $JAVA_HOME/conf/security/java.security 2>/dev/null; ps -ef | grep java | grep -i fips | head -2
+    expected_value: FIPS configured if required
+  remediation:
+    remediation_step: |
+      Use FIPS-certified provider:
+      
+      security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
+      
+      Or use Red Hat FIPS mode with NSS.
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May require code changes
+    estimated_time: 60 minutes
+  context:
+    rationale: FIPS compliance required for certain regulated environments.
+    impact: Requires FIPS-certified provider
+    false_positive_risk: Low
+  tags:
+  - java
+  - java11
+  - fips
+  - compliance
