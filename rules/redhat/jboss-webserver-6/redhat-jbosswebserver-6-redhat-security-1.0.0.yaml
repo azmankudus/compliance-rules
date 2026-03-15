@@ -1,0 +1,794 @@
+schema_version: "1.0.0"
+metadata:
+  name: Red Hat JBoss Web Server 6 Security Hardening
+  version: "1.0.0"
+  description: Security hardening rules for Red Hat JBoss Web Server 6 based on Red Hat official documentation
+  platform: Red Hat JBoss Web Server 6
+  benchmark: Red Hat JBoss Web Server Security Best Practices
+  author: Compliance Rules Team
+  created: "2026-03-14T00:00:00Z"
+  modified: "2026-03-14T00:00:00Z"
+  compatible_platforms:
+    - Red Hat JBoss Web Server 6.0
+    - Red Hat JBoss Web Server 6.1
+    - Red Hat JBoss Web Server 6.2
+  references:
+    - type: Red Hat Documentation
+      reference: "https://docs.redhat.com/en/documentation/red_hat_jboss_web_server/6"
+    - type: Red Hat Security
+      reference: "https://access.redhat.com/security/security-updates/"
+
+compliance_info:
+  framework: CIS
+  version: "1.0.0"
+  profile: Production
+
+rules:
+  - rule_id: RHJWS6-001
+    rule_name: Run JWS as Non-Root User
+    rule_description: |
+      JBoss Web Server 6 must run as a non-root user to minimize the impact of
+      potential security vulnerabilities. Running as root increases the risk
+      of privilege escalation if the server is compromised.
+    category: Access Control
+    subcategory: User Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the user configured in the JWS service
+        2. Verify the process is not running as root
+      check_command: |
+        ps -ef | grep tomcat | grep -v grep
+        grep -i "User=" /etc/systemd/system/jws6-tomcat.service 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Create a dedicated user for JWS:
+           useradd -r -s /sbin/nologin tomcat
+        2. Configure the service to run as this user
+        3. Ensure proper ownership of JWS directories
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Non-root limits damage from potential exploits.
+      impact: Root allows complete system compromise.
+      false_positive_risk: Low
+    id: RHJWS6-001
+    title: Run JWS as Non-Root User
+    description: JWS must run as non-root user.
+    severity: Critical
+    tags:
+      - access-control
+      - user-configuration
+      - non-root
+      - critical
+
+  - rule_id: RHJWS6-002
+    rule_name: Configure Java Security Manager
+    rule_description: |
+      The Java Security Manager should be enabled to restrict the permissions
+      granted to web applications running on Jakarta EE 9+ (Tomcat 10).
+    category: Security Framework
+    subcategory: Java Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if Security Manager is enabled
+        2. Verify -security flag or java.security.manager
+      check_command: |
+        grep -i "security" /etc/systemd/system/jws6-tomcat.service
+        grep -i "java.security.manager" /opt/jws-6/tomcat/bin/setenv.sh 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Enable Security Manager in setenv.sh:
+           JAVA_OPTS="$JAVA_OPTS -Djava.security.manager"
+        2. Configure security policy in catalina.policy
+        3. Restart JWS service
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "20 minutes"
+    context:
+      rationale: Security Manager restricts web application capabilities.
+      false_positive_risk: Medium
+    id: RHJWS6-002
+    title: Configure Java Security Manager
+    description: Java Security Manager should be enabled.
+    severity: High
+    tags:
+      - security-framework
+      - java-security
+      - sandbox
+
+  - rule_id: RHJWS6-003
+    rule_name: Configure Secure AJP Connector
+    rule_description: |
+      If using AJP connectors for communication with web servers, they must be
+      configured securely with secret attribute to prevent unauthorized access.
+      Tomcat 10 requires secretRequired=true by default.
+    category: Network Security
+    subcategory: Connector Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for AJP connector configuration
+        2. Verify secret is configured
+      check_command: |
+        grep -A5 "protocol=\"AJP" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure AJP connector with secret:
+           <Connector port="8009" protocol="AJP/1.3"
+                      secretRequired="true"
+                      secret="your-strong-secret-here"
+                      address="127.0.0.1" />
+        2. Configure matching secret in Apache mod_jk
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Unprotected AJP allows file read and potential RCE.
+      false_positive_risk: Low
+    id: RHJWS6-003
+    title: Configure Secure AJP Connector
+    description: AJP connector must be configured securely.
+    severity: High
+    tags:
+      - network-security
+      - ajp
+      - connector
+      - ghostcat
+
+  - rule_id: RHJWS6-004
+    rule_name: Configure Secure Random for Session IDs
+    rule_description: |
+      JBoss Web Server 6 must use a cryptographically secure random number
+      generator for session ID generation to prevent session prediction attacks.
+    category: Session Management
+    subcategory: Session ID Generation
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SecureRandom configuration in context.xml
+        2. Verify session ID generation uses secure random
+      check_command: |
+        grep -i "SecureRandom\|randomClass" /opt/jws-6/tomcat/conf/context.xml
+    remediation:
+      remediation_step: |
+        1. Configure SecureRandom in context.xml:
+           <Manager className="org.apache.catalina.session.StandardManager"
+                    randomClass="java.security.SecureRandom"
+                    sessionIdLength="32" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Predictable session IDs enable session hijacking.
+      false_positive_risk: Low
+    id: RHJWS6-004
+    title: Configure Secure Random for Session IDs
+    description: Secure random must be used for session IDs.
+    severity: High
+    tags:
+      - session-management
+      - secure-random
+      - session-id
+
+  - rule_id: RHJWS6-005
+    rule_name: Configure Error Handling
+    rule_description: |
+      Custom error pages must be configured to prevent exposure of
+      sensitive information in error messages.
+    category: Error Handling
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for custom error pages in web.xml
+        2. Verify ErrorReportValve hides server info
+      check_command: |
+        grep -i "error-page" /opt/jws-6/tomcat/conf/web.xml
+        grep -i "ErrorReportValve" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure custom error pages in web.xml
+        2. Configure ErrorReportValve to hide server info
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Default errors reveal server version and paths.
+      false_positive_risk: Low
+    id: RHJWS6-005
+    title: Configure Error Handling
+    description: Custom error pages must be configured.
+    severity: Medium
+    tags:
+      - error-handling
+      - information-disclosure
+      - custom-errors
+
+  - rule_id: RHJWS6-006
+    rule_name: Configure Rate Limiting
+    rule_description: |
+      Rate limiting should be configured to protect against DoS attacks
+      and brute force attempts on authentication endpoints.
+    category: Availability
+    subcategory: DoS Protection
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check for rate limiting configuration
+        2. Check for connection limiting in connectors
+      check_command: |
+        grep -i "RateLimit\|connectionTimeout\|maxThreads" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure connector limits
+        2. Use RemoteAddrValve for IP-based blocking
+        3. Consider mod_security with Apache HTTPD
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "20 minutes"
+    context:
+      rationale: Rate limiting protects against DoS and brute force.
+      false_positive_risk: Medium
+    id: RHJWS6-006
+    title: Configure Rate Limiting
+    description: Rate limiting should be configured.
+    severity: Medium
+    tags:
+      - availability
+      - rate-limiting
+      - dos-protection
+
+  - rule_id: RHJWS6-007
+    rule_name: Configure Secure JMX Access
+    rule_description: |
+      JMX access must be secured with authentication and TLS encryption
+      if remote JMX monitoring is required.
+    category: Management Security
+    subcategory: JMX Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check JMX configuration in setenv.sh
+        2. Verify authentication is enabled
+      check_command: |
+        grep -i "jmxremote" /opt/jws-6/tomcat/bin/setenv.sh 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure secure JMX with authentication and SSL
+        2. Create JMX password file with restricted permissions
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Unsecured JMX allows remote code execution.
+      false_positive_risk: Low
+    id: RHJWS6-007
+    title: Configure Secure JMX Access
+    description: JMX must be secured with authentication and TLS.
+    severity: High
+    tags:
+      - management-security
+      - jmx
+      - remote-access
+
+  - rule_id: RHJWS6-008
+    rule_name: Disable Unnecessary Connectors
+    rule_description: |
+      Only required connectors should be enabled. Unused connectors
+      increase the attack surface.
+    category: Configuration
+    subcategory: Connector Management
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. List all enabled connectors in server.xml
+        2. Verify only required connectors are enabled
+      check_command: |
+        grep -i "<Connector" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Comment out or remove unused connectors
+        2. Disable the shutdown port (port="-1")
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Each connector is a potential attack vector.
+      false_positive_risk: Low
+    id: RHJWS6-008
+    title: Disable Unnecessary Connectors
+    description: Only required connectors should be enabled.
+    severity: Medium
+    tags:
+      - configuration
+      - connectors
+      - hardening
+
+  - rule_id: RHJWS6-009
+    rule_name: Configure Secure Class Loader
+    rule_description: |
+      The class loader must be configured to prevent web applications from
+      overriding server classes and accessing internal Tomcat classes.
+    category: Application Security
+    subcategory: Class Loading
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check catalina.properties for class loader settings
+        2. Verify package protection is configured
+      check_command: |
+        grep -i "package.definition\|package.access" /opt/jws-6/tomcat/conf/catalina.properties
+    remediation:
+      remediation_step: |
+        1. Configure package protection in catalina.properties
+        2. Enable security manager for enforcement
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Class loader restrictions prevent internal class access.
+      false_positive_risk: Low
+    id: RHJWS6-009
+    title: Configure Secure Class Loader
+    description: Class loader must be configured securely.
+    severity: Medium
+    tags:
+      - application-security
+      - class-loader
+      - package-protection
+
+  - rule_id: RHJWS6-010
+    rule_name: Configure Deployment Descriptor Security
+    rule_description: |
+      The web.xml deployment descriptor must be configured with security
+      constraints including authentication requirements and secure transport.
+    category: Application Security
+    subcategory: Deployment Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check security-constraint in web.xml
+        2. Verify transport-guarantee for sensitive resources
+      check_command: |
+        grep -A20 "security-constraint" /opt/jws-6/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Add security constraints in web.xml
+        2. Configure transport-guarantee for protected resources
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Security constraints ensure proper access control.
+      false_positive_risk: Low
+    id: RHJWS6-010
+    title: Configure Deployment Descriptor Security
+    description: Security constraints must be configured in web.xml.
+    severity: High
+    tags:
+      - application-security
+      - deployment-descriptor
+      - security-constraints
+
+  - rule_id: RHJWS6-011
+    rule_name: Configure Connection Pool Security
+    rule_description: |
+      Database connection pools must be configured securely with encrypted
+      credentials and restricted access.
+    category: Data Security
+    subcategory: Database Connections
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check for datasource configuration in context.xml
+        2. Verify credentials are not plaintext
+      check_command: |
+        grep -i "Resource.*name.*jdbc" /opt/jws-6/tomcat/conf/context.xml
+    remediation:
+      remediation_step: |
+        1. Use encrypted passwords in datasource configuration
+        2. Store encrypted credentials in external properties file
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "20 minutes"
+    context:
+      rationale: Plaintext credentials can be extracted by attackers.
+      false_positive_risk: Low
+    id: RHJWS6-011
+    title: Configure Connection Pool Security
+    description: Database connection pools must use encrypted credentials.
+    severity: High
+    tags:
+      - data-security
+      - database
+      - credentials
+
+  - rule_id: RHJWS6-012
+    rule_name: Configure Clustering Security
+    rule_description: |
+      If Tomcat clustering is enabled for session replication, it must be
+      configured with encryption for cluster communication.
+    category: Network Security
+    subcategory: Cluster Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for Cluster configuration in server.xml
+        2. Verify encryption is enabled
+      check_command: |
+        grep -A30 "<Cluster" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure encrypted cluster communication
+        2. Use EncryptInterceptor for channel encryption
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: Unencrypted cluster traffic can be intercepted.
+      false_positive_risk: Low
+    id: RHJWS6-012
+    title: Configure Clustering Security
+    description: Cluster communication must be encrypted.
+    severity: High
+    tags:
+      - network-security
+      - clustering
+      - session-replication
+
+  - rule_id: RHJWS6-013
+    rule_name: Configure Log Rotation
+    rule_description: |
+      Log rotation must be configured to prevent disk space exhaustion
+      and ensure logs are retained according to policies.
+    category: Logging and Auditing
+    subcategory: Log Management
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check logging.properties for rotation settings
+        2. Check for logrotate configuration
+      check_command: |
+        grep -i "limit\|count\|maxDays" /opt/jws-6/tomcat/conf/logging.properties
+    remediation:
+      remediation_step: |
+        1. Configure log rotation in logging.properties
+        2. Create logrotate configuration for Tomcat logs
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: Log rotation prevents disk exhaustion.
+      false_positive_risk: Low
+    id: RHJWS6-013
+    title: Configure Log Rotation
+    description: Log rotation must be configured.
+    severity: Medium
+    tags:
+      - logging
+      - log-rotation
+      - log-management
+
+  - rule_id: RHJWS6-014
+    rule_name: Disable Server Banner
+    rule_description: |
+      The server banner must be disabled to prevent disclosure of
+      server version information in HTTP response headers.
+    category: Information Disclosure
+    subcategory: Server Identification
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for server banner in HTTP responses
+        2. Check server.xml for xpoweredBy and server attributes
+      check_command: |
+        curl -I http://localhost:8080 2>/dev/null | grep -i "server"
+        grep -i "xpoweredBy\|server=" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Disable xpoweredBy in server.xml connectors
+        2. Set empty server attribute to remove header
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Server version helps attackers identify vulnerabilities.
+      false_positive_risk: Low
+    id: RHJWS6-014
+    title: Disable Server Banner
+    description: Server banner must be disabled.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - server-banner
+      - hardening
+
+  - rule_id: RHJWS6-015
+    rule_name: Configure Memory Limits
+    rule_description: |
+      JVM memory limits must be configured appropriately to prevent
+      out-of-memory conditions and potential denial of service.
+    category: Resource Management
+    subcategory: JVM Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check JVM memory settings in setenv.sh
+        2. Verify Xms and Xmx are configured
+      check_command: |
+        grep -i "Xmx\|Xms\|MaxMetaspaceSize" /opt/jws-6/tomcat/bin/setenv.sh 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure JVM memory in setenv.sh
+        2. Consider system memory limits in systemd
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Proper memory limits prevent out-of-memory errors.
+      false_positive_risk: Low
+    id: RHJWS6-015
+    title: Configure Memory Limits
+    description: JVM memory limits must be configured.
+    severity: Medium
+    tags:
+      - resource-management
+      - jvm
+      - memory
+
+  - rule_id: RHJWS6-016
+    rule_name: Configure Thread Limits
+    rule_description: |
+      Thread limits must be configured to prevent resource exhaustion
+      from excessive concurrent connections.
+    category: Resource Management
+    subcategory: Thread Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check connector thread settings in server.xml
+        2. Verify maxThreads, minSpareThreads are configured
+      check_command: |
+        grep -i "maxThreads\|minSpareThreads\|acceptCount" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure thread limits in server.xml
+        2. Configure executor for shared thread pools
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Thread limits prevent resource exhaustion.
+      false_positive_risk: Low
+    id: RHJWS6-016
+    title: Configure Thread Limits
+    description: Thread limits must be configured.
+    severity: Medium
+    tags:
+      - resource-management
+      - threads
+      - performance
+
+  - rule_id: RHJWS6-017
+    rule_name: Enable Request Filtering
+    rule_description: |
+      Request filtering must be configured to block malicious requests
+      including path traversal, XSS attempts, and known attack patterns.
+    category: Request Filtering
+    subcategory: Input Validation
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for RequestFilterValve configuration
+        2. Check for CSRF prevention filter
+      check_command: |
+        grep -i "RequestFilter\|CSRF" /opt/jws-6/tomcat/conf/server.xml
+        grep -i "CsrfPreventionFilter" /opt/jws-6/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Enable CSRF prevention filter in web.xml
+        2. Configure request filtering for path traversal
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Request filtering provides defense against common attacks.
+      false_positive_risk: Medium
+    id: RHJWS6-017
+    title: Enable Request Filtering
+    description: Request filtering must be enabled.
+    severity: High
+    tags:
+      - request-filtering
+      - csrf
+      - input-validation
+
+  - rule_id: RHJWS6-018
+    rule_name: Configure TLS 1.3 Support
+    rule_description: |
+      TLS 1.3 should be enabled and preferred on JBoss Web Server 6
+      connectors for improved security and performance.
+    category: Encryption
+    subcategory: TLS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check TLS protocol configuration
+        2. Verify TLS 1.3 is enabled
+      check_command: |
+        grep -i "sslEnabledProtocols" /opt/jws-6/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure TLS 1.3 with fallback to TLS 1.2:
+           sslEnabledProtocols="TLSv1.3,TLSv1.2"
+        2. Use TLS 1.3 cipher suites
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: TLS 1.3 provides better security and performance.
+      false_positive_risk: Low
+    id: RHJWS6-018
+    title: Configure TLS 1.3 Support
+    description: TLS 1.3 should be enabled.
+    severity: High
+    tags:
+      - encryption
+      - ssl-tls
+      - tls13
+
+  - rule_id: RHJWS6-019
+    rule_name: Configure Jakarta EE 9+ Migration Security
+    rule_description: |
+      Applications migrated to Jakarta EE 9+ (jakarta.* packages) must be
+      reviewed for security implications of the namespace changes.
+    category: Application Security
+    subcategory: Migration Security
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: |
+        1. Review application deployment descriptors
+        2. Verify jakarta.* namespace usage
+        3. Check for deprecated security configurations
+      check_command: |
+        grep -r "javax\." /opt/jws-6/tomcat/webapps/*/WEB-INF/ 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Update application to use jakarta.* packages
+        2. Review security configurations after migration
+        3. Test security functionality thoroughly
+      rollback_supported: false
+      reboot_required: false
+      service_impact: Application redeployment required
+      estimated_time: "60 minutes"
+    context:
+      rationale: Jakarta EE 9+ migration requires security review.
+      false_positive_risk: Medium
+    id: RHJWS6-019
+    title: Configure Jakarta EE 9+ Migration Security
+    description: Jakarta EE 9+ migration requires security review.
+    severity: Medium
+    tags:
+      - application-security
+      - jakarta-ee
+      - migration
+
+  - rule_id: RHJWS6-020
+    rule_name: Configure Systemd Service Security
+    rule_description: |
+      The JWS systemd service must be configured with security hardening
+      options to restrict system access.
+    category: System Security
+    subcategory: Service Hardening
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check systemd service unit for security settings
+        2. Verify sandbox options are configured
+      check_command: |
+        systemctl cat jws6-tomcat 2>/dev/null | grep -i "NoNewPrivileges\|PrivateTmp\|ProtectSystem"
+    remediation:
+      remediation_step: |
+        1. Add security hardening to systemd service:
+           [Service]
+           NoNewPrivileges=true
+           PrivateTmp=true
+           ProtectSystem=strict
+           ProtectHome=true
+        2. Reload systemd and restart service
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Systemd hardening limits impact of compromise.
+      false_positive_risk: Low
+    id: RHJWS6-020
+    title: Configure Systemd Service Security
+    description: Systemd service must be hardened.
+    severity: High
+    tags:
+      - system-security
+      - systemd
+      - sandboxing
