@@ -1,7 +1,7 @@
 {
-  "generated": "2026-03-13T05:52:06.264868",
+  "generated": "2026-03-14T07:00:42.385025",
   "source": "cis_security",
-  "count": 482,
+  "count": 483,
   "benchmarks": [
     {
       "id": 82902,
@@ -10557,6 +10557,29 @@
           "location": "https://workbench.cisecurity.org/cis/api/v1/file/2449/download",
           "created_at": "2024-09-25T01:33:48.000000Z",
           "updated_at": "2024-10-29T13:05:30.000000Z"
+        }
+      ]
+    },
+    {
+      "id": 107383,
+      "technology_id": 8167,
+      "title": "CIS Tencent Cloud Enterprise Foundation Benchmark",
+      "technology_version": "Tencent Cloud Ent Found",
+      "version": "1.0.0",
+      "published": "2026-03-13 01:32:45",
+      "created_at": "2026-03-13T01:32:45.000000Z",
+      "updated_at": "2026-03-12T14:58:04.000000Z",
+      "deleted_at": null,
+      "documents": [
+        {
+          "id": 69978,
+          "benchmark_id": 107383,
+          "pardot-id": "/l/799323/2026-02-10/4vrrk2",
+          "title": "CIS Tencent Cloud Enterprise Foundation Benchmark v1.0.0 - PDF",
+          "filename": "CIS_Tencent_Cloud_Enterprise_Foundation_Benchmark_v1.0.0.pdf",
+          "location": "https://workbench.cisecurity.org/cis/api/v1/file/7252/download",
+          "created_at": "2026-03-13T01:32:52.000000Z",
+          "updated_at": "2026-03-12T14:50:20.000000Z"
         }
       ]
     },
