@@ -1,0 +1,909 @@
+schema_version: "1.0.0"
+metadata:
+  name: Apache Tomcat 11 STIG (Unofficial)
+  version: "1.0.0"
+  status: unofficial
+  description: Unofficial STIG-style security hardening rules for Apache Tomcat 11
+  platform: Apache Tomcat 11
+  benchmark: Web Server Security Requirements Guide
+  author: Compliance Rules Team
+  created: "2026-03-15T00:00:00Z"
+  modified: "2026-03-15T00:00:00Z"
+  compatible_platforms:
+    - Apache Tomcat 11.0
+  references:
+    - type: DISA STIG
+      reference: "Web Server Security Requirements Guide V4R4"
+    - type: DISA
+      reference: "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Web_Server_V4R4_SRG.zip"
+
+compliance_info:
+  framework: STIG
+  version: "1.0.0"
+  profile: unofficial
+  source:
+    framework: STIG
+    benchmark: Web Server Security Requirements Guide
+    version: "V4R4"
+    profile: CAT I
+    notes: "Adapted from generic Web Server SRG for Apache Tomcat 11 which has no product-specific STIG"
+
+rules:
+  - rule_id: STIG-V206434
+    legacy_ids:
+      - V-206434
+      - SV-206434r961632_rule
+    rule_name: Enable TLS for Data Transmission
+    rule_description: |
+      The web server must employ cryptographic mechanisms (TLS/DTLS/SSL)
+      preventing the unauthorized disclosure of information during transmission.
+    category: Encryption
+    subcategory: Transmission Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Review the Tomcat configuration
+        2. Verify all connectors handling sensitive data use TLS
+      check_command: |
+        grep -i "SSLEnabled\|scheme\|secure" /opt/tomcat/conf/server.xml
+        grep -i "redirectPort" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure HTTPS connector with SSL enabled:
+           <Connector port="8443" protocol="HTTP/1.1"
+                      SSLEnabled="true" scheme="https" secure="true"
+                      sslEnabledProtocols="TLSv1.2,TLSv1.3">
+             <SSLHostConfig>
+               <Certificate certificateKeystoreFile="/path/to/keystore"
+                            certificateKeystorePassword="password" />
+             </SSLHostConfig>
+           </Connector>
+        2. Configure HTTP connector to redirect to HTTPS
+        3. Configure web.xml for SSL enforcement
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Unencrypted transmission exposes sensitive data.
+      false_positive_risk: Low
+    id: STIG-V206434
+    title: Enable TLS for Data Transmission
+    description: TLS must to enabled for all data transmission.
+    severity: High
+    tags:
+      - encryption
+      - tls
+      - cat1
+
+  - rule_id: STIG-V206399
+    legacy_ids:
+      - V-206399
+      - SV-206399r961632_rule
+    rule_name: FIPS-Approved Session ID Generation
+    rule_description: |
+      The web server must generate unique session identifiers using a
+      FIPS 140-2 approved random number generator.
+    category: Session Management
+    subcategory: Session ID Generation
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check if FIPS mode is enabled
+        2. Verify session ID generation uses secure random
+      check_command: |
+        grep -i "SecureRandom\|randomClass" /opt/tomcat/conf/context.xml
+        cat /proc/sys/crypto/fips_enabled 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Configure session manager to use secure random:
+           <Manager className="org.apache.catalina.session.PersistentManager"
+                    randomClass="java.security.SecureRandom" />
+        2. Enable FIPS mode if required
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Predictable session IDs enable hijacking.
+      false_positive_risk: Low
+    id: STIG-V206399
+    title: FIPS-Approved Session ID Generation
+    description: Session IDs must use secure random.
+    severity: High
+    tags:
+      - session-management
+      - fips
+      - cat1
+
+  - rule_id: STIG-V206431
+    legacy_ids:
+      - V-206431
+      - SV-206431r961632_rule
+    rule_name: Encrypt User Credentials
+    rule_description: |
+      The web server must encrypt user identifiers and passwords when stored.
+    category: Authentication
+    subcategory: Credential Protection
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check tomcat-users.xml for password storage format
+        2. Verify passwords are hashed, not plaintext
+      check_command: |
+        grep -i "password" /opt/tomcat/conf/tomcat-users.xml
+        grep -i "digest\|credentialHandler" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure MessageDigestCredentialHandler:
+           <CredentialHandler className="org.apache.catalina.realm.MessageDigestCredentialHandler"
+                              algorithm="SHA-256" />
+        2. Store passwords as hashes in tomcat-users.xml
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Plaintext passwords allow credential theft.
+      false_positive_risk: Low
+    id: STIG-V206431
+    title: Encrypt User Credentials
+    description: Passwords must be encrypted when stored.
+    severity: High
+    tags:
+      - authentication
+      - password-encryption
+      - cat1
+
+  - rule_id: STIG-V206356
+    legacy_ids:
+      - V-206356
+      - SV-206356r961632_rule
+    rule_name: Generate Log Records for Key Events
+    rule_description: |
+      The web server must generate log records for system startup, shutdown,
+      access, and authentication events.
+    category: Logging and Auditing
+    subcategory: Event Logging
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check AccessLogValve configuration
+        2. Verify logging for authentication events
+      check_command: |
+        grep -i "AccessLogValve" /opt/tomcat/conf/server.xml
+        ls -la /opt/tomcat/logs/
+    remediation:
+      remediation_step: |
+        1. Configure AccessLogValve for all hosts:
+           <Valve className="org.apache.catalina.valves.AccessLogValve"
+                  directory="logs"
+                  prefix="access_log"
+                  suffix=".txt"
+                  pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "10 minutes"
+    context:
+      rationale: Logging is essential for incident detection.
+      false_positive_risk: Low
+    id: STIG-V206356
+    title: Generate Log Records for Key Events
+    description: Key events must be logged.
+    severity: Medium
+    tags:
+      - logging
+      - auditing
+      - events
+      - cat2
+
+  - rule_id: STIG-V206359
+    legacy_ids:
+      - V-206359
+      - SV-206359r961632_rule
+    rule_name: Log Record Content - Event Type
+    rule_description: |
+      Log records must contain sufficient information to establish what
+      type of events occurred.
+    category: Logging and Auditing
+    subcategory: Log Content
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check AccessLogValve pattern configuration
+        2. Verify log pattern includes request method and URI
+      check_command: |
+        grep -i "pattern" /opt/tomcat/conf/server.xml | grep -i "AccessLogValve"
+    remediation:
+      remediation_step: |
+        1. Configure comprehensive log pattern:
+           <Valve className="org.apache.catalina.valves.AccessLogValve"
+                  pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Event type is essential for forensics.
+      false_positive_risk: Low
+    id: STIG-V206359
+    title: Log Record Content - Event Type
+    description: Log records need event type info.
+    severity: Medium
+    tags:
+      - logging
+      - log-content
+      - cat2
+
+  - rule_id: STIG-V206360
+    legacy_ids:
+      - V-206360
+      - SV-206360r961632_rule
+    rule_name: Log Record Content - Timestamps
+    rule_description: |
+      Log records need to contain sufficient information to establish when
+      events occurred.
+    category: Logging and Auditing
+    subcategory: Log Content
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check AccessLogValve pattern for timestamp (%t)
+        2. Verify logging.properties timestamp format
+      check_command: |
+        grep -i "pattern" /opt/tomcat/conf/server.xml | grep "%t"
+    remediation:
+      remediation_step: |
+        1. Ensure log pattern includes timestamp (%t)
+        2. Configure consistent timestamp format
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Timestamps enable event correlation.
+      false_positive_risk: Low
+    id: STIG-V206360
+    title: Log Record Content - Timestamps
+    description: Log records need timestamps.
+    severity: Medium
+    tags:
+      - logging
+      - timestamps
+      - cat2
+
+  - rule_id: STIG-V206362
+    legacy_ids:
+      - V-206362
+      - SV-206362r961632_rule
+    rule_name: Log Record Content - Source of Events
+    rule_description: |
+      Log records need to contain sufficient information to establish the
+      source of events.
+    category: Logging and Auditing
+    subcategory: Log Content
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check AccessLogValve pattern for source IP (%h or %a)
+        2. Verify client IP is being logged
+      check_command: |
+        grep -i "pattern" /opt/tomcat/conf/server.xml | grep -E "%h|%a"
+    remediation:
+      remediation_step: |
+        1. Ensure log pattern includes source IP (%h or %a)
+        2. Use RemoteIpValve if behind load balancer
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Source IP is critical for identifying attackers.
+      false_positive_risk: Low
+    id: STIG-V206362
+    title: Log Record Content - Source of Events
+    description: Log records need source info.
+    severity: Medium
+    tags:
+      - logging
+      - source-ip
+      - cat2
+
+  - rule_id: STIG-V206364
+    legacy_ids:
+      - V-206364
+      - SV-206364r961632_rule
+    rule_name: Log Record Content - Event Outcome
+    rule_description: |
+      Log records need to contain sufficient information to establish the
+      outcome (success or failure) of events.
+    category: Logging and Auditing
+    subcategory: Log Content
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check AccessLogValve pattern for status code (%s)
+        2. Verify HTTP status codes are being logged
+      check_command: |
+        grep -i "pattern" /opt/tomcat/conf/server.xml | grep "%s"
+    remediation:
+      remediation_step: |
+        1. Ensure log pattern includes HTTP status code (%s)
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Event outcome is essential for analysis.
+      false_positive_risk: Low
+    id: STIG-V206364
+    title: Log Record Content - Event Outcome
+    description: Log records need event outcome info.
+    severity: Medium
+    tags:
+      - logging
+      - event-outcome
+      - cat2
+
+  - rule_id: STIG-V206368
+    legacy_ids:
+      - V-206368
+      - SV-206368r961632_rule
+    rule_name: Log Files Access Restricted
+    rule_description: |
+      Web server log files must only be accessible by privileged users.
+    category: Logging and Auditing
+    subcategory: Log File Protection
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check log directory permissions
+        2. Verify only privileged users have access
+      check_command: |
+        ls -la /opt/tomcat/logs/
+        stat -c "%a %U:%G" /opt/tomcat/logs/
+    remediation:
+      remediation_step: |
+        1. Set restrictive permissions:
+           chmod 750 /opt/tomcat/logs/
+           chown tomcat:tomcat /opt/tomcat/logs/
+        2. Set log file permissions:
+           chmod 640 /opt/tomcat/logs/*
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "2 minutes"
+    context:
+      rationale: Log data compromise prevents forensics.
+      false_positive_risk: Low
+    id: STIG-V206368
+    title: Log Files Access Restricted
+    description: Log files need restricted access.
+    severity: Medium
+    tags:
+      - logging
+      - file-permissions
+      - cat2
+
+  - rule_id: STIG-V206375
+    legacy_ids:
+      - V-206375
+      - SV-206375r961632_rule
+    rule_name: Remove Unnecessary Services
+    rule_description: |
+      The web server must only contain services and functions necessary for
+      operation.
+    category: Configuration
+    subcategory: Service Hardening
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. List enabled connectors in server.xml
+        2. Check for unnecessary web applications
+      check_command: |
+        grep -i "Connector" /opt/tomcat/conf/server.xml
+        ls -la /opt/tomcat/webapps/
+    remediation:
+      remediation_step: |
+        1. Remove unnecessary connectors
+        2. Remove example and documentation applications
+        3. Disable unused valves and listeners
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Each service increases attack surface.
+      false_positive_risk: Low
+    id: STIG-V206375
+    title: Remove Unnecessary Services
+    description: Only necessary services should be enabled.
+    severity: Medium
+    tags:
+      - hardening
+      - unnecessary-services
+      - cat2
+
+  - rule_id: STIG-V206377
+    legacy_ids:
+      - V-206377
+      - SV-206377r961632_rule
+    rule_name: Remove Documentation and Samples
+    rule_description: |
+      Documentation, sample code, example applications, and tutorials
+      must to removed from production.
+    category: Configuration
+    subcategory: Application Cleanup
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for documentation and sample applications
+        2. Verify examples, docs directories do not exist
+      check_command: |
+        ls -la /opt/tomcat/webapps/ | grep -E "examples|docs|ROOT"
+    remediation:
+      remediation_step: |
+        1. Remove example applications
+        2. Remove documentation
+        3. Replace or remove default ROOT application
+      rollback_supported: false
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Documentation reveals server capabilities.
+      false_positive_risk: Low
+    id: STIG-V206377
+    title: Remove Documentation and Samples
+    description: Documentation and samples need to be removed.
+    severity: Medium
+    tags:
+      - application-cleanup
+      - documentation
+      - examples
+      - cat2
+
+  - rule_id: STIG-V206383
+    legacy_ids:
+      - V-206383
+      - SV-206383r961632_rule
+    rule_name: Disable WebDAV
+    rule_description: |
+      Web Distributed Authoring (WebDAV) needs to be disabled.
+    category: Configuration
+    subcategory: Feature Hardening
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if WebDAV servlet is enabled in web.xml
+        2. Verify WebDAV functionality is disabled
+      check_command: |
+        grep -i "webdav" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Comment out or remove WebDAV servlet in web.xml
+        2. Tomcat 11 does not enable WebDAV by default
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: WebDAV allows remote file manipulation.
+      false_positive_risk: Low
+    id: STIG-V206383
+    title: Disable WebDAV
+    description: WebDAV needs to be disabled.
+    severity: Medium
+    tags:
+      - webdav
+      - feature-hardening
+      - cat2
+
+  - rule_id: STIG-V206396
+    legacy_ids:
+      - V-206396
+      - SV-206396r961632_rule
+    rule_name: Invalidate Session on Logout
+    rule_description: |
+      Session identifiers need to be invalidated upon logout or session termination.
+    category: Session Management
+    subcategory: Session Termination
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check session configuration in web.xml
+        2. Verify session timeout settings
+      check_command: |
+        grep -A5 "session-config" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Configure session timeout in web.xml:
+           <session-config>
+             <session-timeout>30</session-timeout>
+           </session-config>
+        2. Ensure applications call session.invalidate() on logout
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Session reuse enables hijacking.
+      false_positive_risk: Low
+    id: STIG-V206396
+    title: Invalidate Session on Logout
+    description: Sessions need to be invalidated on logout.
+    severity: Medium
+    tags:
+      - session-management
+      - logout
+      - session-invalidation
+      - cat2
+
+  - rule_id: STIG-V206397
+    legacy_ids:
+      - V-206397
+      - SV-206397r961632_rule
+    rule_name: Cookie Security Settings
+    rule_description: |
+      Cookies need to have security settings that disallow access outside
+      the originating web server.
+    category: Session Management
+    subcategory: Cookie Security
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check cookie-config in web.xml
+        2. Verify secure and http-only flags are set
+      check_command: |
+        grep -A10 "cookie-config" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Configure secure cookies in web.xml:
+           <session-config>
+             <cookie-config>
+               <secure>true</secure>
+               <http-only>true</http-only>
+             </cookie-config>
+           </session-config>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Secure cookies prevent session hijacking.
+      false_positive_risk: Low
+    id: STIG-V206397
+    title: Cookie Security Settings
+    description: Cookies need secure settings.
+    severity: Medium
+    tags:
+      - session-management
+      - cookies
+      - security-flags
+      - cat2
+
+  - rule_id: STIG-V206412
+    legacy_ids:
+      - V-206412
+      - SV-206412r961632_rule
+    rule_name: Minimize Server Information in Errors
+    rule_description: |
+      Error messages need to minimize server identity disclosure.
+    category: Information Disclosure
+    subcategory: Error Handling
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ErrorReportValve configuration
+        2. Verify showServerInfo is disabled
+      check_command: |
+        grep -i "ErrorReportValve" /opt/tomcat/conf/server.xml | grep -i "showServerInfo"
+    remediation:
+      remediation_step: |
+        1. Configure ErrorReportValve to hide server info:
+           <Valve className="org.apache.catalina.valves.ErrorReportValve"
+                  showServerInfo="false" showReport="false" />
+        2. Configure custom error pages
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Server details help attackers.
+      false_positive_risk: Low
+    id: STIG-V206412
+    title: Minimize Server Information in Errors
+    description: Error messages should not reveal server info.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - error-handling
+      - server-info
+      - cat2
+
+  - rule_id: STIG-V206413
+    legacy_ids:
+      - V-206413
+      - SV-206413r961632_rule
+    rule_name: Disable Debugging and Tracing
+    rule_description: |
+      Debugging and trace information needs to be disabled.
+    category: Information Disclosure
+    subcategory: Debug Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for debug settings in web.xml
+        2. Verify development mode is disabled
+      check_command: |
+        grep -i "debug" /opt/tomcat/conf/web.xml
+        grep -i "development" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Disable JSP development mode in web.xml
+        2. Set appropriate log levels
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Debug information exposes internals.
+      false_positive_risk: Low
+    id: STIG-V206413
+    title: Disable Debugging and Tracing
+    description: Debugging and tracing need to be disabled.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - debugging
+      - cat2
+
+  - rule_id: STIG-V206414
+    legacy_ids:
+      - V-206414
+      - SV-206414r961632_rule
+    rule_name: Session Absolute Timeout
+    rule_description: |
+      Session absolute timeout needs to be set to 8 hours or less.
+    category: Session Management
+    subcategory: Session Timeout
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check session-timeout in web.xml
+        2. Verify timeout is 480 minutes (8 hours) or less
+      check_command: |
+        grep -A3 "session-config" /opt/tomcat/conf/web.xml | grep "session-timeout"
+    remediation:
+      remediation_step: |
+        1. Set session timeout to 480 minutes or less:
+           <session-config>
+             <session-timeout>480</session-timeout>
+           </session-config>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Long sessions increase hijacking risk.
+      false_positive_risk: Low
+    id: STIG-V206414
+    title: Session Absolute Timeout
+    description: Session timeout needs to be 8 hours or less.
+    severity: Medium
+    tags:
+      - session-management
+      - timeout
+      - cat2
+
+  - rule_id: STIG-V206439
+    legacy_ids:
+      - V-206439
+      - SV-206439r961632_rule
+    rule_name: Use Approved TLS Version
+    rule_description: |
+      Approved TLS version (1.2 or higher) needs to be used.
+    category: Encryption
+    subcategory: TLS Version
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSL protocol configuration
+        2. Verify only TLS 1.2+ is enabled
+      check_command: |
+        grep -i "sslEnabledProtocols\|sslProtocol" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure TLS 1.2+ only:
+           sslEnabledProtocols="TLSv1.2,TLSv1.3"
+        2. Disable older protocol versions
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Older TLS versions have vulnerabilities.
+      false_positive_risk: Low
+    id: STIG-V206439
+    title: Use Approved TLS Version
+    description: Only approved TLS versions should be used.
+    severity: High
+    tags:
+      - encryption
+      - tls
+      - cat1
+
+  - rule_id: STIG-V206440
+    legacy_ids:
+      - V-206440
+      - SV-206440r961632_rule
+    rule_name: Remove Export Ciphers
+    rule_description: |
+      Export ciphers need to be removed to protect transmitted information.
+    category: Encryption
+    subcategory: Cipher Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check cipher configuration in server.xml
+        2. Verify no export ciphers
+      check_command: |
+        grep -i "ciphers" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure strong ciphers only:
+           ciphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                    TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Export ciphers are weak.
+      false_positive_risk: Low
+    id: STIG-V206440
+    title: Remove Export Ciphers
+    description: Export ciphers need to be removed.
+    severity: High
+    tags:
+      - encryption
+      - ciphers
+      - cat1
+
+  - rule_id: STIG-V206443
+    legacy_ids:
+      - V-206443
+      - SV-206443r961632_rule
+    rule_name: Install Security Updates
+    rule_description: |
+      Security updates need to be installed within the configured time period.
+    category: Patch Management
+    subcategory: Security Updates
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: runtime
+      detection_step: |
+        1. Check Tomcat version
+        2. Compare with latest version
+      check_command: |
+        /opt/tomcat/bin/version.sh
+    remediation:
+      remediation_step: |
+        1. Download latest Tomcat 11 version
+        2. Test in non-production
+        3. Deploy to production
+      rollback_supported: false
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "30 minutes"
+    context:
+      rationale: Unpatched vulnerabilities are attack vectors.
+      false_positive_risk: Low
+    id: STIG-V206443
+    title: Install Security Updates
+    description: Security updates need to be installed timely.
+    severity: High
+    tags:
+      - patch-management
+      - security-updates
+      - cat1
+
+  - rule_id: STIG-V206444
+    legacy_ids:
+      - V-206444
+      - SV-206444r961632_rule
+    rule_name: Change Default Passwords
+    rule_description: |
+      Default passwords need to be changed for all accounts.
+    category: Authentication
+    subcategory: Password Management
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check tomcat-users.xml for default users
+        2. Verify no default passwords
+      check_command: |
+        cat /opt/tomcat/conf/tomcat-users.xml | grep -i "password"
+    remediation:
+      remediation_step: |
+        1. Remove or change default users in tomcat-users.xml
+        2. Use strong, unique passwords
+        3. Consider LDAP/AD integration
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Default passwords are widely known.
+      false_positive_risk: Low
+    id: STIG-V206444
+    title: Change Default Passwords
+    description: Default passwords need to be changed.
+    severity: High
+    tags:
+      - authentication
+      - default-passwords
+      - cat1
