@@ -1,0 +1,659 @@
+schema_version: 1.0.0
+metadata:
+  name: CIS Microsoft IIS 10 Benchmark - Level 1
+  version: '1.2.1'
+  description: CIS Microsoft IIS 10 Benchmark v1.2.1 - Level 1
+  platform: Microsoft IIS 10.0
+  benchmark: CIS Microsoft IIS 10 Benchmark v1.2.1
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Microsoft IIS 10.0 on Windows Server 2016
+  - Microsoft IIS 10.0 on Windows Server 2019
+  - Microsoft IIS 10.0 on Windows Server 2022
+  references:
+  - type: CIS Benchmark
+    reference: CIS Microsoft IIS 10 Benchmark v1.2.1
+  - type: CIS
+    reference: https://www.cisecurity.org/benchmark/microsoft_iis
+compliance_info:
+  framework: CIS
+  version: '1.2.1'
+  profile: Level 1 - Server
+rules:
+- rule_id: CIS-1.1.1
+  legacy_ids:
+  - 1.1.1
+  rule_name: Ensure web content is on non-system partition
+  rule_description: |
+    Web content should be stored on a non-system partition to prevent directory traversal attacks from accessing system files.
+  category: Configuration
+  subcategory: File System
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Open IIS Manager
+      Select the server node
+      Click on "Sites"
+      For each site, verify the Physical Path is not on the system drive (C:)
+      
+      Alternatively, use PowerShell:
+      Get-Website | Select-Object Name, PhysicalPath
+      
+      If any site content is stored on C:, this is a finding.
+    check_command: Get-Website | Select-Object Name, PhysicalPath
+    expected_value: "Physical paths should not start with C: drive"
+  remediation:
+    remediation_step: |
+      Move web content to a non-system partition:
+      
+      1. Create new folder on non-system drive (e.g., D:\WebContent)
+      2. Copy existing web content to new location
+      3. Update IIS site physical path:
+         - Open IIS Manager
+         - Select site > Basic Settings
+         - Update Physical Path
+      4. Verify permissions on new location
+      5. Remove old content from system drive
+      
+      Or use PowerShell:
+      Set-ItemProperty "IIS:\Sites\Default Web Site" -Name physicalPath -Value "D:\WebContent"
+  context:
+    rationale: Separating web content from system files limits the impact of directory traversal vulnerabilities.
+    impact: Requires additional storage on non-system drives
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - file-system
+  - directory-traversal
+
+- rule_id: CIS-1.2.1
+  legacy_ids:
+  - 1.2.1
+  rule_name: Configure TLS 1.2 or higher
+  rule_description: |
+    Configure IIS to use TLS 1.2 or higher for all HTTPS connections.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: registry
+    detection_step: |
+      Check TLS protocol configuration in registry:
+      
+      reg query "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server" /v Enabled
+      reg query "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server" /v Enabled
+      reg query "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" /v Enabled
+      
+      TLS 1.0 and 1.1 should be disabled (Enabled = 0)
+      TLS 1.2 should be enabled (Enabled = 1)
+      
+      Or use PowerShell:
+      Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\*" -ErrorAction SilentlyContinue
+    check_command: Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\*" -ErrorAction SilentlyContinue
+    expected_value: TLS 1.2+ enabled, TLS 1.0/1.1 disabled
+  remediation:
+    remediation_step: |
+      Configure TLS 1.2 and disable older protocols using PowerShell:
+      
+      # Disable TLS 1.0
+      New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server" -Force
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server" -Name "Enabled" -Value 0
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server" -Name "DisabledByDefault" -Value 1
+      
+      # Disable TLS 1.1
+      New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server" -Force
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server" -Name "Enabled" -Value 0
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server" -Name "DisabledByDefault" -Value 1
+      
+      # Enable TLS 1.2
+      New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" -Force
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" -Name "Enabled" -Value 1
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server" -Name "DisabledByDefault" -Value 0
+      
+      Restart the server for changes to take effect.
+  context:
+    rationale: TLS 1.2 and higher provide strong encryption and address vulnerabilities in older protocols.
+    impact: Clients not supporting TLS 1.2 will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: CIS-1.2.2
+  legacy_ids:
+  - 1.2.2
+  rule_name: Configure strong cipher suites
+  rule_description: |
+    Configure IIS to use strong cipher suites and disable weak ciphers.
+  category: Cryptography
+  subcategory: Cipher Suites
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: registry
+    detection_step: |
+      Check cipher suite configuration:
+      
+      Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Cryptography\Configuration\Local\SSL\00010002" -Name Functions
+      
+      Verify that weak cipher suites (NULL, DES, RC4, 3DES) are not in the list.
+      
+      Or use IIS Crypto tool to review configuration.
+    check_command: Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Cryptography\Configuration\Local\SSL\00010002" -Name Functions
+    expected_value: Only strong cipher suites enabled
+  remediation:
+    remediation_step: |
+      Configure cipher suites using Group Policy or registry:
+      
+      1. Open Group Policy Editor (gpedit.msc)
+      2. Navigate to: Computer Configuration > Administrative Templates > Network > SSL Configuration Settings
+      3. Enable "SSL Cipher Suite Order"
+      4. Configure recommended cipher suites:
+      
+      TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+      TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+      TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+      TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      
+      Or use IIS Crypto tool to configure cipher suites.
+      
+      Restart the server for changes to take effect.
+  context:
+    rationale: Strong cipher suites protect against cryptographic attacks.
+    impact: Some older clients may not support modern ciphers
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - tls
+  - ciphers
+  - encryption
+
+- rule_id: CIS-2.1.1
+  legacy_ids:
+  - 2.1.1
+  rule_name: Remove sample applications and directories
+  rule_description: |
+    Remove all sample applications, documentation, and test directories from IIS.
+  category: Configuration
+  subcategory: Sample Files
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: filesystem
+    detection_step: |
+      Check for sample directories:
+      
+      Test-Path "C:\inetpub\wwwroot\aspnet_client"
+      Test-Path "C:\inetpub\wwwroot\iisstart.htm"
+      
+      List all content in wwwroot:
+      Get-ChildItem "C:\inetpub\wwwroot" -Recurse
+      
+      If sample files exist, this is a finding.
+    check_command: Get-ChildItem "C:\inetpub\wwwroot" -Recurse | Where-Object { $_.Name -match "sample|test|iisstart|aspnet_client" }
+    expected_value: No sample files or directories
+  remediation:
+    remediation_step: |
+      Remove sample files and directories:
+      
+      Remove-Item "C:\inetpub\wwwroot\iisstart.htm" -Force -ErrorAction SilentlyContinue
+      Remove-Item "C:\inetpub\wwwroot\aspnet_client" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item "C:\inetpub\wwwroot\*.png" -Force -ErrorAction SilentlyContinue
+      
+      Or manually delete all sample content from C:\inetpub\wwwroot
+  context:
+    rationale: Sample applications may contain vulnerabilities and provide information about the server configuration.
+    impact: Minimal - sample files serve no production purpose
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - sample-files
+  - hardening
+
+- rule_id: CIS-2.2.1
+  legacy_ids:
+  - 2.2.1
+  rule_name: Disable directory browsing
+  rule_description: |
+    Disable directory browsing to prevent listing of directory contents.
+  category: Configuration
+  subcategory: Directory Browsing
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check directory browsing configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/directoryBrowse -PSPath "IIS:\Sites\Default Web Site" -Name enabled
+      
+      If enabled is True, this is a finding.
+      
+      Check server-level:
+      Get-WebConfigurationProperty -Filter /system.webServer/directoryBrowse -PSPath "IIS:\" -Name enabled
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/directoryBrowse -PSPath "IIS:\" -Name enabled
+    expected_value: enabled = False
+  remediation:
+    remediation_step: |
+      Disable directory browsing using PowerShell:
+      
+      # Server level
+      Set-WebConfigurationProperty -Filter /system.webServer/directoryBrowse -PSPath "IIS:\" -Name enabled -Value $false
+      
+      # Site level
+      Set-WebConfigurationProperty -Filter /system.webServer/directoryBrowse -PSPath "IIS:\Sites\Default Web Site" -Name enabled -Value $false
+      
+      Or use IIS Manager:
+      1. Select server or site
+      2. Double-click "Directory Browsing"
+      3. Click "Disable" in the Actions pane
+  context:
+    rationale: Directory browsing can expose sensitive file names and directory structure.
+    impact: Users cannot browse directories (expected behavior)
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - directory-browsing
+  - information-disclosure
+
+- rule_id: CIS-2.3.1
+  legacy_ids:
+  - 2.3.1
+  rule_name: Configure application pool identity
+  rule_description: |
+    Configure application pools to run with least-privileged identities.
+  category: Access Control
+  subcategory: Application Pools
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check application pool identities:
+      
+      Get-WebAppPool | Select-Object Name, @{N='Identity';E={$_.ProcessModel.IdentityType}}
+      
+      Verify that application pools are not running as LocalSystem, LocalService, or NetworkService for custom applications.
+      
+      DefaultAppPool running as ApplicationPoolIdentity is acceptable.
+    check_command: Get-WebAppPool | Select-Object Name, @{N='Identity';E={$_.ProcessModel.IdentityType}}
+    expected_value: Custom pools should use ApplicationPoolIdentity or specific service accounts
+  remediation:
+    remediation_step: |
+      Configure application pool identity:
+      
+      # Set to ApplicationPoolIdentity (recommended)
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name processModel.identityType -Value ApplicationPoolIdentity
+      
+      # Or set to a specific service account
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name processModel.identityType -Value SpecificUser
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name processModel.userName -Value "DOMAIN\ServiceAccount"
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name processModel.password -Value "Password"
+      
+      Restart the application pool:
+      Restart-WebAppPool -Name "MyAppPool"
+  context:
+    rationale: Running with least privilege limits the impact of application vulnerabilities.
+    impact: May require permission configuration for application resources
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - application-pool
+  - identity
+  - least-privilege
+
+- rule_id: CIS-3.1.1
+  legacy_ids:
+  - 3.1.1
+  rule_name: Configure request filtering
+  rule_description: |
+    Configure Request Filtering to restrict potentially dangerous requests.
+  category: Network Security
+  subcategory: Request Filtering
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Request Filtering configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering -PSPath "IIS:\" -Name fileExtensions.allowUnlisted
+      
+      Verify that:
+      1. allowUnlisted is false (only allow specific extensions)
+      2. Hidden segments are configured
+      3. URL segments are filtered
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering -PSPath "IIS:\" -Name *
+    expected_value: Request filtering enabled with restrictions
+  remediation:
+    remediation_step: |
+      Configure Request Filtering:
+      
+      # Install Request Filtering module if not present
+      Install-WindowsFeature Web-Filtering
+      
+      # Configure file extensions
+      Set-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering -PSPath "IIS:\" -Name fileExtensions.allowUnlisted -Value $false
+      
+      # Add allowed extensions
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/fileExtensions -PSPath "IIS:\" -Name "." -Value @{fileExtension='.html';allowed='true'}
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/fileExtensions -PSPath "IIS:\" -Name "." -Value @{fileExtension='.css';allowed='true'}
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/fileExtensions -PSPath "IIS:\" -Name "." -Value @{fileExtension='.js';allowed='true'}
+      
+      # Block hidden segments
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/hiddenSegments -PSPath "IIS:\" -Name "." -Value @{segment='web.config'}
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/hiddenSegments -PSPath "IIS:\" -Name "." -Value @{segment='bin'}
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/hiddenSegments -PSPath "IIS:\" -Name "." -Value @{segment='App_Code'}
+  context:
+    rationale: Request filtering prevents access to sensitive files and reduces attack surface.
+    impact: May require adding specific file extensions for application needs
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - request-filtering
+  - security
+
+- rule_id: CIS-3.2.1
+  legacy_ids:
+  - 3.2.1
+  rule_name: Configure HTTP security headers
+  rule_description: |
+    Configure security-related HTTP headers to protect against common attacks.
+  category: Configuration
+  subcategory: HTTP Headers
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check HTTP response headers:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/httpProtocol/customHeaders -PSPath "IIS:\" -Name *
+      
+      Verify presence of:
+      - X-Frame-Options
+      - X-Content-Type-Options
+      - X-XSS-Protection
+      - Strict-Transport-Security (for HTTPS)
+      
+      curl -I http://localhost should show these headers.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/httpProtocol/customHeaders -PSPath "IIS:\" -Name *
+    expected_value: Security headers configured
+  remediation:
+    remediation_step: |
+      Add security headers using PowerShell:
+      
+      # X-Frame-Options
+      Add-WebConfigurationProperty -Filter /system.webServer/httpProtocol/customHeaders -PSPath "IIS:\" -Name "." -Value @{name='X-Frame-Options';value='SAMEORIGIN'}
+      
+      # X-Content-Type-Options
+      Add-WebConfigurationProperty -Filter /system.webServer/httpProtocol/customHeaders -PSPath "IIS:\" -Name "." -Value @{name='X-Content-Type-Options';value='nosniff'}
+      
+      # X-XSS-Protection
+      Add-WebConfigurationProperty -Filter /system.webServer/httpProtocol/customHeaders -PSPath "IIS:\" -Name "." -Value @{name='X-XSS-Protection';value='1; mode=block'}
+      
+      # Strict-Transport-Security (for HTTPS)
+      Add-WebConfigurationProperty -Filter /system.webServer/httpProtocol/customHeaders -PSPath "IIS:\" -Name "." -Value @{name='Strict-Transport-Security';value='max-age=31536000; includeSubDomains'}
+      
+      Or use IIS Manager > HTTP Response Headers.
+  context:
+    rationale: Security headers provide defense-in-depth against common web attacks.
+    impact: May affect application behavior if not properly configured
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - security-headers
+  - xss-protection
+  - clickjacking
+
+- rule_id: CIS-4.1.1
+  legacy_ids:
+  - 4.1.1
+  rule_name: Configure logging
+  rule_description: |
+    Configure IIS logging to capture security-relevant events.
+  category: Logging and Auditing
+  subcategory: Logging
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check logging configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/log -PSPath "IIS:\" -Name *
+      
+      Verify that:
+      1. Logging is enabled
+      2. Log format is W3C or IIS
+      3. Log fields include necessary information
+      4. Log files are stored in a secure location
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/log -PSPath "IIS:\" -Name *
+    expected_value: Logging enabled with appropriate configuration
+  remediation:
+    remediation_step: |
+      Configure logging using PowerShell:
+      
+      # Enable logging
+      Set-WebConfigurationProperty -Filter /system.webServer/log -PSPath "IIS:\" -Name logExtFileFlags -Value "Date,Time,ClientIP,UserName,ServerIP,Method,UriStem,UriQuery,HttpStatus,Win32Status,TimeTaken,ServerPort,UserAgent,Cookie,Referer"
+      
+      # Set log format
+      Set-WebConfigurationProperty -Filter /system.webServer/log -PSPath "IIS:\" -Name logFormat -Value "W3C"
+      
+      # Set log directory
+      Set-WebConfigurationProperty -Filter /system.webServer/log -PSPath "IIS:\" -Name directory -Value "D:\IISLogs"
+      
+      # Set log rollover
+      Set-WebConfigurationProperty -Filter /system.webServer/log -PSPath "IIS:\" -Name period -Value "Daily"
+      
+      Or use IIS Manager > Logging.
+  context:
+    rationale: Logging enables security monitoring, incident response, and compliance.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - logging
+  - auditing
+
+- rule_id: CIS-4.2.1
+  legacy_ids:
+  - 4.2.1
+  rule_name: Configure failed request tracing
+  rule_description: |
+    Configure Failed Request Tracing for troubleshooting and security analysis.
+  category: Logging and Auditing
+  subcategory: Tracing
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Failed Request Tracing configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/tracing/traceFailedRequests -PSPath "IIS:\Sites\Default Web Site" -Name *
+      
+      Verify tracing is configured for common failure scenarios.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/tracing/traceFailedRequests -PSPath "IIS:\" -Name *
+    expected_value: Failed Request Tracing configured
+  remediation:
+    remediation_step: |
+      Enable Failed Request Tracing:
+      
+      1. Install tracing module:
+      Install-WindowsFeature Web-Http-Tracing
+      
+      2. Enable at site level:
+      Enable-WebCentralCertProvider -CertStoreLocation "Cert:\LocalMachine\My"
+      
+      3. Configure in IIS Manager:
+      - Select site > Failed Request Tracing
+      - Configure tracing rules for status codes 400-499, 500-599
+  context:
+    rationale: Failed Request Tracing helps diagnose issues and identify potential attacks.
+    impact: Additional disk space for trace logs
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - tracing
+  - diagnostics
+  - troubleshooting
+
+- rule_id: CIS-5.1.1
+  legacy_ids:
+  - 5.1.1
+  rule_name: Configure connection timeouts
+  rule_description: |
+    Configure appropriate connection timeouts to prevent resource exhaustion.
+  category: Network Security
+  subcategory: Timeouts
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check connection timeout settings:
+      
+      Get-WebConfigurationProperty -Filter /system.applicationHost/webLimits -PSPath "IIS:\" -Name connectionTimeout
+      Get-WebConfigurationProperty -Filter /system.webServer/limits -PSPath "IIS:\" -Name *
+      
+      Verify timeouts are set to appropriate values (typically 120 seconds or less).
+    check_command: Get-WebConfigurationProperty -Filter /system.applicationHost/webLimits -PSPath "IIS:\" -Name *
+    expected_value: Timeouts configured appropriately
+  remediation:
+    remediation_step: |
+      Configure connection timeouts:
+      
+      # Set connection timeout
+      Set-WebConfigurationProperty -Filter /system.applicationHost/webLimits -PSPath "IIS:\" -Name connectionTimeout -Value "00:02:00"
+      
+      # Set header timeout
+      Set-WebConfigurationProperty -Filter /system.webServer/limits -PSPath "IIS:\" -Name connectionTimeout -Value "00:02:00"
+      
+      Restart IIS:
+      iisreset
+  context:
+    rationale: Connection timeouts prevent resource exhaustion from slowloris attacks.
+    impact: Slow clients may experience timeouts
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - timeouts
+  - dos-protection
+
+- rule_id: CIS-5.2.1
+  legacy_ids:
+  - 5.2.1
+  rule_name: Configure URL scan rules
+  rule_description: |
+    Configure URL Scan or Request Filtering to block malicious requests.
+  category: Network Security
+  subcategory: URL Filtering
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check URL Scan configuration:
+      
+      Test-Path "C:\Windows\System32\inetsrv\urlscan\urlscan.ini"
+      
+      Or check Request Filtering deny rules:
+      Get-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/denyUrlSequences -PSPath "IIS:\" -Name *
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/denyUrlSequences -PSPath "IIS:\" -Name *
+    expected_value: URL filtering configured
+  remediation:
+    remediation_step: |
+      Configure Request Filtering deny sequences:
+      
+      # Block double encoding
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/denyUrlSequences -PSPath "IIS:\" -Name "." -Value @{sequence='..'}
+      
+      # Block parent directory
+      Add-WebConfigurationProperty -Filter /system.webServer/security/requestFiltering/denyUrlSequences -PSPath "IIS:\" -Name "." -Value @{sequence='./'}
+      
+      # Or install URL Scan from IIS extensions for advanced filtering.
+  context:
+    rationale: URL filtering prevents directory traversal and other URL-based attacks.
+    impact: May block legitimate URLs if not properly configured
+    false_positive_risk: Medium
+  tags:
+  - cis
+  - iis
+  - url-filtering
+  - request-filtering
+
+- rule_id: CIS-6.1.1
+  legacy_ids:
+  - 6.1.1
+  rule_name: Configure IP restrictions
+  rule_description: |
+    Configure IP address restrictions to limit access to administrative interfaces.
+  category: Access Control
+  subcategory: IP Restrictions
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check IP restrictions:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/security/ipSecurity -PSPath "IIS:\" -Name *
+      
+      Verify administrative interfaces have IP restrictions configured.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/security/ipSecurity -PSPath "IIS:\" -Name *
+    expected_value: IP restrictions configured for admin interfaces
+  remediation:
+    remediation_step: |
+      Configure IP restrictions:
+      
+      # Install IP Security module
+      Install-WindowsFeature Web-IP-Security
+      
+      # Add allowed IP
+      Add-WebConfigurationProperty -Filter /system.webServer/security/ipSecurity -PSPath "IIS:\Sites\AdminSite" -Name "." -Value @{ipAddress='192.168.1.0';subnetMask='255.255.255.0';allowed='true'}
+      
+      # Deny all other IPs
+      Add-WebConfigurationProperty -Filter /system.webServer/security/ipSecurity -PSPath "IIS:\Sites\AdminSite" -Name "." -Value @{ipAddress='0.0.0.0';allowed='false'}
+      
+      Or use IIS Manager > IP Address and Domain Restrictions.
+  context:
+    rationale: IP restrictions limit access to administrative interfaces to trusted networks.
+    impact: Access limited to specific IP ranges
+    false_positive_risk: Low
+  tags:
+  - cis
+  - iis
+  - ip-restrictions
+  - access-control

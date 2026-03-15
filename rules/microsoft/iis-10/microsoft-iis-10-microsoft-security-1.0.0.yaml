@@ -1,0 +1,585 @@
+schema_version: 1.0.0
+metadata:
+  name: Microsoft IIS 10.0 Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules for Microsoft IIS 10.0 based on Microsoft documentation
+  platform: Microsoft IIS 10.0
+  benchmark: Microsoft Official Documentation
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Microsoft IIS 10.0 on Windows Server 2016
+  - Microsoft IIS 10.0 on Windows Server 2019
+  - Microsoft IIS 10.0 on Windows Server 2022
+  references:
+  - type: Microsoft Documentation
+    reference: https://learn.microsoft.com/en-us/iis/get-started/whats-new-in-iis-10
+  - type: Microsoft Security
+    reference: https://learn.microsoft.com/en-us/iis/manage/configuring-security/
+compliance_info:
+  framework: microsoft
+  version: '1.0.0'
+  profile: official
+rules:
+- rule_id: MS-IIS-001
+  legacy_ids: []
+  rule_name: Enable Dynamic IP Restrictions
+  rule_description: |
+    Enable Dynamic IP Restrictions to block IP addresses that make too many requests in a short time period.
+  category: Network Security
+  subcategory: DoS Protection
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Dynamic IP Restrictions configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/security/dynamicIpSecurity -PSPath "IIS:\" -Name *
+      
+      Verify that:
+      1. denyByConcurrentRequests is configured
+      2. denyByRequestsOverTime is configured
+      3. Enabled = True
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/security/dynamicIpSecurity -PSPath "IIS:\" -Name *
+    expected_value: Dynamic IP Restrictions enabled
+  remediation:
+    remediation_step: |
+      Enable Dynamic IP Restrictions:
+      
+      1. Install Dynamic IP Restrictions:
+      Install-WindowsFeature Web-Dyn-Compression
+      
+      2. Configure via PowerShell:
+      Add-WebConfigurationProperty -Filter /system.webServer/security/dynamicIpSecurity -PSPath "IIS:\" -Name "." -Value @{name='Deny by Concurrent Requests';enabled='true';maxConcurrentRequests='10'}
+      
+      Add-WebConfigurationProperty -Filter /system.webServer/security/dynamicIpSecurity -PSPath "IIS:\" -Name "." -Value @{name='Deny by Requests Over Time';enabled='true';maxRequests='100';timeWindow='00:01:00'}
+      
+      Or use IIS Manager > IP Address and Domain Restrictions > Edit Dynamic Restriction Settings.
+  context:
+    rationale: Dynamic IP Restrictions protect against DoS attacks by blocking abusive clients.
+    impact: Legitimate clients may be blocked if thresholds are too low
+    false_positive_risk: Medium
+  tags:
+  - microsoft
+  - iis
+  - dos-protection
+  - dynamic-ip
+  - security
+
+- rule_id: MS-IIS-002
+  legacy_ids: []
+  rule_name: Configure application pool recycling
+  rule_description: |
+    Configure application pool recycling settings to balance performance and stability.
+  category: Configuration
+  subcategory: Application Pools
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check application pool recycling settings:
+      
+      Get-WebAppPool | Select-Object Name, @{N='Recycling';E={$_.Recycling.PeriodicRestart}}
+      
+      Verify that:
+      1. Regular time interval is configured (default 1740 minutes)
+      2. Memory limits are set
+      3. Request limits are configured
+    check_command: Get-WebAppPool | Select-Object Name, @{N='Time';E={$_.Recycling.PeriodicRestart.Time}}, @{N='Memory';E={$_.Recycling.PeriodicRestart.Memory}}
+    expected_value: Recycling configured appropriately
+  remediation:
+    remediation_step: |
+      Configure application pool recycling:
+      
+      # Set time interval (29 hours default)
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name recycling.periodicRestart.time -Value 1.04:00:00
+      
+      # Set virtual memory limit (1GB)
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name recycling.periodicRestart.memory -Value 1048576
+      
+      # Set private memory limit (1GB)
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name recycling.periodicRestart.privateMemory -Value 1048576
+      
+      # Set request limit
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name recycling.periodicRestart.requests -Value 100000
+      
+      Restart the application pool.
+  context:
+    rationale: Proper recycling prevents memory leaks and ensures application stability.
+    impact: Application restart may cause brief service interruption
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - application-pool
+  - recycling
+  - performance
+
+- rule_id: MS-IIS-003
+  legacy_ids: []
+  rule_name: Configure output caching
+  rule_description: |
+    Configure output caching to improve performance while preventing cache poisoning.
+  category: Configuration
+  subcategory: Caching
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check output caching configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/caching -PSPath "IIS:\" -Name *
+      
+      Verify caching is configured appropriately for your application.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/caching -PSPath "IIS:\" -Name *
+    expected_value: Output caching configured
+  remediation:
+    remediation_step: |
+      Configure output caching:
+      
+      # Enable kernel caching
+      Set-WebConfigurationProperty -Filter /system.webServer/caching -PSPath "IIS:\" -Name enabled -Value $true
+      
+      # Configure cache rules
+      Add-WebConfigurationProperty -Filter /system.webServer/caching/profiles -PSPath "IIS:\" -Name "." -Value @{extension='.html';policy='CacheUntilChange';kernelCachePolicy='CacheUntilChange'}
+      
+      Or use IIS Manager > Output Caching.
+  context:
+    rationale: Output caching improves performance but must be configured carefully to prevent security issues.
+    impact: Improves performance significantly
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - caching
+  - performance
+
+- rule_id: MS-IIS-004
+  legacy_ids: []
+  rule_name: Configure compression settings
+  rule_description: |
+    Configure HTTP compression to improve performance while preventing BREACH attacks.
+  category: Configuration
+  subcategory: Compression
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check compression configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/httpCompression -PSPath "IIS:\" -Name *
+      
+      Verify compression is enabled for appropriate content types.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/httpCompression -PSPath "IIS:\" -Name *
+    expected_value: Compression configured appropriately
+  remediation:
+    remediation_step: |
+      Configure compression:
+      
+      # Install compression modules
+      Install-WindowsFeature Web-Dyn-Compression
+      Install-WindowsFeature Web-Stat-Compression
+      
+      # Enable dynamic compression
+      Set-WebConfigurationProperty -Filter /system.webServer/httpCompression -PSPath "IIS:\" -Name doDynamicCompression -Value $true
+      
+      # Enable static compression
+      Set-WebConfigurationProperty -Filter /system.webServer/httpCompression -PSPath "IIS:\" -Name doStaticCompression -Value $true
+      
+      # Set compression level
+      Set-WebConfigurationProperty -Filter /system.webServer/httpCompression -PSPath "IIS:\" -Name dynamicCompressionLevel -Value 4
+      
+      Or use IIS Manager > Compression.
+  context:
+    rationale: Compression improves performance but high levels may enable BREACH attacks.
+    impact: Improves performance, reduces bandwidth
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - compression
+  - performance
+
+- rule_id: MS-IIS-005
+  legacy_ids: []
+  rule_name: Configure URL Rewrite for security
+  rule_description: |
+    Configure URL Rewrite rules to enforce HTTPS and block malicious requests.
+  category: Network Security
+  subcategory: URL Rewrite
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check URL Rewrite configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/rewrite/rules -PSPath "IIS:\" -Name *
+      
+      Verify HTTPS redirect rule exists.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/rewrite/rules -PSPath "IIS:\" -Name *
+    expected_value: URL Rewrite rules configured
+  remediation:
+    remediation_step: |
+      Install URL Rewrite module:
+      Download from: https://www.iis.net/downloads/microsoft/url-rewrite
+      
+      Configure HTTPS redirect:
+      
+      Add-WebConfigurationProperty -Filter /system.webServer/rewrite/rules -PSPath "IIS:\" -Name "." -Value @{name='HTTPS Redirect';stopProcessing='true'}
+      
+      Or use IIS Manager > URL Rewrite > Add Rule(s) > Blank Rule.
+      
+      Configure:
+      - Pattern: (.*)  
+      - Condition: {HTTPS} matches ^OFF$
+      - Action: Redirect to https://{HTTP_HOST}/{R:1}
+  context:
+    rationale: URL Rewrite enforces HTTPS and can block malicious request patterns.
+    impact: All HTTP traffic redirected to HTTPS
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - url-rewrite
+  - https
+  - security
+
+- rule_id: MS-IIS-006
+  legacy_ids: []
+  rule_name: Disable unnecessary authentication methods
+  rule_description: |
+    Disable authentication methods that are not required for your application.
+  category: Access Control
+  subcategory: Authentication
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check authentication configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/security/authentication -PSPath "IIS:\" -Name *
+      
+      Verify only required authentication methods are enabled.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/security/authentication -PSPath "IIS:\" -Name *
+    expected_value: Only required authentication enabled
+  remediation:
+    remediation_step: |
+      Disable unnecessary authentication methods:
+      
+      # Disable Anonymous Authentication (if not needed)
+      Set-WebConfigurationProperty -Filter /system.webServer/security/authentication/anonymousAuthentication -PSPath "IIS:\Sites\MySite" -Name enabled -Value $false
+      
+      # Enable Windows Authentication (if needed)
+      Set-WebConfigurationProperty -Filter /system.webServer/security/authentication/windowsAuthentication -PSPath "IIS:\Sites\MySite" -Name enabled -Value $true
+      
+      # Disable Basic Authentication (if not needed)
+      Set-WebConfigurationProperty -Filter /system.webServer/security/authentication/basicAuthentication -PSPath "IIS:\Sites\MySite" -Name enabled -Value $false
+      
+      Or use IIS Manager > Authentication.
+  context:
+    rationale: Reducing enabled authentication methods reduces attack surface.
+    impact: May affect application access
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - authentication
+  - access-control
+
+- rule_id: MS-IIS-007
+  legacy_ids: []
+  rule_name: Configure authorization rules
+  rule_description: |
+    Configure authorization rules to restrict access to sensitive resources.
+  category: Access Control
+  subcategory: Authorization
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check authorization configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/security/authorization -PSPath "IIS:\" -Name *
+      
+      Verify authorization rules are configured for sensitive paths.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/security/authorization -PSPath "IIS:\" -Name *
+    expected_value: Authorization rules configured
+  remediation:
+    remediation_step: |
+      Configure authorization rules:
+      
+      # Add authorization rule for admin path
+      Add-WebConfigurationProperty -Filter /system.webServer/security/authorization/rules -PSPath "IIS:\Sites\MySite\admin" -Name "." -Value @{users='Administrators';accessType='Allow'}
+      
+      # Deny all others
+      Add-WebConfigurationProperty -Filter /system.webServer/security/authorization/rules -PSPath "IIS:\Sites\MySite\admin" -Name "." -Value @{users='*';accessType='Deny'}
+      
+      Or use IIS Manager > Authorization Rules.
+  context:
+    rationale: Authorization rules restrict access to sensitive resources.
+    impact: Users without proper authorization cannot access protected resources
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - authorization
+  - access-control
+
+- rule_id: MS-IIS-008
+  legacy_ids: []
+  rule_name: Configure session state security
+  rule_description: |
+    Configure session state settings securely for ASP.NET applications.
+  category: Session Management
+  subcategory: Session State
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check session state configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.web/sessionState -PSPath "IIS:\" -Name *
+      
+      Verify:
+      1. cookieless is set to UseCookies (not UseUri)
+      2. timeout is reasonable (default 20 minutes)
+      3. regenerateExpiredSessionId is true
+    check_command: Get-WebConfigurationProperty -Filter /system.web/sessionState -PSPath "IIS:\" -Name *
+    expected_value: Session state configured securely
+  remediation:
+    remediation_step: |
+      Configure session state in web.config:
+      
+      <sessionState 
+        mode="InProc"
+        cookieless="UseCookies"
+        timeout="20"
+        regenerateExpiredSessionId="true" />
+      
+      Or use PowerShell:
+      Set-WebConfigurationProperty -Filter /system.web/sessionState -PSPath "IIS:\Sites\MySite" -Name cookieless -Value "UseCookies"
+      Set-WebConfigurationProperty -Filter /system.web/sessionState -PSPath "IIS:\Sites\MySite" -Name timeout -Value 20
+      Set-WebConfigurationProperty -Filter /system.web/sessionState -PSPath "IIS:\Sites\MySite" -Name regenerateExpiredSessionId -Value $true
+  context:
+    rationale: Secure session state configuration prevents session hijacking.
+    impact: Minimal - standard secure configuration
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - session-state
+  - aspnet
+  - security
+
+- rule_id: MS-IIS-009
+  legacy_ids: []
+  rule_name: Configure machine key for forms authentication
+  rule_description: |
+    Configure machine key for consistent encryption and validation across servers.
+  category: Cryptography
+  subcategory: Machine Key
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check machine key configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.web/machineKey -PSPath "IIS:\" -Name *
+      
+      Verify:
+      1. Validation key is set (not AutoGenerate)
+      2. Decryption key is set
+      3. Validation algorithm is SHA1 or HMACSHA256
+      4. Decryption algorithm is AES
+    check_command: Get-WebConfigurationProperty -Filter /system.web/machineKey -PSPath "IIS:\" -Name *
+    expected_value: Machine key explicitly configured
+  remediation:
+    remediation_step: |
+      Generate and configure machine key:
+      
+      # Generate keys using PowerShell
+      $validationKey = [Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Maximum 256 }))
+      $decryptionKey = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+      
+      # Configure machine key
+      Set-WebConfigurationProperty -Filter /system.web/machineKey -PSPath "IIS:\" -Name validationKey -Value $validationKey
+      Set-WebConfigurationProperty -Filter /system.web/machineKey -PSPath "IIS:\" -Name decryptionKey -Value $decryptionKey
+      Set-WebConfigurationProperty -Filter /system.web/machineKey -PSPath "IIS:\" -Name validation -Value "HMACSHA256"
+      Set-WebConfigurationProperty -Filter /system.web/machineKey -PSPath "IIS:\" -Name decryption -Value "AES"
+      
+      Or use IIS Manager > Machine Key.
+  context:
+    rationale: Explicit machine keys ensure consistent encryption across web farm and prevent session forgery.
+    impact: Must be consistent across all servers in a farm
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - machine-key
+  - cryptography
+  - web-farm
+
+- rule_id: MS-IIS-010
+  legacy_ids: []
+  rule_name: Configure worker process limits
+  rule_description: |
+    Configure worker process limits to prevent resource exhaustion.
+  category: Configuration
+  subcategory: Worker Processes
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check worker process limits:
+      
+      Get-WebConfigurationProperty -Filter /system.applicationHost/applicationPools/add -PSPath "IIS:\" -Name *
+      
+      Verify:
+      1. maxProcesses is appropriate
+      2. CPU limits are configured
+      3. Queue length is reasonable
+    check_command: Get-WebConfigurationProperty -Filter /system.applicationHost/applicationPools/add -PSPath "IIS:\" -Name processModel.maxProcesses
+    expected_value: Worker process limits configured
+  remediation:
+    remediation_step: |
+      Configure worker process limits:
+      
+      # Set maximum worker processes
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name processModel.maxProcesses -Value 1
+      
+      # Configure CPU limit (50%)
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name cpu.limit -Value 50000
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name cpu.action -Value "Throttle"
+      
+      # Set queue length
+      Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name queueLength -Value 1000
+      
+      Or use IIS Manager > Application Pools > Advanced Settings.
+  context:
+    rationale: Worker process limits prevent a single application from consuming all resources.
+    impact: May affect performance under heavy load
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - worker-process
+  - resource-limits
+  - performance
+
+- rule_id: MS-IIS-011
+  legacy_ids: []
+  rule_name: Configure SMTP settings securely
+  rule_description: |
+    Configure SMTP settings securely if email functionality is required.
+  category: Configuration
+  subcategory: SMTP
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SMTP configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.net/mailSettings/smtp -PSPath "IIS:\" -Name *
+      
+      If SMTP is configured, verify:
+      1. Delivery method is appropriate
+      2. Credentials are secured
+      3. TLS is enabled
+    check_command: Get-WebConfigurationProperty -Filter /system.net/mailSettings/smtp -PSPath "IIS:\" -Name *
+    expected_value: SMTP configured securely if needed
+  remediation:
+    remediation_step: |
+      Configure SMTP in web.config:
+      
+      <system.net>
+        <mailSettings>
+          <smtp deliveryMethod="Network">
+            <network 
+              host="smtp.example.com"
+              port="587"
+              enableSsl="true"
+              userName="user@example.com"
+              password="encrypted:password" />
+          </smtp>
+        </mailSettings>
+      </system.net>
+      
+      Use encrypted passwords or secure configuration.
+  context:
+    rationale: Secure SMTP configuration prevents email interception and abuse.
+    impact: Email functionality requires proper configuration
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - smtp
+  - email
+  - security
+
+- rule_id: MS-IIS-012
+  legacy_ids: []
+  rule_name: Configure WebSocket limits
+  rule_description: |
+    Configure WebSocket connection limits to prevent resource exhaustion.
+  category: Network Security
+  subcategory: WebSockets
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check WebSocket configuration:
+      
+      Get-WebConfigurationProperty -Filter /system.webServer/webSocket -PSPath "IIS:\" -Name *
+      
+      Verify limits are configured.
+    check_command: Get-WebConfigurationProperty -Filter /system.webServer/webSocket -PSPath "IIS:\" -Name *
+    expected_value: WebSocket limits configured
+  remediation:
+    remediation_step: |
+      Configure WebSocket limits:
+      
+      # Set receive buffer limit
+      Set-WebConfigurationProperty -Filter /system.webServer/webSocket -PSPath "IIS:\" -Name receiveBufferLimit -Value 1048576
+      
+      # Set ping interval
+      Set-WebConfigurationProperty -Filter /system.webServer/webSocket -PSPath "IIS:\" -Name pingInterval -Value "00:00:10"
+      
+      # Set enabled
+      Set-WebConfigurationProperty -Filter /system.webServer/webSocket -PSPath "IIS:\" -Name enabled -Value $true
+      
+      Or use IIS Manager > Configuration Editor.
+  context:
+    rationale: WebSocket limits prevent resource exhaustion from long-lived connections.
+    impact: May affect WebSocket-heavy applications
+    false_positive_risk: Low
+  tags:
+  - microsoft
+  - iis
+  - websocket
+  - resource-limits
+  - security

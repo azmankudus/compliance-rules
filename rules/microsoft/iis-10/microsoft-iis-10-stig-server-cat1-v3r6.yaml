@@ -1,0 +1,146 @@
+schema_version: 1.0.0
+metadata:
+  name: Microsoft IIS 10.0 Server STIG - Category I
+  version: '3.6'
+  description: DISA Microsoft IIS 10.0 Server Security Technical Implementation Guide V3R6 - Category I (High Severity)
+  platform: Microsoft IIS 10.0 Server
+  benchmark: Microsoft IIS 10.0 Server STIG V3R6
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Microsoft IIS 10.0 on Windows Server 2016/2019/2022
+  references:
+  - type: DISA STIG
+    reference: Microsoft IIS 10.0 Server STIG V3R6
+  - type: DISA
+    reference: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_IIS_10-0_Y26M01_STIG.zip
+compliance_info:
+  framework: STIG
+  version: '3.6'
+  profile: official
+rules:
+- rule_id: STIG-V-218795
+  legacy_ids:
+  - V-218795
+  - IIST-SV-000120
+  rule_name: All IIS 10.0 web server sample code, example applications, and tutorials must be removed from a prod
+  rule_description: Web server documentation, sample code, example applications, and tutorials may be an exploitable threat to a web server. A production web server may only contain components that are operationally necessary (i.e., compiled code, scripts, web content, etc.). Delete all directories containing samples and any scripts used to execute the samples.false
+  category: Configuration
+  subcategory: Sample Files
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Navigate to the following folders: inetpub\ Program Files\Common Files\System\msadc Program Files (x86)\Common Files\System\msadc If the folder or sub-folders contain any executable sample code, example applications, or tutorials which are not explicitly used by a production website, this is a finding.'
+    check_command: 'Navigate to the following folders: inetpub\ Program Files\Common Files\System\msadc Program Files (x86)\Common Files\System\msadc If the folder or sub-folders contain any executable sample code, example applications, or tutorials which are not explicitly used by a production website, this is a finding.'
+  remediation:
+    remediation_step: Remove any executable sample code, example applications, or tutorials which are not explicitly used by a production website.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: IIS restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: Web server documentation, sample code, example applications, and tutorials may be an exploitable threat to a web server. A production web server may only contain components that are operationally necessary (i.e., compiled code, scripts, web content, etc.). Delete all directories containing samples and any scripts used to execute the samples.false
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - iis
+  - microsoft
+  - web-server
+  - configuration
+- rule_id: STIG-V-218802
+  legacy_ids:
+  - V-218802
+  - IIST-SV-000131
+  rule_name: IIS 10.0 Web server accounts accessing the directory tree, the shell, or other operating system func
+  rule_description: As a rule, accounts on a web server are to be kept to a minimum. Only administrators, web managers, developers, auditors, and web authors require accounts on the machine hosting the web server. This is in addition to the anonymous web user account. The resources to which these accounts have access must also be closely monitored and controlled. Only the SA needs access to all the system’s capabilities, while the web administrator and associated staff require access and control of the web content and web server configuration files. The anonymous web user account must not have access to system resources as that account could then control the server.false
+  category: Access Control
+  subcategory: Authentication
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Obtain a list of the user accounts with access to the system, including all local and domain accounts. Review the privileges to the web server for each account. Verify with the system administrator or the ISSO that all privileged accounts are mission essential and documented. Verify with the system administrator or the ISSO that all non-administrator access to shell scripts and operating system functions are mission essential and documented. If undocumented privileged accounts are found, this is a finding. If undocumented non-administrator access to shell scripts and operating system functions are found, this is a finding. If this IIS 10 installation is supporting Microsoft Exchange, and not otherwise hosting any content, this requirement is Not Applicable.
+    check_command: Obtain a list of the user accounts with access to the system, including all local and domain accounts. Review the privileges to the web server for each account. Verify with the system administrator or the ISSO that all privileged accounts are mission essential and documented. Verify with the system administrator or the ISSO that all non-administrator access to shell scripts and operating system functions are mission essential and documented. If undocumented privileged accounts are found, this is a finding. If undocumented non-administrator access to shell scripts and operating system functions are found, this is a finding. If this IIS 10 installation is supporting Microsoft Exchange, and not otherwise hosting any content, this requirement is Not Applicable.
+  remediation:
+    remediation_step: Ensure non-administrators are not allowed access to the directory tree, the shell, or other operating system functions and utilities. All non-administrator access to shell scripts and operating system functions must be mission essential and documented.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: IIS restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'As a rule, accounts on a web server are to be kept to a minimum. Only administrators, web managers, developers, auditors, and web authors require accounts on the machine hosting the web server. This is in addition to the anonymous web user account. The resources to which these accounts have access must also be closely monitored and controlled. Only the SA needs access to all the system’s capabilities, while the web administrator and associated staff require access and control of the web content '
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - iis
+  - microsoft
+  - web-server
+  - access-control
+- rule_id: STIG-V-218821
+  legacy_ids:
+  - V-218821
+  - IIST-SV-000153
+  rule_name: An IIS 10.0 web server must maintain the confidentiality of controlled information during transmissi
+  rule_description: TLS encryption is a required security setting for a private web server. Encryption of private information is essential to ensuring data confidentiality. If private information is not encrypted, it can be intercepted and easily read by an unauthorized party. A private web server must use a FIPS 140-2-approved TLS version, and all non-FIPS-approved SSL versions must be disabled. NIST SP 800-52 specifies the preferred configurations for government systems.false
+  category: Cryptography
+  subcategory: TLS/SSL
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Access the IIS 10.0 Web Server. Navigate to: HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server Verify a REG_DWORD value of "0" for "DisabledByDefault". Verify a REG_DWORD value of "1" for "Enabled". Navigate to: HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server Verify a REG_DWORD value of "1" for "DisabledByDefault". Verify a REG_DWORD value of "0" for "Enabled". If any of the respective registry paths do not exist or are configured with the wrong value, this is a finding. SSL 3.0 is disabled by default in newer Operating Systems. If SSL 3.0 has a registry DWORD enabled with a value of 1, this is a finding. If this key is not present, this is not a finding.'
+    check_command: 'Access the IIS 10.0 Web Server. Navigate to: HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server Verify a REG_DWORD value of "0" for "DisabledByDefault". Verify a REG_DWORD value of "1" for "Enabled". Navigate to: HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server Verify a REG_DWORD value of "1" for "DisabledByDefault". Verify a REG_DWORD value of "0" for "Enabled". If any of the respective registry paths do not exist or are configured with the wrong value, this is a finding. SSL 3.0 is disabled by default in newer Operating Systems. If SSL 3.0 has a registry DWORD enabled with a value of 1, this is a finding. If this key is not present, this is not a finding.'
+  remediation:
+    remediation_step: 'Access the IIS 10.0 Web Server. Navigate to: HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Server Create a REG_DWORD named "DisabledByDefault" with a value of "0". Create a REG_DWORD named "Enabled" with a value of "1". Navigate to: HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.1\Server HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\SSL 3.0\Server For each protocol: Create a REG_DWORD named "DisabledByDefault" with a value of "1". Create a REG_DWORD named "Enabled" with a value of "0".'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: IIS restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: TLS encryption is a required security setting for a private web server. Encryption of private information is essential to ensuring data confidentiality. If private information is not encrypted, it can be intercepted and easily read by an unauthorized party. A private web server must use a FIPS 140-2-approved TLS version, and all non-FIPS-approved SSL versions must be disabled. NIST SP 800-52 specifies the preferred configurations for government systems.false
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - iis
+  - microsoft
+  - web-server
+  - cryptography
+- rule_id: STIG-V-218823
+  legacy_ids:
+  - V-218823
+  - IIST-SV-000156
+  rule_name: 'All accounts installed with the IIS 10.0 web server software and tools must have passwords assigned '
+  rule_description: During installation of the web server software, accounts are created for the web server to operate properly. The accounts installed can have either no password installed or a default password, which will be known and documented by the vendor and the user community. The first things an attacker will try when presented with a logon screen are the default user identifiers with default passwords. Installed applications may also install accounts with no password, making the logon even easier. Once the web server is installed, the passwords for any created accounts should be changed and documented. The new passwords must meet the requirements for all passwords, i.e., upper/lower characters, numbers, special characters, time until change, reuse policy, etc. Service accounts or system accounts that have no logon capability do not need to have passwords set or changed.false
+  category: Access Control
+  subcategory: Authentication
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Access the IIS 10.0 web server. Access the "Apps" menu. Under "Administrative Tools", select "Computer Management". In left pane, expand "Local Users and Groups" and click "Users". Review the local users listed in the middle pane. If any local accounts are present and used by IIS 10.0, verify with System Administrator that default passwords have been changed. If passwords have not been changed from the default, this is a finding.
+    check_command: Access the IIS 10.0 web server. Access the "Apps" menu. Under "Administrative Tools", select "Computer Management". In left pane, expand "Local Users and Groups" and click "Users". Review the local users listed in the middle pane. If any local accounts are present and used by IIS 10.0, verify with System Administrator that default passwords have been changed. If passwords have not been changed from the default, this is a finding.
+  remediation:
+    remediation_step: Access the IIS 10.0 web server. Access the "Apps" menu. Under Administrative Tools, select Computer Management. In left pane, expand "Local Users and Groups" and click on "Users". Change passwords for any local accounts present that are used by IIS 10.0, then verify with System Administrator default passwords have been changed. Develop an internal process for changing passwords on a regular basis.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: IIS restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: During installation of the web server software, accounts are created for the web server to operate properly. The accounts installed can have either no password installed or a default password, which will be known and documented by the vendor and the user community. The first things an attacker will try when presented with a logon screen are the default user identifiers with default passwords. Installed applications may also install accounts with no password, making the logon even easier. Once th
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - iis
+  - microsoft
+  - web-server
+  - access-control
