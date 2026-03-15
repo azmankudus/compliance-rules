@@ -1,0 +1,779 @@
+metadata:
+  name: DISA STIG for Windows Server 2019 - CAT 3
+  version: '3.7'
+  description: DISA Security Technical Implementation Guide for Windows Server 2019 V3R7
+  platform: Microsoft Windows Server 2019
+  benchmark: DISA STIG Windows Server 2019 V3R7
+  author: Compliance Rules Team
+  created: '2026-03-15T00:00:00Z'
+  modified: '2026-03-15T00:00:00Z'
+  compatible_platforms:
+  - Microsoft Windows Server 2019
+  references:
+  - type: DISA STIG
+    reference: Microsoft Windows Server 2019 STIG V3R7
+  - type: DISA
+    reference: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_Windows_Server_2019_V3R7_STIG.zip
+compliance_info:
+  framework: STIG
+  version: '3.7'
+  profile: official
+rules:
+- rule_id: STIG-V-205632
+  legacy_ids:
+  - V-205632
+  - SV-103237
+  - V-93149
+  - CCI-000048
+  - CCI-001384
+  - CCI-001385
+  - CCI-001386
+  - CCI-001387
+  - CCI-001388
+  - SV-205632r958390_rule
+  rule_name: Windows Server 2019 title for legal banner dialog box must be configured with the appropriate text.
+  rule_description: |-
+    Failure to display the logon banner prior to a logon attempt will negate legal proceedings resulting from unauthorized access to system resources. Satisfies: SRG-OS-000023-GPOS-00006, SRG-OS-000228-GPOS-00088
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\\n\nValue Name: LegalNoticeCaption\n\nValue Type: REG_SZ\nValue: Refer to message title options below\n\n\"DoD Notice and Consent Banner\", \"US Department of Defense Warning Statement\", or an organization-defined equivalent. \n\nIf an organization-defined title is used, it can in no case contravene or modify the language of the banner text required in WN19-SO-000130.\n\nAutomated tools may only search for the titles defined above. If an organization-defined title is used, a manual review will be required."
+    check_command: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\\n\nValue Name: LegalNoticeCaption\n\nValue Type: REG_SZ\nValue: Refer to message title options below\n\n\"DoD Notice and Consent Banner\", \"US Department of Defense Warning Statement\", or an organization-defined equivalent. \n\nIf an organization-defined title is used, it can in no case contravene or modify the language of the banner text required in WN19-SO-000130.\n\nAutomated tools may only search for the titles defined above. If an organization-defined title is used, a manual review will be required."
+  remediation:
+    remediation_step: "Configure the policy value for Computer Configuration >> Windows Settings >> Security Settings >> Local Policies >> Security Options >> \"Interactive Logon: Message title for users attempting to log on\" to \"DoD Notice and Consent Banner\", \"US Department of Defense Warning Statement\", or an organization-defined equivalent. \n\nIf an organization-defined title is used, it can in no case contravene or modify the language of the message text required in WN19-SO-000130."
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Failure to display the logon banner prior to a logon attempt will negate legal proceedings resulting from unauthorized access to system resources. Satisfies: SRG-OS-000023-GPOS-00006, SRG-OS-000228-GPOS-00088
+    false_positive_risk: Low
+  id: STIG-V-205632
+  title: Windows Server 2019 title for legal banner dialog box must be configured with the appropriate text.
+  description: |-
+    Failure to display the logon banner prior to a logon attempt will negate legal proceedings resulting from unauthorized access to system resources. Satisfies: SRG-OS-000023-GPOS-00006, SRG-OS-000228-GPOS-00088
+  severity: Low
+  tags:
+  - windows
+- rule_id: STIG-V-205664
+  legacy_ids:
+  - V-205664
+  - SV-103081
+  - V-92993
+  - CCI-000213
+  - SV-205664r1137691_rule
+  rule_name: |-
+    Windows Server 2019 non-administrative accounts or groups must only have print permissions on printer shares.
+  rule_description: |-
+    Windows shares are a means by which files, folders, printers, and other resources can be published for network users to access. Improper configuration can permit access to devices and data beyond a user's need.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Open \"Printers & scanners\" in \"Settings\".\n\nIf there are no printers configured, this is NA. (Exclude Microsoft Print to PDF and Microsoft XPS Document Writer, which do not support sharing.)\n\nFor each printer:\n\nSelect the printer and \"Manage\". \n\nSelect \"Printer Properties\". \n\nSelect the \"Sharing\" tab. \n\nIf \"Share this printer\" is checked, select the \"Security\" tab.\n\nIf any standard user accounts or groups have permissions other than \"Print\", this is a finding.\n\nThe default is for the \"Everyone\" group to be given \"Print\" permission.\n\n\"All APPLICATION PACKAGES\" and \"CREATOR OWNER\" are not standard user accounts."
+    check_command: "Open \"Printers & scanners\" in \"Settings\".\n\nIf there are no printers configured, this is NA. (Exclude Microsoft Print to PDF and Microsoft XPS Document Writer, which do not support sharing.)\n\nFor each printer:\n\nSelect the printer and \"Manage\". \n\nSelect \"Printer Properties\". \n\nSelect the \"Sharing\" tab. \n\nIf \"Share this printer\" is checked, select the \"Security\" tab.\n\nIf any standard user accounts or groups have permissions other than \"Print\", this is a finding.\n\nThe default is for the \"Everyone\" group to be given \"Print\" permission.\n\n\"All APPLICATION PACKAGES\" and \"CREATOR OWNER\" are not standard user accounts."
+  remediation:
+    remediation_step: |-
+      Configure the permissions on shared printers to restrict standard users to only have Print permissions.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Windows shares are a means by which files, folders, printers, and other resources can be published for network users to access. Improper configuration can permit access to devices and data beyond a user's need.
+    false_positive_risk: Low
+  id: STIG-V-205664
+  title: |-
+    Windows Server 2019 non-administrative accounts or groups must only have print permissions on printer shares.
+  description: |-
+    Windows shares are a means by which files, folders, printers, and other resources can be published for network users to access. Improper configuration can permit access to devices and data beyond a user's need.
+  severity: Low
+  tags:
+  - account
+  - administrator
+  - group
+  - permission
+  - windows
+- rule_id: STIG-V-205691
+  legacy_ids:
+  - V-205691
+  - V-93409
+  - SV-103495
+  - CCI-000381
+  - SV-205691r958478_rule
+  rule_name: |-
+    Windows Server 2019 Application Compatibility Program Inventory must be prevented from collecting data and sending the information to Microsoft.
+  rule_description: |-
+    Some features may communicate with the vendor, sending system information or downloading data or components for the feature. Turning off this capability will prevent potentially sensitive information from being sent outside the enterprise and will prevent uncontrolled updates to the system. This setting will prevent the Program Inventory from collecting data about a system and sending the information to Microsoft.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SOFTWARE\Policies\Microsoft\Windows\AppCompat\
+
+      Value Name: DisableInventory
+
+      Type: REG_DWORD
+      Value: 0x00000001 (1)
+    check_command: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SOFTWARE\Policies\Microsoft\Windows\AppCompat\
+
+      Value Name: DisableInventory
+
+      Type: REG_DWORD
+      Value: 0x00000001 (1)
+  remediation:
+    remediation_step: |-
+      Configure the policy value for Computer Configuration >> Administrative Templates >> Windows Components >> Application Compatibility >> "Turn off Inventory Collector" to "Enabled".
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Some features may communicate with the vendor, sending system information or downloading data or components for the feature. Turning off this capability will prevent potentially sensitive information from being sent outside the enterprise and will prevent uncontrolled updates to the system. This setting will prevent the Program Inventory from collecting data about a system and sending the information to Microsoft.
+    false_positive_risk: Low
+  id: STIG-V-205691
+  title: |-
+    Windows Server 2019 Application Compatibility Program Inventory must be prevented from collecting data and sending the information to Microsoft.
+  description: |-
+    Some features may communicate with the vendor, sending system information or downloading data or components for the feature. Turning off this capability will prevent potentially sensitive information from being sent outside the enterprise and will prevent uncontrolled updates to the system. This setting will prevent the Program Inventory from collecting data about a system and sending the information to Microsoft.
+  severity: Low
+  tags:
+  - event
+  - windows
+- rule_id: STIG-V-205726
+  legacy_ids:
+  - V-205726
+  - SV-103595
+  - V-93509
+  - CCI-001133
+  - SV-205726r970703_rule
+  rule_name: |-
+    Windows Server 2019 directory service must be configured to terminate LDAP-based network connections to the directory server after five minutes of inactivity.
+  rule_description: |-
+    The failure to terminate inactive network connections increases the risk of a successful attack on the directory server. The longer an established session is in progress, the more time an attacker has to hijack the session, implement a means to passively intercept data, or compromise any protections on client access. For example, if an attacker gains control of a client computer, an existing (already authenticated) session with the directory server could allow access to the directory. The lack of confidentiality protection in LDAP-based sessions increases exposure to this vulnerability.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "This applies to domain controllers. It is NA for other systems.\n\nOpen an elevated \"Command Prompt\" (run as administrator).\n\nEnter \"ntdsutil\".\n\nAt the \"ntdsutil:\" prompt, enter \"LDAP policies\".\n\nAt the \"ldap policy:\" prompt, enter \"connections\".\n\nAt the \"server connections:\" prompt, enter \"connect to server [host-name]\"\n(where [host-name] is the computer name of the domain controller).\n\nAt the \"server connections:\" prompt, enter \"q\".\n\nAt the \"ldap policy:\" prompt, enter \"show values\". \n\nIf the value for MaxConnIdleTime is greater than \"300\" (5 minutes) or is not specified, this is a finding.\n\nEnter \"q\" at the \"ldap policy:\" and \"ntdsutil:\" prompts to exit.\n\nAlternately, Dsquery can be used to display MaxConnIdleTime:\n\nOpen \"Command Prompt (Admin)\".\nEnter the following command (on a single line).\n\ndsquery * \"cn=Default Query Policy,cn=Query-Policies,cn=Directory Service, cn=Windows NT,cn=Services,cn=Configuration,dc=[forest-name]\"\
+      \ -attr LDAPAdminLimits \n\nThe quotes are required and dc=[forest-name] is the fully qualified LDAP name of the domain being reviewed (e.g., dc=disaost,dc=mil).\n\nIf the results do not specify a \"MaxConnIdleTime\" or it has a value greater than \"300\" (5 minutes), this is a finding."
+    check_command: "This applies to domain controllers. It is NA for other systems.\n\nOpen an elevated \"Command Prompt\" (run as administrator).\n\nEnter \"ntdsutil\".\n\nAt the \"ntdsutil:\" prompt, enter \"LDAP policies\".\n\nAt the \"ldap policy:\" prompt, enter \"connections\".\n\nAt the \"server connections:\" prompt, enter \"connect to server [host-name]\"\n(where [host-name] is the computer name of the domain controller).\n\nAt the \"server connections:\" prompt, enter \"q\".\n\nAt the \"ldap policy:\" prompt, enter \"show values\". \n\nIf the value for MaxConnIdleTime is greater than \"300\" (5 minutes) or is not specified, this is a finding.\n\nEnter \"q\" at the \"ldap policy:\" and \"ntdsutil:\" prompts to exit.\n\nAlternately, Dsquery can be used to display MaxConnIdleTime:\n\nOpen \"Command Prompt (Admin)\".\nEnter the following command (on a single line).\n\ndsquery * \"cn=Default Query Policy,cn=Query-Policies,cn=Directory Service, cn=Windows NT,cn=Services,cn=Configuration,dc=[forest-name]\"\
+      \ -attr LDAPAdminLimits \n\nThe quotes are required and dc=[forest-name] is the fully qualified LDAP name of the domain being reviewed (e.g., dc=disaost,dc=mil).\n\nIf the results do not specify a \"MaxConnIdleTime\" or it has a value greater than \"300\" (5 minutes), this is a finding."
+  remediation:
+    remediation_step: |-
+      Configure the directory service to terminate LDAP-based network connections to the directory server after 5 minutes of inactivity.
+
+      Open an elevated "Command prompt" (run as administrator).
+
+      Enter "ntdsutil".
+
+      At the "ntdsutil:" prompt, enter "LDAP policies".
+
+      At the "ldap policy:" prompt, enter "connections".
+
+      At the "server connections:" prompt, enter "connect to server [host-name]" (where [host-name] is the computer name of the domain controller).
+
+      At the "server connections:" prompt, enter "q".
+
+      At the "ldap policy:" prompt, enter "Set MaxConnIdleTime to 300".
+
+      Enter "Commit Changes" to save.
+
+      Enter "Show values" to verify changes.
+
+      Enter "q" at the "ldap policy:" and "ntdsutil:" prompts to exit.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      The failure to terminate inactive network connections increases the risk of a successful attack on the directory server. The longer an established session is in progress, the more time an attacker has to hijack the session, implement a means to passively intercept data, or compromise any protections on client access. For example, if an attacker gains control of a client computer, an existing (already authenticated) session with the directory server could allow access to the directory. The lack of confidentiality protection in LDAP-based sessions increases exposure to this vulnerability.
+    false_positive_risk: Low
+  id: STIG-V-205726
+  title: |-
+    Windows Server 2019 directory service must be configured to terminate LDAP-based network connections to the directory server after five minutes of inactivity.
+  description: |-
+    The failure to terminate inactive network connections increases the risk of a successful attack on the directory server. The longer an established session is in progress, the more time an attacker has to hijack the session, implement a means to passively intercept data, or compromise any protections on client access. For example, if an attacker gains control of a client computer, an existing (already authenticated) session with the directory server could allow access to the directory. The lack of confidentiality protection in LDAP-based sessions increases exposure to this vulnerability.
+  severity: Low
+  tags:
+  - network
+  - service
+  - windows
+- rule_id: STIG-V-205800
+  legacy_ids:
+  - V-205800
+  - V-93187
+  - SV-103275
+  - CCI-004923
+  - CCI-001891
+  - SV-205800r1051077_rule
+  rule_name: The Windows Server 2019 time service must synchronize with an appropriate DOD time source.
+  rule_description: |-
+    The Windows Time Service controls time synchronization settings. Time synchronization is essential for authentication and auditing purposes. If the Windows Time Service is used, it must synchronize with a secure, authorized time source. Domain-joined systems are automatically configured to synchronize with domain controllers. If an NTP server is configured, it must synchronize with a secure, authorized time source.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |-
+      Review the Windows time service configuration.
+
+      Open an elevated "Command Prompt" (run as administrator).
+
+      Enter "W32tm /query /configuration".
+
+      Domain-joined systems (excluding the domain controller with the PDC emulator role):
+
+      If the value for "Type" under "NTP Client" is not "NT5DS", this is a finding.
+
+      Other systems:
+
+      If systems are configured with a "Type" of "NTP", including standalone or nondomain-joined systems and the domain controller with the PDC Emulator role, and do not have a DOD time server defined for "NTPServer", this is a finding.
+
+      To determine the domain controller with the PDC Emulator role:
+
+      Open "PowerShell".
+
+      Enter "Get-ADDomain | FT PDCEmulator".
+    check_command: |-
+      Review the Windows time service configuration.
+
+      Open an elevated "Command Prompt" (run as administrator).
+
+      Enter "W32tm /query /configuration".
+
+      Domain-joined systems (excluding the domain controller with the PDC emulator role):
+
+      If the value for "Type" under "NTP Client" is not "NT5DS", this is a finding.
+
+      Other systems:
+
+      If systems are configured with a "Type" of "NTP", including standalone or nondomain-joined systems and the domain controller with the PDC Emulator role, and do not have a DOD time server defined for "NTPServer", this is a finding.
+
+      To determine the domain controller with the PDC Emulator role:
+
+      Open "PowerShell".
+
+      Enter "Get-ADDomain | FT PDCEmulator".
+  remediation:
+    remediation_step: |-
+      Configure the system to synchronize time with an appropriate DOD time source.
+
+      Domain-joined systems use NT5DS to synchronize time from other systems in the domain by default.
+
+      If the system needs to be configured to an NTP server, configure the system to point to an authorized time server by setting the policy value for Computer Configuration >> Administrative Templates >> System >> Windows Time Service >> Time Providers >> "Configure Windows NTP Client" to "Enabled", and configure the "NtpServer" field to point to an appropriate DOD time server.
+
+      The US Naval Observatory operates stratum 1 time servers, which are identified at:
+      https://www.cnmoc.usff.navy.mil/Our-Commands/United-States-Naval-Observatory/Precise-Time-Department/Network-Time-Protocol-NTP/
+
+      Time synchronization will occur through a hierarchy of time servers down to the local level. Clients and lower-level servers will synchronize with an authorized time server in the hierarchy.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      The Windows Time Service controls time synchronization settings. Time synchronization is essential for authentication and auditing purposes. If the Windows Time Service is used, it must synchronize with a secure, authorized time source. Domain-joined systems are automatically configured to synchronize with domain controllers. If an NTP server is configured, it must synchronize with a secure, authorized time source.
+    false_positive_risk: Low
+  id: STIG-V-205800
+  title: The Windows Server 2019 time service must synchronize with an appropriate DOD time source.
+  description: |-
+    The Windows Time Service controls time synchronization settings. Time synchronization is essential for authentication and auditing purposes. If the Windows Time Service is used, it must synchronize with a secure, authorized time source. Domain-joined systems are automatically configured to synchronize with domain controllers. If an NTP server is configured, it must synchronize with a secure, authorized time source.
+  severity: Low
+  tags:
+  - service
+  - windows
+- rule_id: STIG-V-205819
+  legacy_ids:
+  - V-205819
+  - SV-103627
+  - V-93541
+  - CCI-002385
+  - SV-205819r958902_rule
+  rule_name: |-
+    Windows Server 2019 must be configured to ignore NetBIOS name release requests except from WINS servers.
+  rule_description: |-
+    Configuring the system to ignore name release requests, except from WINS servers, prevents a denial of service (DoS) attack. The DoS consists of sending a NetBIOS name release request to the server for each entry in the server's cache, causing a response delay in the normal operation of the server's WINS resolution capability.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive:  HKEY_LOCAL_MACHINE
+      Registry Path:  \SYSTEM\CurrentControlSet\Services\Netbt\Parameters\
+
+      Value Name:  NoNameReleaseOnDemand
+
+      Value Type:  REG_DWORD
+      Value:  0x00000001 (1)
+    check_command: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive:  HKEY_LOCAL_MACHINE
+      Registry Path:  \SYSTEM\CurrentControlSet\Services\Netbt\Parameters\
+
+      Value Name:  NoNameReleaseOnDemand
+
+      Value Type:  REG_DWORD
+      Value:  0x00000001 (1)
+  remediation:
+    remediation_step: |-
+      Configure the policy value for Computer Configuration >> Administrative Templates >> MSS (Legacy) >> "MSS: (NoNameReleaseOnDemand) Allow the computer to ignore NetBIOS name release requests except from WINS servers" to "Enabled".
+
+      This policy setting requires the installation of the MSS-Legacy custom templates included with the STIG package. "MSS-Legacy.admx" and "MSS-Legacy.adml" must be copied to the \Windows\PolicyDefinitions and \Windows\PolicyDefinitions\en-US directories respectively.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Configuring the system to ignore name release requests, except from WINS servers, prevents a denial of service (DoS) attack. The DoS consists of sending a NetBIOS name release request to the server for each entry in the server's cache, causing a response delay in the normal operation of the server's WINS resolution capability.
+    false_positive_risk: Low
+  id: STIG-V-205819
+  title: |-
+    Windows Server 2019 must be configured to ignore NetBIOS name release requests except from WINS servers.
+  description: |-
+    Configuring the system to ignore name release requests, except from WINS servers, prevents a denial of service (DoS) attack. The DoS consists of sending a NetBIOS name release request to the server for each entry in the server's cache, causing a response delay in the normal operation of the server's WINS resolution capability.
+  severity: Low
+  tags:
+  - windows
+- rule_id: STIG-V-205856
+  legacy_ids:
+  - V-205856
+  - V-93229
+  - SV-103317
+  - CCI-000366
+  - SV-205856r991589_rule
+  rule_name: |-
+    Windows Server 2019 systems must have Unified Extensible Firmware Interface (UEFI) firmware and be configured to run in UEFI mode, not Legacy BIOS.
+  rule_description: |-
+    UEFI provides additional security features in comparison to legacy BIOS firmware, including Secure Boot. UEFI is required to support additional security features in Windows, including Virtualization Based Security and Credential Guard. Systems with UEFI that are operating in "Legacy BIOS" mode will not support these security features.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |-
+      Some older systems may not have UEFI firmware. This is currently a CAT III; it will be raised in severity at a future date when broad support of Windows hardware and firmware requirements are expected to be met. Devices that have UEFI firmware must run in "UEFI" mode.
+
+      Verify the system firmware is configured to run in "UEFI" mode, not "Legacy BIOS".
+
+      Run "System Information".
+
+      Under "System Summary", if "BIOS Mode" does not display "UEFI", this is a finding.
+    check_command: |-
+      Some older systems may not have UEFI firmware. This is currently a CAT III; it will be raised in severity at a future date when broad support of Windows hardware and firmware requirements are expected to be met. Devices that have UEFI firmware must run in "UEFI" mode.
+
+      Verify the system firmware is configured to run in "UEFI" mode, not "Legacy BIOS".
+
+      Run "System Information".
+
+      Under "System Summary", if "BIOS Mode" does not display "UEFI", this is a finding.
+  remediation:
+    remediation_step: Configure UEFI firmware to run in "UEFI" mode, not "Legacy BIOS" mode.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      UEFI provides additional security features in comparison to legacy BIOS firmware, including Secure Boot. UEFI is required to support additional security features in Windows, including Virtualization Based Security and Credential Guard. Systems with UEFI that are operating in "Legacy BIOS" mode will not support these security features.
+    false_positive_risk: Low
+  id: STIG-V-205856
+  title: |-
+    Windows Server 2019 systems must have Unified Extensible Firmware Interface (UEFI) firmware and be configured to run in UEFI mode, not Legacy BIOS.
+  description: |-
+    UEFI provides additional security features in comparison to legacy BIOS firmware, including Secure Boot. UEFI is required to support additional security features in Windows, including Virtualization Based Security and Credential Guard. Systems with UEFI that are operating in "Legacy BIOS" mode will not support these security features.
+  severity: Low
+  tags:
+  - windows
+- rule_id: STIG-V-205857
+  legacy_ids:
+  - V-205857
+  - SV-103319
+  - V-93231
+  - CCI-000366
+  - SV-205857r991589_rule
+  rule_name: Windows Server 2019 must have Secure Boot enabled.
+  rule_description: |-
+    Secure Boot is a standard that ensures systems boot only to a trusted operating system. Secure Boot is required to support additional security features in Windows, including Virtualization Based Security and Credential Guard. If Secure Boot is turned off, these security features will not function.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "Some older systems may not have UEFI firmware. This is currently a CAT III; it will be raised in severity at a future date when broad support of Windows hardware and firmware requirements are expected to be met. Devices that have UEFI firmware must have Secure Boot enabled.  \n\nRun \"System Information\".\n\nUnder \"System Summary\", if \"Secure Boot State\" does not display \"On\", this is a finding.\n\nOn server core installations, run the following PowerShell command:\n\nConfirm-SecureBootUEFI\n\nIf a value of \"True\" is not returned, this is a finding."
+    check_command: "Some older systems may not have UEFI firmware. This is currently a CAT III; it will be raised in severity at a future date when broad support of Windows hardware and firmware requirements are expected to be met. Devices that have UEFI firmware must have Secure Boot enabled.  \n\nRun \"System Information\".\n\nUnder \"System Summary\", if \"Secure Boot State\" does not display \"On\", this is a finding.\n\nOn server core installations, run the following PowerShell command:\n\nConfirm-SecureBootUEFI\n\nIf a value of \"True\" is not returned, this is a finding."
+  remediation:
+    remediation_step: Enable Secure Boot in the system firmware.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Secure Boot is a standard that ensures systems boot only to a trusted operating system. Secure Boot is required to support additional security features in Windows, including Virtualization Based Security and Credential Guard. If Secure Boot is turned off, these security features will not function.
+    false_positive_risk: Low
+  id: STIG-V-205857
+  title: Windows Server 2019 must have Secure Boot enabled.
+  description: |-
+    Secure Boot is a standard that ensures systems boot only to a trusted operating system. Secure Boot is required to support additional security features in Windows, including Virtualization Based Security and Credential Guard. If Secure Boot is turned off, these security features will not function.
+  severity: Low
+  tags:
+  - windows
+- rule_id: STIG-V-205858
+  legacy_ids:
+  - V-205858
+  - SV-103321
+  - V-93233
+  - CCI-000366
+  - SV-205858r991589_rule
+  rule_name: |-
+    Windows Server 2019 Internet Protocol version 6 (IPv6) source routing must be configured to the highest protection level to prevent IP source routing.
+  rule_description: Configuring the system to disable IPv6 source routing protects against spoofing.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\
+
+      Value Name: DisableIPSourceRouting
+
+      Type: REG_DWORD
+      Value: 0x00000002 (2)
+    check_command: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\
+
+      Value Name: DisableIPSourceRouting
+
+      Type: REG_DWORD
+      Value: 0x00000002 (2)
+  remediation:
+    remediation_step: |-
+      Configure the policy value for Computer Configuration >> Administrative Templates >> MSS (Legacy) >> "MSS: (DisableIPSourceRouting IPv6) IP source routing protection level (protects against packet spoofing)" to "Enabled" with "Highest protection, source routing is completely disabled" selected.
+
+      This policy setting requires the installation of the MSS-Legacy custom templates included with the STIG package. "MSS-Legacy.admx" and "MSS-Legacy.adml" must be copied to the \Windows\PolicyDefinitions and \Windows\PolicyDefinitions\en-US directories respectively.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Configuring the system to disable IPv6 source routing protects against spoofing.
+    false_positive_risk: Low
+  id: STIG-V-205858
+  title: |-
+    Windows Server 2019 Internet Protocol version 6 (IPv6) source routing must be configured to the highest protection level to prevent IP source routing.
+  description: Configuring the system to disable IPv6 source routing protects against spoofing.
+  severity: Low
+  tags:
+  - event
+  - windows
+- rule_id: STIG-V-205859
+  legacy_ids:
+  - V-205859
+  - SV-103323
+  - V-93235
+  - CCI-000366
+  - SV-205859r991589_rule
+  rule_name: |-
+    Windows Server 2019 source routing must be configured to the highest protection level to prevent Internet Protocol (IP) source routing.
+  rule_description: Configuring the system to disable IP source routing protects against spoofing.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\\n\nValue Name: DisableIPSourceRouting\n\nValue Type: REG_DWORD\nValue: 0x00000002 (2)"
+    check_command: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\\n\nValue Name: DisableIPSourceRouting\n\nValue Type: REG_DWORD\nValue: 0x00000002 (2)"
+  remediation:
+    remediation_step: |-
+      Configure the policy value for Computer Configuration >> Administrative Templates >> MSS (Legacy) >> "MSS: (DisableIPSourceRouting) IP source routing protection level (protects against packet spoofing)" to "Enabled" with "Highest protection, source routing is completely disabled" selected.
+
+      This policy setting requires the installation of the MSS-Legacy custom templates included with the STIG package. "MSS-Legacy.admx" and "MSS-Legacy.adml" must be copied to the \Windows\PolicyDefinitions and \Windows\PolicyDefinitions\en-US directories respectively.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Configuring the system to disable IP source routing protects against spoofing.
+    false_positive_risk: Low
+  id: STIG-V-205859
+  title: |-
+    Windows Server 2019 source routing must be configured to the highest protection level to prevent Internet Protocol (IP) source routing.
+  description: Configuring the system to disable IP source routing protects against spoofing.
+  severity: Low
+  tags:
+  - event
+  - windows
+- rule_id: STIG-V-205860
+  legacy_ids:
+  - V-205860
+  - SV-103325
+  - V-93237
+  - CCI-000366
+  - SV-205860r991589_rule
+  rule_name: |-
+    Windows Server 2019 must be configured to prevent Internet Control Message Protocol (ICMP) redirects from overriding Open Shortest Path First (OSPF)-generated routes.
+  rule_description: |-
+    Allowing ICMP redirect of routes can lead to traffic not being routed properly. When disabled, this forces ICMP to be routed via the shortest path first.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\\n\nValue Name: EnableICMPRedirect\n\nValue Type: REG_DWORD\nValue: 0x00000000 (0)"
+    check_command: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\\n\nValue Name: EnableICMPRedirect\n\nValue Type: REG_DWORD\nValue: 0x00000000 (0)"
+  remediation:
+    remediation_step: |-
+      Configure the policy value for Computer Configuration >> Administrative Templates >> MSS (Legacy) >> "MSS: (EnableICMPRedirect) Allow ICMP redirects to override OSPF generated routes" to "Disabled".
+
+      This policy setting requires the installation of the MSS-Legacy custom templates included with the STIG package. "MSS-Legacy.admx" and "MSS-Legacy.adml" must be copied to the \Windows\PolicyDefinitions and \Windows\PolicyDefinitions\en-US directories respectively.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Allowing ICMP redirect of routes can lead to traffic not being routed properly. When disabled, this forces ICMP to be routed via the shortest path first.
+    false_positive_risk: Low
+  id: STIG-V-205860
+  title: |-
+    Windows Server 2019 must be configured to prevent Internet Control Message Protocol (ICMP) redirects from overriding Open Shortest Path First (OSPF)-generated routes.
+  description: |-
+    Allowing ICMP redirect of routes can lead to traffic not being routed properly. When disabled, this forces ICMP to be routed via the shortest path first.
+  severity: Low
+  tags:
+  - event
+  - windows
+- rule_id: STIG-V-205870
+  legacy_ids:
+  - V-205870
+  - SV-103347
+  - V-93259
+  - CCI-000366
+  - SV-205870r991589_rule
+  rule_name: Windows Server 2019 Windows Update must not obtain updates from other PCs on the Internet.
+  rule_description: |-
+    Windows Update can obtain updates from additional sources instead of Microsoft. In addition to Microsoft, updates can be obtained from and sent to PCs on the local network as well as on the Internet. This is part of the Windows Update trusted process, however to minimize outside exposure, obtaining updates from or sending to systems on the Internet must be prevented.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization\
+
+      Value Name: DODownloadMode
+
+      Value Type: REG_DWORD
+      Value: 0x00000000 (0) - No peering (HTTP Only)
+      0x00000001 (1) - Peers on same NAT only (LAN)
+      0x00000002 (2) - Local Network / Private group peering (Group)
+      0x00000063 (99) - Simple download mode, no peering (Simple)
+      0x00000064 (100) - Bypass mode, Delivery Optimization not used (Bypass)
+
+      A value of 0x00000003 (3), Internet, is a finding.
+    check_command: |-
+      If the following registry value does not exist or is not configured as specified, this is a finding:
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization\
+
+      Value Name: DODownloadMode
+
+      Value Type: REG_DWORD
+      Value: 0x00000000 (0) - No peering (HTTP Only)
+      0x00000001 (1) - Peers on same NAT only (LAN)
+      0x00000002 (2) - Local Network / Private group peering (Group)
+      0x00000063 (99) - Simple download mode, no peering (Simple)
+      0x00000064 (100) - Bypass mode, Delivery Optimization not used (Bypass)
+
+      A value of 0x00000003 (3), Internet, is a finding.
+  remediation:
+    remediation_step: |-
+      Configure the policy value for Computer Configuration >> Administrative Templates >> Windows Components >> Delivery Optimization >> "Download Mode" to "Enabled" with any option except "Internet" selected.
+
+      Acceptable selections include:
+
+      Bypass (100)
+      Group (2)
+      HTTP only (0)
+      LAN (1)
+      Simple (99)
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Windows Update can obtain updates from additional sources instead of Microsoft. In addition to Microsoft, updates can be obtained from and sent to PCs on the local network as well as on the Internet. This is part of the Windows Update trusted process, however to minimize outside exposure, obtaining updates from or sending to systems on the Internet must be prevented.
+    false_positive_risk: Low
+  id: STIG-V-205870
+  title: Windows Server 2019 Windows Update must not obtain updates from other PCs on the Internet.
+  description: |-
+    Windows Update can obtain updates from additional sources instead of Microsoft. In addition to Microsoft, updates can be obtained from and sent to PCs on the local network as well as on the Internet. This is part of the Windows Update trusted process, however to minimize outside exposure, obtaining updates from or sending to systems on the Internet must be prevented.
+  severity: Low
+  tags:
+  - windows
+- rule_id: STIG-V-205871
+  legacy_ids:
+  - V-205871
+  - V-93261
+  - SV-103349
+  - CCI-000366
+  - SV-205871r991589_rule
+  rule_name: Windows Server 2019 Turning off File Explorer heap termination on corruption must be disabled.
+  rule_description: |-
+    Legacy plug-in applications may continue to function when a File Explorer session has become corrupt. Disabling this feature will prevent this.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |-
+      The default behavior is for File Explorer heap termination on corruption to be enabled.
+
+      If the registry Value Name below does not exist, this is not a finding.
+
+      If it exists and is configured with a value of "0", this is not a finding.
+
+      If it exists and is configured with a value of "1", this is a finding.
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SOFTWARE\Policies\Microsoft\Windows\Explorer\
+
+      Value Name: NoHeapTerminationOnCorruption
+
+      Value Type: REG_DWORD
+      Value: 0x00000000 (0) (or if the Value Name does not exist)
+    check_command: |-
+      The default behavior is for File Explorer heap termination on corruption to be enabled.
+
+      If the registry Value Name below does not exist, this is not a finding.
+
+      If it exists and is configured with a value of "0", this is not a finding.
+
+      If it exists and is configured with a value of "1", this is a finding.
+
+      Registry Hive: HKEY_LOCAL_MACHINE
+      Registry Path: \SOFTWARE\Policies\Microsoft\Windows\Explorer\
+
+      Value Name: NoHeapTerminationOnCorruption
+
+      Value Type: REG_DWORD
+      Value: 0x00000000 (0) (or if the Value Name does not exist)
+  remediation:
+    remediation_step: |-
+      The default behavior is for File Explorer heap termination on corruption to be disabled.
+
+      If this needs to be corrected, configure the policy value for Computer Configuration >> Administrative Templates >> Windows Components >> File Explorer >> "Turn off heap termination on corruption" to "Not Configured" or "Disabled".
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Legacy plug-in applications may continue to function when a File Explorer session has become corrupt. Disabling this feature will prevent this.
+    false_positive_risk: Low
+  id: STIG-V-205871
+  title: Windows Server 2019 Turning off File Explorer heap termination on corruption must be disabled.
+  description: |-
+    Legacy plug-in applications may continue to function when a File Explorer session has become corrupt. Disabling this feature will prevent this.
+  severity: Low
+  tags:
+  - windows
+- rule_id: STIG-V-205923
+  legacy_ids:
+  - V-205923
+  - V-93309
+  - SV-103397
+  - CCI-000366
+  - SV-205923r991589_rule
+  rule_name: Windows Server 2019 default permissions of global system objects must be strengthened.
+  rule_description: |-
+    Windows systems maintain a global list of shared system resources such as DOS device names, mutexes, and semaphores. Each type of object is created with a default Discretionary Access Control List (DACL) that specifies who can access the objects with what permissions. When this policy is enabled, the default DACL is stronger, allowing non-administrative users to read shared objects but not to modify shared objects they did not create.
+  category: Security
+  subcategory: General
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\\n\nValue Name: ProtectionMode\n\nValue Type: REG_DWORD\nValue: 0x00000001 (1)"
+    check_command: "If the following registry value does not exist or is not configured as specified, this is a finding:\n\nRegistry Hive: HKEY_LOCAL_MACHINE \nRegistry Path: \\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\\n\nValue Name: ProtectionMode\n\nValue Type: REG_DWORD\nValue: 0x00000001 (1)"
+  remediation:
+    remediation_step: |-
+      Configure the policy value for Computer Configuration >> Windows Settings >> Security Settings >> Local Policies >> Security Options >> "System objects: Strengthen default permissions of internal system objects (e.g., Symbolic Links)" to "Enabled".
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: |-
+      Windows systems maintain a global list of shared system resources such as DOS device names, mutexes, and semaphores. Each type of object is created with a default Discretionary Access Control List (DACL) that specifies who can access the objects with what permissions. When this policy is enabled, the default DACL is stronger, allowing non-administrative users to read shared objects but not to modify shared objects they did not create.
+    false_positive_risk: Low
+  id: STIG-V-205923
+  title: Windows Server 2019 default permissions of global system objects must be strengthened.
+  description: |-
+    Windows systems maintain a global list of shared system resources such as DOS device names, mutexes, and semaphores. Each type of object is created with a default Discretionary Access Control List (DACL) that specifies who can access the objects with what permissions. When this policy is enabled, the default DACL is stronger, allowing non-administrative users to read shared objects but not to modify shared objects they did not create.
+  severity: Low
+  tags:
+  - permission
+  - windows
