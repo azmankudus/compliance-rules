@@ -1,0 +1,851 @@
+schema_version: "1.0.0"
+metadata:
+  name: Apache Tomcat 9 CIS Benchmark
+  version: "1.2.0"
+  description: CIS Apache Tomcat 9 Benchmark v1.2.0 security hardening rules
+  platform: Apache Tomcat 9
+  benchmark: CIS Apache Tomcat 9 Benchmark
+  author: Compliance Rules Team
+  created: "2026-03-14T00:00:00Z"
+  modified: "2026-03-14T00:00:00Z"
+  compatible_platforms:
+    - Apache Tomcat 9.0
+  references:
+    - type: CIS Benchmark
+      reference: "CIS Apache Tomcat 9 Benchmark v1.2.0"
+    - type: Apache Documentation
+      reference: "https://tomcat.apache.org/tomcat-9.0-doc/"
+
+compliance_info:
+  framework: CIS
+  version: "1.2.0"
+  profile: Level 1
+
+rules:
+  - rule_id: CIS-1.1
+    rule_name: Tomcat User Account - Non-privileged
+    rule_description: |
+      Use a distinct non-privileged user account for running Tomcat.
+      The user ID must be >= 1000 to ensure it is a regular user account
+      and not a system account.
+    category: Initial Setup
+    subcategory: User Account Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the user account running Tomcat
+        2. Verify the user ID is >= 1000
+      check_command: |
+        grep -E '^tomcat' /etc/passwd | awk -F: '{print $1, $3}'
+        ps -ef | grep tomcat | grep -v grep | awk '{print $1}'
+    remediation:
+      remediation_step: |
+        1. Create a dedicated tomcat user with UID >= 1000:
+           useradd -r -u 1000 -g tomcat -d /opt/tomcat -s /sbin/nologin tomcat
+        2. Change ownership of Tomcat directories
+        3. Update the service configuration to run as tomcat user
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Non-privileged user limits damage from exploits.
+      false_positive_risk: Low
+    id: CIS-1.1
+    title: Tomcat User Account - Non-privileged
+    description: Tomcat must run as non-privileged user.
+    severity: High
+    tags:
+      - user-account
+      - initial-setup
+      - high
+
+  - rule_id: CIS-1.2
+    rule_name: Tomcat User Account - No Login Shell
+    rule_description: |
+      The Tomcat user account must be set to nologin shell to prevent
+      interactive shell access.
+    category: Initial Setup
+    subcategory: User Account Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the shell setting for the tomcat user
+        2. Verify the shell is set to /sbin/nologin or /bin/false
+      check_command: |
+        grep -E '^tomcat' /etc/passwd | awk -F: '{print $7}'
+    remediation:
+      remediation_step: |
+        1. Set the tomcat user shell to nologin:
+           usermod -s /sbin/nologin tomcat
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: Prevents shell access for service account.
+      false_positive_risk: Low
+    id: CIS-1.2
+    title: Tomcat User Account - No Login Shell
+    description: Tomcat user must have nologin shell.
+    severity: Medium
+    tags:
+      - user-account
+      - initial-setup
+
+  - rule_id: CIS-1.3
+    rule_name: Tomcat User UMASK
+    rule_description: |
+      The Tomcat user UMASK must be set to 0027 to ensure newly created
+      files have appropriate permissions.
+    category: Initial Setup
+    subcategory: File Permissions
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the UMASK setting in the systemd service file
+        2. Verify UMASK is set to 0027
+      check_command: |
+        grep -i umask /etc/systemd/system/tomcat.service
+        grep -i umask /opt/tomcat/bin/setenv.sh 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Add or update UMASK in the systemd service file:
+           [Service]
+           UMask=0027
+        2. Reload systemd: systemctl daemon-reload
+        3. Restart the service
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Restrictive UMASK prevents world-readable files.
+      false_positive_risk: Low
+    id: CIS-1.3
+    title: Tomcat User UMASK
+    description: Tomcat UMASK must be 0027.
+    severity: Medium
+    tags:
+      - umask
+      - file-permissions
+      - initial-setup
+
+  - rule_id: CIS-1.4
+    rule_name: CATALINA_HOME Ownership
+    rule_description: |
+      The CATALINA_HOME directory must be owned by root user with group
+      tomcat to prevent unauthorized modification.
+    category: Initial Setup
+    subcategory: File Permissions
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the ownership of CATALINA_HOME directory
+        2. Verify owner is root and group is tomcat
+      check_command: |
+        ls -ld /opt/tomcat
+        stat -c "%U:%G" /opt/tomcat
+    remediation:
+      remediation_step: |
+        1. Set ownership of CATALINA_HOME:
+           chown root:tomcat /opt/tomcat
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: Root ownership prevents unauthorized modification.
+      false_positive_risk: Low
+    id: CIS-1.4
+    title: CATALINA_HOME Ownership
+    description: CATALINA_HOME must be owned by root.
+    severity: High
+    tags:
+      - file-permissions
+      - ownership
+      - initial-setup
+
+  - rule_id: CIS-1.5
+    rule_name: CATALINA_HOME/bin Folder Permissions
+    rule_description: |
+      The CATALINA_HOME/bin folder permissions must be set to 750.
+    category: Initial Setup
+    subcategory: File Permissions
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check permissions of CATALINA_HOME/bin directory
+        2. Verify permissions are 750
+      check_command: |
+        stat -c "%a" /opt/tomcat/bin
+        ls -ld /opt/tomcat/bin
+    remediation:
+      remediation_step: |
+        1. Set permissions on bin directory:
+           chmod 750 /opt/tomcat/bin
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: Restricts access to startup scripts.
+      false_positive_risk: Low
+    id: CIS-1.5
+    title: CATALINA_HOME/bin Folder Permissions
+    description: bin folder permissions must be 750.
+    severity: Medium
+    tags:
+      - file-permissions
+      - bin-directory
+      - initial-setup
+
+  - rule_id: CIS-1.7
+    rule_name: conf Folder Permissions
+    rule_description: |
+      The conf folder permissions must be set to 750 to restrict access
+      to configuration files.
+    category: Initial Setup
+    subcategory: File Permissions
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check permissions of conf directory
+        2. Verify permissions are 750
+      check_command: |
+        stat -c "%a" /opt/tomcat/conf
+        ls -ld /opt/tomcat/conf
+    remediation:
+      remediation_step: |
+        1. Set permissions on conf directory:
+           chmod 750 /opt/tomcat/conf
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: Configuration files contain sensitive information.
+      false_positive_risk: Low
+    id: CIS-1.7
+    title: conf Folder Permissions
+    description: conf folder permissions must be 750.
+    severity: High
+    tags:
+      - file-permissions
+      - configuration
+      - initial-setup
+
+  - rule_id: CIS-1.9
+    rule_name: conf File Permissions
+    rule_description: |
+      Files in the conf directory must have permissions set to 640.
+    category: Initial Setup
+    subcategory: File Permissions
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check permissions of all files in conf directory
+        2. Verify all permissions are 640
+      check_command: |
+        find /opt/tomcat/conf -type f -exec stat -c "%a %n" {} \;
+    remediation:
+      remediation_step: |
+        1. Set permissions on conf files:
+           find /opt/tomcat/conf -type f -exec chmod 640 {} \;
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: Prevents unauthorized access to configuration.
+      false_positive_risk: Low
+    id: CIS-1.9
+    title: conf File Permissions
+    description: conf files must have 640 permissions.
+    severity: High
+    tags:
+      - file-permissions
+      - configuration
+      - initial-setup
+
+  - rule_id: CIS-1.16
+    rule_name: Remove Example Applications
+    rule_description: |
+      Example applications must be removed from production Tomcat
+      installations as they may contain vulnerabilities.
+    category: Initial Setup
+    subcategory: Application Cleanup
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if examples directory exists in webapps
+        2. Verify examples application is not deployed
+      check_command: |
+        ls -la /opt/tomcat/webapps/ | grep -i examples
+        test -d /opt/tomcat/webapps/examples && echo "FOUND" || echo "NOT FOUND"
+    remediation:
+      remediation_step: |
+        1. Remove the examples application:
+           rm -rf /opt/tomcat/webapps/examples
+           rm -f /opt/tomcat/webapps/examples.war
+        2. Restart Tomcat if necessary
+      rollback_supported: false
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: Example applications may expose vulnerabilities.
+      false_positive_risk: Low
+    id: CIS-1.16
+    title: Remove Example Applications
+    description: Example applications must be removed.
+    severity: High
+    tags:
+      - application-cleanup
+      - examples
+      - initial-setup
+
+  - rule_id: CIS-1.17
+    rule_name: Remove Documentation
+    rule_description: |
+      Documentation must be removed from production Tomcat installations.
+    category: Initial Setup
+    subcategory: Application Cleanup
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if docs directory exists in webapps
+        2. Verify documentation is not deployed
+      check_command: |
+        ls -la /opt/tomcat/webapps/ | grep -i docs
+        test -d /opt/tomcat/webapps/docs && echo "FOUND" || echo "NOT FOUND"
+    remediation:
+      remediation_step: |
+        1. Remove the documentation application:
+           rm -rf /opt/tomcat/webapps/docs
+        2. Restart Tomcat if necessary
+      rollback_supported: false
+      reboot_required: false
+      service_impact: None
+      estimated_time: "1 minute"
+    context:
+      rationale: Documentation reveals server capabilities.
+      false_positive_risk: Low
+    id: CIS-1.17
+    title: Remove Documentation
+    description: Documentation must be removed.
+    severity: Medium
+    tags:
+      - application-cleanup
+      - documentation
+      - initial-setup
+
+  - rule_id: CIS-2.1
+    rule_name: AccessLogValve for Virtual Hosts
+    rule_description: |
+      AccessLogValve must be configured for each virtual host to log
+      all HTTP requests.
+    category: Logging and Auditing
+    subcategory: Access Logging
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check server.xml for AccessLogValve configuration
+        2. Verify AccessLogValve is configured for each Host
+      check_command: |
+        grep -A5 "<Host" /opt/tomcat/conf/server.xml | grep -i "AccessLogValve"
+    remediation:
+      remediation_step: |
+        1. Add AccessLogValve to each Host element in server.xml:
+           <Valve className="org.apache.catalina.valves.AccessLogValve"
+                  directory="logs"
+                  prefix="localhost_access_log"
+                  suffix=".txt"
+                  pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Access logging is essential for monitoring.
+      false_positive_risk: Low
+    id: CIS-2.1
+    title: AccessLogValve for Virtual Hosts
+    description: AccessLogValve must be configured.
+    severity: Medium
+    tags:
+      - logging
+      - access-log
+      - auditing
+
+  - rule_id: CIS-3.1
+    rule_name: TLS 1.2 Required
+    rule_description: |
+      TLS 1.2 or higher must be used on secured HTTP connectors.
+      SSLv3, TLSv1.0, and TLSv1.1 have known vulnerabilities.
+    category: SSL/TLS Configuration
+    subcategory: Protocol Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSL/TLS protocol configuration in server.xml
+        2. Verify only TLSv1.2 and TLSv1.3 are enabled
+      check_command: |
+        grep -i "sslEnabledProtocols\|sslProtocol" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure SSL connector to use only TLSv1.2+:
+           <Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true"
+                      sslEnabledProtocols="TLSv1.2,TLSv1.3" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Older TLS versions have known vulnerabilities.
+      false_positive_risk: Low
+    id: CIS-3.1
+    title: TLS 1.2 Required
+    description: Only TLS 1.2+ must be enabled.
+    severity: Critical
+    tags:
+      - ssl-tls
+      - encryption
+      - critical
+
+  - rule_id: CIS-3.2
+    rule_name: Strong Encryption Ciphers
+    rule_description: |
+      Secured connectors must be configured to use strong encryption
+      ciphers. Weak ciphers must be disabled.
+    category: SSL/TLS Configuration
+    subcategory: Cipher Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check cipher configuration in server.xml
+        2. Verify weak ciphers are disabled
+      check_command: |
+        grep -i "ciphers" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure strong ciphers on SSL connector:
+           ciphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                    TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+                    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                    TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Weak ciphers can be exploited.
+      false_positive_risk: Low
+    id: CIS-3.2
+    title: Strong Encryption Ciphers
+    description: Strong ciphers must be configured.
+    severity: Critical
+    tags:
+      - ssl-tls
+      - ciphers
+      - encryption
+      - critical
+
+  - rule_id: CIS-4.3
+    rule_name: Shutdown Port Disabled
+    rule_description: |
+      The shutdown port must be disabled by setting port="-1" in the
+      Server element.
+    category: Access Control
+    subcategory: Server Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check server.xml for Server element port attribute
+        2. Verify port is set to -1 (disabled)
+      check_command: |
+        grep -i "<Server" /opt/tomcat/conf/server.xml | grep -i "port"
+    remediation:
+      remediation_step: |
+        1. Disable shutdown port in server.xml:
+           <Server port="-1" shutdown="SHUTDOWN">
+        2. Use systemctl to manage the service instead
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Shutdown port allows remote termination.
+      false_positive_risk: Low
+    id: CIS-4.3
+    title: Shutdown Port Disabled
+    description: Shutdown port must be disabled.
+    severity: High
+    tags:
+      - access-control
+      - shutdown-port
+      - security
+
+  - rule_id: CIS-4.4
+    rule_name: Autodeploy Disabled
+    rule_description: |
+      Autodeploy must be disabled in production environments.
+    category: Access Control
+    subcategory: Deployment Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check server.xml for autoDeploy attribute
+        2. Verify autoDeploy is set to false
+      check_command: |
+        grep -i "autoDeploy" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Disable autoDeploy in server.xml Host element:
+           <Host name="localhost" appBase="webapps" autoDeploy="false">
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Auto-deployment could allow unauthorized applications.
+      false_positive_risk: Low
+    id: CIS-4.4
+    title: Autodeploy Disabled
+    description: Autodeploy must be disabled.
+    severity: High
+    tags:
+      - access-control
+      - deployment
+      - security
+
+  - rule_id: CIS-6.1
+    rule_name: Secure Cookie Flag
+    rule_description: |
+      Session cookies must have the secure flag set to ensure they are
+      only transmitted over HTTPS connections.
+    category: Session Management
+    subcategory: Cookie Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for cookie-config secure setting
+        2. Verify secure is set to true
+      check_command: |
+        grep -A5 "cookie-config" /opt/tomcat/conf/web.xml | grep -i "secure"
+    remediation:
+      remediation_step: |
+        1. Enable secure cookies in web.xml:
+           <session-config>
+             <cookie-config>
+               <secure>true</secure>
+             </cookie-config>
+           </session-config>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Secure flag prevents cookie transmission over HTTP.
+      false_positive_risk: Low
+    id: CIS-6.1
+    title: Secure Cookie Flag
+    description: Cookies must have secure flag set.
+    severity: High
+    tags:
+      - session-management
+      - cookies
+      - security
+
+  - rule_id: CIS-6.2
+    rule_name: HttpOnly Cookie Flag
+    rule_description: |
+      Session cookies must have the http-only flag set to prevent
+      client-side scripts from accessing cookie data.
+    category: Session Management
+    subcategory: Cookie Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for cookie-config http-only setting
+        2. Verify http-only is set to true
+      check_command: |
+        grep -A5 "cookie-config" /opt/tomcat/conf/web.xml | grep -i "http-only"
+    remediation:
+      remediation_step: |
+        1. Enable http-only cookies in web.xml:
+           <session-config>
+             <cookie-config>
+               <http-only>true</http-only>
+             </cookie-config>
+           </session-config>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: HttpOnly prevents JavaScript access to cookies.
+      false_positive_risk: Low
+    id: CIS-6.2
+    title: HttpOnly Cookie Flag
+    description: Cookies must have http-only flag set.
+    severity: High
+    tags:
+      - session-management
+      - cookies
+      - xss
+      - security
+
+  - rule_id: CIS-7.1
+    rule_name: Stack Tracing Disabled
+    rule_description: |
+      The TRACE HTTP method must be disabled (allowTrace=false).
+    category: Request Filtering
+    subcategory: HTTP Methods
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check server.xml Connector for allowTrace attribute
+        2. Verify allowTrace is set to false
+      check_command: |
+        grep -i "allowTrace" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Disable TRACE method on all connectors:
+           <Connector ... allowTrace="false" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: TRACE method can be used in XST attacks.
+      false_positive_risk: Low
+    id: CIS-7.1
+    title: Stack Tracing Disabled
+    description: TRACE method must be disabled.
+    severity: Medium
+    tags:
+      - http-methods
+      - trace
+      - xst
+      - security
+
+  - rule_id: CIS-7.3
+    rule_name: Directory Listings Disabled
+    rule_description: |
+      Directory listings must be disabled in the DefaultServlet
+      (listings=false).
+    category: Request Filtering
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for DefaultServlet listings parameter
+        2. Verify listings is set to false
+      check_command: |
+        grep -A10 "default" /opt/tomcat/conf/web.xml | grep -i "listings"
+    remediation:
+      remediation_step: |
+        1. Disable directory listings in web.xml DefaultServlet:
+           <init-param>
+             <param-name>listings</param-name>
+             <param-value>false</param-value>
+           </init-param>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Directory listings reveal file structure.
+      false_positive_risk: Low
+    id: CIS-7.3
+    title: Directory Listings Disabled
+    description: Directory listings must be disabled.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - directory-listings
+      - security
+
+  - rule_id: CIS-7.5
+    rule_name: Hide Server Information
+    rule_description: |
+      ErrorReportValve showServerInfo must be set to false to prevent
+      disclosure of Tomcat version information.
+    category: Request Filtering
+    subcategory: Information Disclosure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check server.xml for ErrorReportValve configuration
+        2. Verify showServerInfo is set to false
+      check_command: |
+        grep -i "ErrorReportValve" /opt/tomcat/conf/server.xml | grep -i "showServerInfo"
+    remediation:
+      remediation_step: |
+        1. Configure ErrorReportValve to hide server info:
+           <Valve className="org.apache.catalina.valves.ErrorReportValve"
+                  showServerInfo="false" showReport="false" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Server version helps attackers identify vulnerabilities.
+      false_positive_risk: Low
+    id: CIS-7.5
+    title: Hide Server Information
+    description: ErrorReportValve must hide server info.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - server-info
+      - security
+
+  - rule_id: CIS-8.2
+    rule_name: X-Frame-Options Header
+    rule_description: |
+      X-Frame-Options header must be set to prevent clickjacking attacks.
+    category: Security Headers
+    subcategory: Clickjacking Prevention
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for HttpHeaderSecurity filter configuration
+        2. Verify X-Frame-Options is configured
+      check_command: |
+        grep -A20 "httpHeaderSecurity" /opt/tomcat/conf/web.xml | grep -i "X-Frame-Options"
+    remediation:
+      remediation_step: |
+        1. Enable HttpHeaderSecurity filter in web.xml:
+           <filter>
+             <filter-name>httpHeaderSecurity</filter-name>
+             <filter-class>org.apache.catalina.filters.HttpHeaderSecurityFilter</filter-class>
+             <init-param>
+               <param-name>antiClickJackingEnabled</param-name>
+               <param-value>true</param-value>
+             </init-param>
+             <init-param>
+               <param-name>antiClickJackingOption</param-name>
+               <param-value>DENY</param-value>
+             </init-param>
+           </filter>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: X-Frame-Options prevents clickjacking.
+      false_positive_risk: Low
+    id: CIS-8.2
+    title: X-Frame-Options Header
+    description: X-Frame-Options header must be set.
+    severity: Medium
+    tags:
+      - security-headers
+      - clickjacking
+      - x-frame-options
+
+  - rule_id: CIS-8.3
+    rule_name: X-Content-Type-Options Header
+    rule_description: |
+      X-Content-Type-Options header must be set to "nosniff" to prevent
+      MIME type sniffing attacks.
+    category: Security Headers
+    subcategory: MIME Sniffing Prevention
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for HttpHeaderSecurity filter configuration
+        2. Verify X-Content-Type-Options is configured
+      check_command: |
+        grep -A20 "httpHeaderSecurity" /opt/tomcat/conf/web.xml | grep -i "X-Content-Type"
+    remediation:
+      remediation_step: |
+        1. Enable X-Content-Type-Options in web.xml:
+           <filter>
+             <filter-name>httpHeaderSecurity</filter-name>
+             <filter-class>org.apache.catalina.filters.HttpHeaderSecurityFilter</filter-class>
+             <init-param>
+               <param-name>xContentTypeOptionsEnabled</param-name>
+               <param-value>true</param-value>
+             </init-param>
+           </filter>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: X-Content-Type-Options prevents MIME sniffing.
+      false_positive_risk: Low
+    id: CIS-8.3
+    title: X-Content-Type-Options Header
+    description: X-Content-Type-Options header must be set.
+    severity: Medium
+    tags:
+      - security-headers
+      - mime-sniffing
+      - x-content-type-options

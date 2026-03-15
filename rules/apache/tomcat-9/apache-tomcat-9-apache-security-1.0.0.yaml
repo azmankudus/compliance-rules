@@ -1,0 +1,824 @@
+schema_version: "1.0.0"
+metadata:
+  name: Apache Tomcat 9 Security Hardening
+  version: "1.0.0"
+  description: Security hardening rules for Apache Tomcat 9 based on Apache official documentation
+  platform: Apache Tomcat 9
+  benchmark: Apache Tomcat Security Best Practices
+  author: Compliance Rules Team
+  created: "2026-03-14T00:00:00Z"
+  modified: "2026-03-14T00:00:00Z"
+  compatible_platforms:
+    - Apache Tomcat 9.0
+  references:
+    - type: Apache Documentation
+      reference: "https://tomcat.apache.org/tomcat-9.0-doc/security-howto.html"
+    - type: Apache Security
+      reference: "https://tomcat.apache.org/security-9.html"
+
+compliance_info:
+  framework: CIS
+  version: "1.0.0"
+  profile: Production
+
+rules:
+  - rule_id: TOMCAT9-001
+    rule_name: Run as Non-Root User
+    rule_description: |
+      Tomcat must run as a non-root user to limit the impact of potential
+      security vulnerabilities.
+    category: Access Control
+    subcategory: User Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check the user configured in the Tomcat service
+        2. Verify the process is not running as root
+      check_command: |
+        ps -ef | grep tomcat | grep -v grep
+        grep -i "User=" /etc/systemd/system/tomcat.service 2>/dev/null
+    remediation:
+      remediation_step: |
+        1. Create a dedicated user for Tomcat:
+           useradd -r -s /sbin/nologin tomcat
+        2. Configure the service to run as this user
+        3. Ensure proper ownership of Tomcat directories
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Non-root limits damage from exploits.
+      false_positive_risk: Low
+    id: TOMCAT9-001
+    title: Run as Non-Root User
+    description: Tomcat must run as non-root user.
+    severity: Critical
+    tags:
+      - access-control
+      - user-configuration
+      - non-root
+      - critical
+
+  - rule_id: TOMCAT9-002
+    rule_name: Set Secure File Permissions
+    rule_description: |
+      Tomcat installation files must have secure permissions.
+    category: File Security
+    subcategory: Permission Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check permissions of Tomcat directories
+        2. Verify configuration files are protected
+      check_command: |
+        ls -la /opt/tomcat/
+        stat -c "%a %U:%G" /opt/tomcat/conf/
+    remediation:
+      remediation_step: |
+        1. Set directory ownership:
+           chown -R root:tomcat /opt/tomcat
+           chown -R tomcat:tomcat /opt/tomcat/logs
+           chown -R tomcat:tomcat /opt/tomcat/work
+           chown -R tomcat:tomcat /opt/tomcat/temp
+        2. Set directory permissions:
+           chmod 750 /opt/tomcat/conf
+           chmod 750 /opt/tomcat/logs
+        3. Set file permissions:
+           chmod 640 /opt/tomcat/conf/*
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Proper permissions prevent unauthorized access.
+      false_positive_risk: Low
+    id: TOMCAT9-002
+    title: Set Secure File Permissions
+    description: File permissions must be secure.
+    severity: High
+    tags:
+      - file-security
+      - permissions
+
+  - rule_id: TOMCAT9-003
+    rule_name: Configure AJP Connector Securely
+    rule_description: |
+      AJP connector must be configured securely with requiredSecret attribute.
+    category: Network Security
+    subcategory: Connector Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check for AJP connector configuration
+        2. Verify secret is configured
+      check_command: |
+        grep -A5 "protocol=\"AJP" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure AJP connector with secret:
+           <Connector port="8009" protocol="AJP/1.3"
+                      secretRequired="true"
+                      secret="your-strong-secret-here"
+                      address="127.0.0.1" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Unprotected AJP allows file read.
+      false_positive_risk: Low
+    id: TOMCAT9-003
+    title: Configure AJP Connector Securely
+    description: AJP connector must be secured.
+    severity: High
+    tags:
+      - network-security
+      - ajp
+      - connector
+
+  - rule_id: TOMCAT9-004
+    rule_name: Disable Shutdown Port
+    rule_description: |
+      The shutdown port must be disabled by setting port="-1".
+    category: Access Control
+    subcategory: Server Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check server.xml for Server element port attribute
+        2. Verify port is set to -1 (disabled)
+      check_command: |
+        grep -i "<Server" /opt/tomcat/conf/server.xml | grep -i "port"
+    remediation:
+      remediation_step: |
+        1. Disable shutdown port in server.xml:
+           <Server port="-1" shutdown="SHUTDOWN">
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Shutdown port allows remote termination.
+      false_positive_risk: Low
+    id: TOMCAT9-004
+    title: Disable Shutdown Port
+    description: Shutdown port must be disabled.
+    severity: High
+    tags:
+      - access-control
+      - shutdown-port
+
+  - rule_id: TOMCAT9-005
+    rule_name: Configure Realms for Authentication
+    rule_description: |
+      Realms must use secure authentication with digested passwords.
+    category: Authentication
+    subcategory: Realm Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Realm configuration in server.xml
+        2. Verify password digest is configured
+      check_command: |
+        grep -A5 "Realm" /opt/tomcat/conf/server.xml | grep -i "digest\|credentialHandler"
+    remediation:
+      remediation_step: |
+        1. Configure MessageDigestCredentialHandler:
+           <CredentialHandler className="org.apache.catalina.realm.MessageDigestCredentialHandler"
+                              algorithm="SHA-256" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Digested passwords prevent credential theft.
+      false_positive_risk: Low
+    id: TOMCAT9-005
+    title: Configure Realms for Authentication
+    description: Realms must use secure authentication.
+    severity: High
+    tags:
+      - authentication
+      - realms
+
+  - rule_id: TOMCAT9-006
+    rule_name: Use LockOutRealm
+    rule_description: |
+      LockOutRealm must be used to prevent brute force attacks.
+    category: Authentication
+    subcategory: Brute Force Protection
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if LockOutRealm is configured
+        2. Verify lockout parameters
+      check_command: |
+        grep -i "LockOutRealm" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure LockOutRealm in server.xml:
+           <Realm className="org.apache.catalina.realm.LockOutRealm"
+                  failureCount="5"
+                  lockOutTime="600">
+             <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+                    resourceName="UserDatabase" />
+           </Realm>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: LockOutRealm prevents brute force attacks.
+      false_positive_risk: Low
+    id: TOMCAT9-006
+    title: Use LockOutRealm
+    description: LockOutRealm must be configured.
+    severity: High
+    tags:
+      - authentication
+      - brute-force
+      - lockout
+
+  - rule_id: TOMCAT9-007
+    rule_name: Configure Secure Connectors
+    rule_description: |
+      HTTP connectors must be configured securely.
+    category: Network Security
+    subcategory: Connector Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Connector configuration in server.xml
+        2. Verify security attributes
+      check_command: |
+        grep -A10 "Connector" /opt/tomcat/conf/server.xml | head -30
+    remediation:
+      remediation_step: |
+        1. Configure secure connector:
+           <Connector port="8080" protocol="HTTP/1.1"
+                      connectionTimeout="20000"
+                      redirectPort="8443"
+                      maxThreads="200"
+                      xpoweredBy="false"
+                      server=" " />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Secure connectors prevent DoS and info disclosure.
+      false_positive_risk: Low
+    id: TOMCAT9-007
+    title: Configure Secure Connectors
+    description: Connectors must be configured securely.
+    severity: High
+    tags:
+      - network-security
+      - connectors
+
+  - rule_id: TOMCAT9-008
+    rule_name: Enable SSL/TLS
+    rule_description: |
+      SSL/TLS must be enabled for all sensitive communications.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check SSL connector configuration
+        2. Verify SSLEnabled is true
+      check_command: |
+        grep -i "SSLEnabled\|keystoreFile" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Configure SSL connector:
+           <Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true"
+                      maxThreads="150" scheme="https" secure="true"
+                      keystoreFile="/path/to/keystore"
+                      keystorePass="password"
+                      clientAuth="false" sslProtocol="TLS" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "20 minutes"
+    context:
+      rationale: SSL/TLS protects data in transit.
+      false_positive_risk: Low
+    id: TOMCAT9-008
+    title: Enable SSL/TLS
+    description: SSL/TLS must be enabled.
+    severity: Critical
+    tags:
+      - encryption
+      - ssl-tls
+      - critical
+
+  - rule_id: TOMCAT9-009
+    rule_name: Configure Access Logging
+    rule_description: |
+      AccessLogValve must be configured to log all HTTP requests.
+    category: Logging
+    subcategory: Access Logging
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check server.xml for AccessLogValve configuration
+        2. Verify logging is enabled
+      check_command: |
+        grep -i "AccessLogValve" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Add AccessLogValve to each Host element:
+           <Valve className="org.apache.catalina.valves.AccessLogValve"
+                  directory="logs"
+                  prefix="access_log"
+                  suffix=".txt"
+                  pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: Access logging enables forensics.
+      false_positive_risk: Low
+    id: TOMCAT9-009
+    title: Configure Access Logging
+    description: Access logging must be configured.
+    severity: Medium
+    tags:
+      - logging
+      - access-log
+
+  - rule_id: TOMCAT9-010
+    rule_name: Disable Directory Listings
+    rule_description: |
+      Directory listings must be disabled in the DefaultServlet.
+    category: Information Disclosure
+    subcategory: Directory Security
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for DefaultServlet listings parameter
+        2. Verify listings is set to false
+      check_command: |
+        grep -A10 "default" /opt/tomcat/conf/web.xml | grep -i "listings"
+    remediation:
+      remediation_step: |
+        1. Disable directory listings in web.xml:
+           <init-param>
+             <param-name>listings</param-name>
+             <param-value>false</param-value>
+           </init-param>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Directory listings reveal file structure.
+      false_positive_risk: Low
+    id: TOMCAT9-010
+    title: Disable Directory Listings
+    description: Directory listings must be disabled.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - directory-listings
+
+  - rule_id: TOMCAT9-011
+    rule_name: Hide Server Version
+    rule_description: |
+      Server version information must be hidden.
+    category: Information Disclosure
+    subcategory: Server Identification
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check ErrorReportValve configuration
+        2. Verify showServerInfo is set to false
+      check_command: |
+        grep -i "ErrorReportValve" /opt/tomcat/conf/server.xml | grep -i "showServerInfo"
+    remediation:
+      remediation_step: |
+        1. Configure ErrorReportValve to hide server info:
+           <Valve className="org.apache.catalina.valves.ErrorReportValve"
+                  showServerInfo="false" />
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Server version helps attackers.
+      false_positive_risk: Low
+    id: TOMCAT9-011
+    title: Hide Server Version
+    description: Server version must be hidden.
+    severity: Medium
+    tags:
+      - information-disclosure
+      - server-version
+
+  - rule_id: TOMCAT9-012
+    rule_name: Disable AutoDeploy
+    rule_description: |
+      AutoDeploy must be disabled in production.
+    category: Deployment
+    subcategory: AutoDeploy Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Host element for autoDeploy attribute
+        2. Verify autoDeploy is set to false
+      check_command: |
+        grep -i "autoDeploy" /opt/tomcat/conf/server.xml
+    remediation:
+      remediation_step: |
+        1. Disable autoDeploy in server.xml:
+           <Host name="localhost" appBase="webapps" autoDeploy="false">
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: AutoDeploy could allow unauthorized applications.
+      false_positive_risk: Low
+    id: TOMCAT9-012
+    title: Disable AutoDeploy
+    description: AutoDeploy must be disabled.
+    severity: High
+    tags:
+      - deployment
+      - auto-deploy
+
+  - rule_id: TOMCAT9-013
+    rule_name: Configure Security Constraints
+    rule_description: |
+      Security constraints must be configured in web.xml.
+    category: Access Control
+    subcategory: Security Constraints
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for security-constraint elements
+        2. Verify protected resources are configured
+      check_command: |
+        grep -A20 "security-constraint" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Configure security constraints in web.xml:
+           <security-constraint>
+             <web-resource-collection>
+               <web-resource-name>Protected Area</web-resource-name>
+               <url-pattern>/protected/*</url-pattern>
+             </web-resource-collection>
+             <auth-constraint>
+               <role-name>admin</role-name>
+             </auth-constraint>
+             <user-data-constraint>
+               <transport-guarantee>CONFIDENTIAL</transport-guarantee>
+             </user-data-constraint>
+           </security-constraint>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Security constraints enforce access control.
+      false_positive_risk: Low
+    id: TOMCAT9-013
+    title: Configure Security Constraints
+    description: Security constraints must be configured.
+    severity: High
+    tags:
+      - access-control
+      - security-constraints
+
+  - rule_id: TOMCAT9-014
+    rule_name: Configure Secure Session Cookies
+    rule_description: |
+      Session cookies must have secure and http-only flags set.
+    category: Session Management
+    subcategory: Cookie Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for cookie-config settings
+        2. Verify secure and http-only flags
+      check_command: |
+        grep -A10 "cookie-config" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Configure secure cookies in web.xml:
+           <session-config>
+             <cookie-config>
+               <secure>true</secure>
+               <http-only>true</http-only>
+             </cookie-config>
+           </session-config>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: Secure cookies prevent session hijacking.
+      false_positive_risk: Low
+    id: TOMCAT9-014
+    title: Configure Secure Session Cookies
+    description: Session cookies must be secure.
+    severity: High
+    tags:
+      - session-management
+      - cookies
+      - secure
+
+  - rule_id: TOMCAT9-015
+    rule_name: Configure Session Timeout
+    rule_description: |
+      Session timeout must be configured to an appropriate value.
+    category: Session Management
+    subcategory: Session Timeout
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check session-timeout in web.xml
+        2. Verify timeout is configured
+      check_command: |
+        grep -A3 "session-config" /opt/tomcat/conf/web.xml | grep "session-timeout"
+    remediation:
+      remediation_step: |
+        1. Configure session timeout in web.xml:
+           <session-config>
+             <session-timeout>30</session-timeout>
+           </session-config>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "2 minutes"
+    context:
+      rationale: Long sessions increase hijacking risk.
+      false_positive_risk: Low
+    id: TOMCAT9-015
+    title: Configure Session Timeout
+    description: Session timeout must be configured.
+    severity: Medium
+    tags:
+      - session-management
+      - timeout
+
+  - rule_id: TOMCAT9-016
+    rule_name: Remove Default Applications
+    rule_description: |
+      Default applications must be removed or secured.
+    category: Configuration
+    subcategory: Application Cleanup
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check webapps directory for default applications
+        2. Verify examples and docs are removed
+      check_command: |
+        ls -la /opt/tomcat/webapps/ | grep -E "examples|docs|manager|host-manager"
+    remediation:
+      remediation_step: |
+        1. Remove default applications:
+           rm -rf /opt/tomcat/webapps/examples
+           rm -rf /opt/tomcat/webapps/docs
+        2. Secure manager and host-manager if needed, or remove
+      rollback_supported: false
+      reboot_required: false
+      service_impact: None
+      estimated_time: "2 minutes"
+    context:
+      rationale: Default applications may expose vulnerabilities.
+      false_positive_risk: Low
+    id: TOMCAT9-016
+    title: Remove Default Applications
+    description: Default applications must be removed.
+    severity: High
+    tags:
+      - configuration
+      - application-cleanup
+
+  - rule_id: TOMCAT9-017
+    rule_name: Configure CSRF Protection
+    rule_description: |
+      CSRF prevention filter must be enabled.
+    category: Security Filters
+    subcategory: CSRF Protection
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for CSRF prevention filter
+        2. Verify filter is enabled
+      check_command: |
+        grep -i "CsrfPreventionFilter" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Enable CSRF prevention filter in web.xml:
+           <filter>
+             <filter-name>CSRF</filter-name>
+             <filter-class>org.apache.catalina.filters.CsrfPreventionFilter</filter-class>
+           </filter>
+           <filter-mapping>
+             <filter-name>CSRF</filter-name>
+             <url-pattern>/*</url-pattern>
+           </filter-mapping>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "5 minutes"
+    context:
+      rationale: CSRF filter prevents request forgery attacks.
+      false_positive_risk: Medium
+    id: TOMCAT9-017
+    title: Configure CSRF Protection
+    description: CSRF protection must be enabled.
+    severity: High
+    tags:
+      - security-filters
+      - csrf
+
+  - rule_id: TOMCAT9-018
+    rule_name: Configure Security Headers
+    rule_description: |
+      HTTP security headers must be configured.
+    category: Security Headers
+    subcategory: Header Security
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for HttpHeaderSecurity filter
+        2. Verify security headers are configured
+      check_command: |
+        grep -A20 "httpHeaderSecurity" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Enable HttpHeaderSecurity filter in web.xml:
+           <filter>
+             <filter-name>httpHeaderSecurity</filter-name>
+             <filter-class>org.apache.catalina.filters.HttpHeaderSecurityFilter</filter-class>
+             <init-param>
+               <param-name>antiClickJackingEnabled</param-name>
+               <param-value>true</param-value>
+             </init-param>
+             <init-param>
+               <param-name>xContentTypeOptionsEnabled</param-name>
+               <param-value>true</param-value>
+             </init-param>
+             <init-param>
+               <param-name>xssProtectionEnabled</param-name>
+               <param-value>true</param-value>
+             </init-param>
+           </filter>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "10 minutes"
+    context:
+      rationale: Security headers protect against common attacks.
+      false_positive_risk: Low
+    id: TOMCAT9-018
+    title: Configure Security Headers
+    description: Security headers must be configured.
+    severity: Medium
+    tags:
+      - security-headers
+      - x-frame-options
+      - xss-protection
+
+  - rule_id: TOMCAT9-019
+    rule_name: Configure JNDI Resources Securely
+    rule_description: |
+      JNDI resources must be configured securely with encrypted credentials.
+    category: Data Security
+    subcategory: Resource Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: |
+        1. Check context.xml for JNDI resource configuration
+        2. Verify credentials are not plaintext
+      check_command: |
+        grep -i "Resource.*name.*jdbc" /opt/tomcat/conf/context.xml
+    remediation:
+      remediation_step: |
+        1. Use encrypted passwords in datasource configuration
+        2. Store credentials in external properties file
+        3. Restrict access to context.xml
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "20 minutes"
+    context:
+      rationale: Plaintext credentials can be extracted.
+      false_positive_risk: Low
+    id: TOMCAT9-019
+    title: Configure JNDI Resources Securely
+    description: JNDI resources must be secured.
+    severity: High
+    tags:
+      - data-security
+      - jndi
+      - credentials
+
+  - rule_id: TOMCAT9-020
+    rule_name: Configure Error Pages
+    rule_description: |
+      Custom error pages must be configured.
+    category: Error Handling
+    subcategory: Custom Errors
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check web.xml for error-page configuration
+        2. Verify custom error pages are defined
+      check_command: |
+        grep -A5 "error-page" /opt/tomcat/conf/web.xml
+    remediation:
+      remediation_step: |
+        1. Configure custom error pages in web.xml:
+           <error-page>
+             <error-code>404</error-code>
+             <location>/error/404.html</location>
+           </error-page>
+           <error-page>
+             <error-code>500</error-code>
+             <location>/error/500.html</location>
+           </error-page>
+           <error-page>
+             <exception-type>java.lang.Throwable</exception-type>
+             <location>/error/error.html</location>
+           </error-page>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restart required
+      estimated_time: "15 minutes"
+    context:
+      rationale: Custom errors prevent information disclosure.
+      false_positive_risk: Low
+    id: TOMCAT9-020
+    title: Configure Error Pages
+    description: Custom error pages must be configured.
+    severity: Medium
+    tags:
+      - error-handling
+      - custom-errors
