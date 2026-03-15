@@ -1,0 +1,1448 @@
+schema_version: "1.0.0"
+metadata:
+  name: Red Hat JBoss EAP 8 Security Hardening
+  version: "1.0.0"
+  description: Security hardening rules for Red Hat JBoss Enterprise Application Platform 7 based on Red Hat official documentation
+  platform: Red Hat JBoss EAP 8
+  benchmark: Red Hat JBoss EAP Security Best Practices
+  author: Compliance Rules Team
+  created: "2026-03-14T00:00:00Z"
+  modified: "2026-03-14T00:00:00Z"
+  compatible_platforms:
+    - Red Hat JBoss EAP 8.0
+    - Red Hat JBoss EAP 8.1
+    - Red Hat JBoss EAP 8.2
+    - Red Hat JBoss EAP 8.3
+    - Red Hat JBoss EAP 8.4
+  references:
+    - type: Red Hat Documentation
+      reference: "https://docs.redhat.com/en/documentation/red_hat_jboss_enterprise_application_platform/8.1/html/how_to_configure_server_security"
+    - type: Red Hat Documentation
+      reference: "https://docs.redhat.com/en/documentation/red_hat_jboss_enterprise_application_platform/8.1/html/security_architecture"
+
+compliance_info:
+  framework: Red Hat Security
+  version: "1.0.0"
+  profile: Production
+
+rules:
+  - rule_id: JEAP8-001
+    rule_name: Enable Elytron Security Subsystem
+    rule_description: |
+      The Elytron subsystem must be enabled as the primary security framework
+      for JBoss EAP 8. Elytron provides unified security across the server and
+      replaces the legacy security subsystem.
+    category: Security Framework
+    subcategory: Elytron Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Connect to JBoss CLI
+        2. Check if elytron subsystem is enabled
+        3. Verify elytron is being used for management interfaces
+      check_command: |
+        /subsystem=elytron:read-resource(recursive=false)
+        /core-service=management/management-interface=http-interface:read-attribute(name=http-authentication-factory)
+    remediation:
+      remediation_step: |
+        1. Enable Elytron subsystem if not already enabled:
+           /subsystem=elytron:add()
+        2. Configure management interfaces to use Elytron:
+           /core-service=management/management-interface=http-interface:write-attribute(name=http-authentication-factory,value=management-http-authentication)
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server reload required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Elytron is the modern security framework for JBoss EAP 8 that provides
+        unified security across all server components.
+      impact: |
+        Without Elytron, the server relies on legacy security which has limited
+        capabilities and may have security vulnerabilities.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Elytron Subsystem"
+    tags:
+      - elytron
+      - security-framework
+      - critical
+
+  - rule_id: JEAP8-002
+    rule_name: Disable SSLv3 and TLSv1.0/1.1 Protocols
+    rule_description: |
+      SSLv3, TLSv1.0, and TLSv1.1 protocols must be disabled due to known
+      security vulnerabilities. Only TLSv1.2 and TLSv1.3 should be enabled.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check Elytron server-ssl-context configuration
+        2. Verify enabled protocols exclude SSLv3, TLSv1.0, TLSv1.1
+        3. Check undertow HTTPS listener configuration
+      check_command: |
+        /subsystem=elytron/server-ssl-context=*:read-attribute(name=protocols)
+        /subsystem=undertow/server=default-server/https-listener=*:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure Elytron server-ssl-context to use only TLSv1.2+:
+           /subsystem=elytron/server-ssl-context=APPLICATION_SERVER_SSL:write-attribute(name=protocols,value=["TLSv1.2","TLSv1.3"])
+        2. For Undertow HTTPS listener:
+           /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=enabled-protocols,value=["TLSv1.2","TLSv1.3"])
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server reload required
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        SSLv3 (POODLE), TLSv1.0 (BEAST), and TLSv1.1 have known cryptographic
+        weaknesses and must be disabled.
+      impact: |
+        Enabling weak protocols allows attackers to intercept or decrypt
+        sensitive communications.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - About Cipher Suites"
+    tags:
+      - ssl
+      - tls
+      - encryption
+      - critical
+
+  - rule_id: JEAP8-003
+    rule_name: Configure Strong Cipher Suites
+    rule_description: |
+      Configure JBoss EAP to use only strong cipher suites. Weak ciphers
+      including NULL, anonymous DH, export grade, RC4, and 3DES must be disabled.
+    category: Encryption
+    subcategory: Cipher Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check cipher-suite filter in Elytron server-ssl-context
+        2. Verify weak ciphers are excluded
+        3. Test with sslscan or similar tool
+      check_command: |
+        /subsystem=elytron/server-ssl-context=*:read-attribute(name=cipher-suite-filter)
+    remediation:
+      remediation_step: |
+        1. Configure strong cipher suite filter:
+           /subsystem=elytron/server-ssl-context=APPLICATION_SERVER_SSL:write-attribute(name=cipher-suite-filter,value="TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256")
+        2. Alternatively use cipher-suite-names:
+           /subsystem=elytron/server-ssl-context=APPLICATION_SERVER_SSL:write-attribute(name=cipher-suite-names,value="TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256")
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server reload required
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Weak cipher suites allow attackers to decrypt traffic or perform
+        man-in-the-middle attacks.
+      impact: |
+        Using weak ciphers exposes sensitive data to interception and
+        decryption attacks.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - About Cipher Suites"
+    tags:
+      - ssl
+      - cipher
+      - encryption
+      - high
+
+  - rule_id: JEAP8-004
+    rule_name: Enable SSL/TLS for Management Interfaces
+    rule_description: |
+      Management interfaces (HTTP and native) must be configured to use
+      SSL/TLS encryption to protect administrative credentials and communications.
+    category: Management Security
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if management interfaces use SSL/TLS
+        2. Verify socket-binding uses HTTPS port
+        3. Verify SSL context is configured
+      check_command: |
+        /core-service=management/management-interface=http-interface:read-attribute(name=ssl-context)
+        /core-service=management/management-interface=http-interface:read-attribute(name=socket-binding)
+    remediation:
+      remediation_step: |
+        1. Create keystore with server certificate:
+           keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -validity 365 -keystore server.keystore.jks
+        2. Configure Elytron key-store:
+           /subsystem=elytron/key-store=httpsKS:add(path=server.keystore.jks,relative-to=jboss.server.config.dir,credential-reference={clear-text=changeit},type=JKS)
+        3. Create key-manager:
+           /subsystem=elytron/key-manager=httpsKM:add(key-store=httpsKS,credential-reference={clear-text=changeit})
+        4. Create server-ssl-context:
+           /subsystem=elytron/server-ssl-context=httpsSSC:add(key-manager=httpsKM,protocols=["TLSv1.2","TLSv1.3"])
+        5. Configure HTTP interface to use SSL:
+           /core-service=management/management-interface=http-interface:write-attribute(name=ssl-context,value=httpsSSC)
+        6. Update socket-binding to use secure port
+        7. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Server reload required
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Unencrypted management interfaces expose administrative credentials
+        and allow unauthorized access to server configuration.
+      impact: |
+        Without SSL/TLS, attackers can intercept administrative credentials
+        and gain full control of the server.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - One-way SSL/TLS for Management Interfaces"
+    tags:
+      - ssl
+      - tls
+      - management
+      - critical
+
+  - rule_id: JEAP8-005
+    rule_name: Disable Management Console in Production
+    rule_description: |
+      The web-based management console should be disabled in production
+      environments to reduce the attack surface. Use CLI for administration.
+    category: Management Security
+    subcategory: Console Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if management console is enabled
+        2. Verify console is not accessible via HTTP
+      check_command: |
+        /core-service=management/management-interface=http-interface:read-attribute(name=console-enabled)
+    remediation:
+      remediation_step: |
+        1. Disable the management console:
+           /core-service=management/management-interface=http-interface:write-attribute(name=console-enabled,value=false)
+        2. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Web console unavailable
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        The web console provides an additional attack surface and may have
+        vulnerabilities or expose configuration information.
+      impact: |
+        An accessible management console could be targeted for brute-force
+        attacks or exploitation of console vulnerabilities.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Disabling the Management Console"
+    tags:
+      - management
+      - console
+      - medium
+
+  - rule_id: JEAP8-006
+    rule_name: Disable Silent Authentication
+    rule_description: |
+      Silent authentication (local authentication) should be disabled in
+      production environments to require explicit authentication for all
+      management operations.
+    category: Authentication
+    subcategory: Management Authentication
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if silent authentication is enabled
+        2. Verify local auth is removed from auth factory
+      check_command: |
+        /subsystem=elytron/sasl-authentication-factory=management-sasl-authentication:read-attribute(name=mechanism-configurations)
+    remediation:
+      remediation_step: |
+        1. Remove local authentication mechanism:
+           /subsystem=elytron/sasl-authentication-factory=management-sasl-authentication:write-attribute(name=mechanism-configurations,value=[{mechanism-name=DIGEST-MD5,mechanism-realm-configurations=[{realm-name=ManagementRealm}]}])
+        2. Or remove JBOSS-LOCAL-USER from the list
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: CLI requires explicit credentials
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Silent authentication allows local users to access management
+        interfaces without explicit authentication, which may bypass
+        security controls.
+      impact: |
+        Local attackers could gain administrative access without credentials.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Silent Authentication"
+    tags:
+      - authentication
+      - silent-auth
+      - management
+      - high
+
+  - rule_id: JEAP8-007
+    rule_name: Enable Role-Based Access Control (RBAC)
+    rule_description: |
+      Role-Based Access Control must be enabled to restrict management
+      operations based on user roles and permissions.
+    category: Authorization
+    subcategory: RBAC Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if RBAC is enabled
+        2. Verify access-control provider is not simple
+      check_command: |
+        /core-service=management/access=authorization:read-attribute(name=provider)
+    remediation:
+      remediation_step: |
+        1. Enable RBAC:
+           /core-service=management/access=authorization:write-attribute(name=provider,value=rbac)
+        2. Configure roles as needed
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Users may lose access if not properly configured
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        RBAC ensures that users can only perform operations they are
+        authorized for, implementing the principle of least privilege.
+      impact: |
+        Without RBAC, all authenticated users have full administrative
+        access to the server.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Role-Based Access Control"
+    tags:
+      - authorization
+      - rbac
+      - access-control
+      - critical
+
+  - rule_id: JEAP8-008
+    rule_name: Configure Management Interface Network Binding
+    rule_description: |
+      Management interfaces should only bind to the loopback interface
+      (128.0.0.1) or a restricted management network, not to all interfaces.
+    category: Network Security
+    subcategory: Interface Binding
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check management interface socket binding
+        2. Verify it's not bound to 0.0.0.0 or ::
+        3. Check interface definitions
+      check_command: |
+        /interface=management:read-attribute(name=inet-address)
+        /socket-binding-group=standard-sockets/socket-binding=management-http:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure management interface to bind to localhost only:
+           /interface=management:write-attribute(name=inet-address,value=128.0.0.1)
+        2. Or use a specific management network IP
+        3. For remote management, use VPN or SSH tunnel
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Remote management may require VPN/tunnel
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Binding management interfaces to all interfaces exposes them to
+        network-based attacks.
+      impact: |
+        Exposed management interfaces can be targeted for brute-force
+        attacks or exploitation.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Configure Networking and Ports"
+    tags:
+      - network
+      - binding
+      - management
+      - high
+
+  - rule_id: JEAP8-009
+    rule_name: Disable Remote JMX Access
+    rule_description: |
+      Remote JMX access should be disabled or restricted. JMX connectors
+      can expose sensitive server information and operations.
+    category: Management Security
+    subcategory: JMX Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if JMX connector is enabled
+        2. Verify JMX remoting is disabled
+      check_command: |
+        /core-service=management/management-interface=native-interface:read-attribute(name=socket-binding)
+        ls /subsystem=jmx/remoting-connector=jmx
+    remediation:
+      remediation_step: |
+        1. Remove JMX remoting connector:
+           /subsystem=jmx/remoting-connector=jmx:remove()
+        2. Or set it to use localhost only
+        3. Use JMX over local connection with jconsole
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Remote JMX monitoring unavailable
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Remote JMX access can expose sensitive server metrics and allow
+        unauthorized management operations.
+      impact: |
+        Exposed JMX can leak sensitive information or allow unauthorized
+        server manipulation.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Disabling Remote Access to JMX"
+    tags:
+      - jmx
+      - management
+      - remote-access
+      - high
+
+  - rule_id: JEAP8-010
+    rule_name: Configure Security Audit Logging
+    rule_description: |
+      Security audit logging must be enabled to record authentication
+      and authorization events for security monitoring and forensics.
+    category: Logging and Monitoring
+    subcategory: Audit Logging
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if Elytron file audit logging is enabled
+        2. Verify log file exists and is being written
+      check_command: |
+        /subsystem=elytron/file-audit-log=*:read-resource
+        /core-service=management/access=audit:read-resource
+    remediation:
+      remediation_step: |
+        1. Enable file audit logging in Elytron:
+           /subsystem=elytron/file-audit-log=audit-log:add(path=audit.log,relative-to=jboss.server.log.dir,format=JSON)
+        2. Configure the security domain to use the audit log:
+           /subsystem=elytron/security-domain=ApplicationDomain:write-attribute(name=security-event-listener,value=audit-log)
+        3. For management interface auditing:
+           /core-service=management/access=audit/logger=audit-log:write-attribute(name=enabled,value=true)
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Minimal performance impact
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Audit logging provides accountability and enables detection of
+        security incidents and unauthorized access attempts.
+      impact: |
+        Without audit logging, security incidents may go undetected and
+        forensic analysis is not possible.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Security Auditing with Elytron"
+    tags:
+      - logging
+      - audit
+      - monitoring
+      - high
+
+  - rule_id: JEAP8-011
+    rule_name: Configure Credential Store for Passwords
+    rule_description: |
+      Use Elytron credential store to securely store passwords and
+      sensitive credentials instead of storing them in plaintext
+      configuration files.
+    category: Credential Management
+    subcategory: Credential Store
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if credential store is configured
+        2. Verify passwords use credential-reference instead of clear-text
+        3. Check for clear-text passwords in configuration
+      check_command: |
+        /subsystem=elytron/credential-store=*:read-resource
+        grep -r "clear-text" $JBOSS_HOME/standalone/configuration/standalone*.xml
+    remediation:
+      remediation_step: |
+        1. Create a credential store:
+           /subsystem=elytron/credential-store=cs:add(location=cs.store,relative-to=jboss.server.data.dir,credential-reference={clear-text=storepassword},create=true)
+        2. Add credentials to the store:
+           /subsystem=elytron/credential-store=cs:add-alias(alias=db-password,secret-value=databasepassword)
+        3. Update configurations to use credential-reference:
+           credential-reference={store=cs,alias=db-password}
+        4. Remove any clear-text passwords from configuration
+        5. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Minimal
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Storing passwords in plaintext configuration files exposes them
+        to anyone with file system access.
+      impact: |
+        Exposed credentials can be used to access databases, services,
+        or gain unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Secure Storage for Credentials"
+    tags:
+      - credentials
+      - credential-store
+      - passwords
+      - high
+
+  - rule_id: JEAP8-012
+    rule_name: Configure Strong Password Policy
+    rule_description: |
+      Password policies must enforce strong passwords including minimum
+      length, complexity, and expiration requirements.
+    category: Authentication
+    subcategory: Password Policy
+    assessment:
+      severity: High
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: |
+        1. Review password policy configuration
+        2. Check if password restrictions are enforced
+        3. Verify password complexity requirements
+      check_command: |
+        /subsystem=elytron/security-domain=*:read-resource(recursive=true)
+    remediation:
+      remediation_step: |
+        1. Configure password restrictions in your identity store (LDAP, database)
+        2. Use Elytron password mappers for complexity validation
+        3. Implement password expiration at the identity store level
+        4. Configure password retry limit:
+           /subsystem=elytron/sasl-authentication-factory=*:write-attribute(name=mechanism-configurations,value=[{mechanism-name=DIGEST-MD5,mechanism-realm-configurations=[{realm-name=ManagementRealm}]}])
+        5. Train users on password requirements
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Users must create stronger passwords
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Weak passwords are easily compromised through brute-force or
+        dictionary attacks.
+      impact: |
+        Weak passwords allow unauthorized access to the application server.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - User Authentication with Elytron"
+    tags:
+      - authentication
+      - password-policy
+      - high
+
+  - rule_id: JEAP8-013
+    rule_name: Enable Two-Way SSL/TLS for Sensitive Applications
+    rule_description: |
+      Applications handling sensitive data should be configured with
+      two-way SSL/TLS (mutual authentication) to verify both client
+      and server identities.
+    category: Encryption
+    subcategory: SSL/TLS Configuration
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check undertow HTTPS listener configuration
+        2. Verify client certificate authentication is required
+        3. Check truststore configuration
+      check_command: |
+        /subsystem=undertow/server=default-server/https-listener=*:read-attribute(name=verify-client)
+        /subsystem=elytron/server-ssl-context=*:read-attribute(name=trust-manager)
+    remediation:
+      remediation_step: |
+        1. Create truststore for client certificates:
+           keytool -importcert -alias client1 -file client1.crt -keystore truststore.jks
+        2. Configure Elytron trust-store:
+           /subsystem=elytron/key-store=httpsTS:add(path=truststore.jks,relative-to=jboss.server.config.dir,credential-reference={clear-text=changeit},type=JKS)
+        3. Create trust-manager:
+           /subsystem=elytron/trust-manager=httpsTM:add(key-store=httpsTS)
+        4. Update server-ssl-context with trust-manager:
+           /subsystem=elytron/server-ssl-context=httpsSSC:write-attribute(name=trust-manager,value=httpsTM)
+        5. Set verify-client to REQUESTED or REQUIRED:
+           /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=verify-client,value=REQUIRED)
+        6. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Clients must present valid certificates
+      estimated_time: "45 minutes"
+    context:
+      rationale: |
+        Two-way SSL/TLS provides mutual authentication, ensuring both
+        client and server are verified.
+      impact: |
+        Without client certificate verification, any client can connect
+        to the application.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Two-way SSL/TLS for Applications"
+    tags:
+      - ssl
+      - tls
+      - mutual-auth
+      - high
+
+  - rule_id: JEAP8-014
+    rule_name: Configure FIPS 140-2 Compliant Cryptography
+    rule_description: |
+      For environments requiring FIPS 140-2 compliance, JBoss EAP must
+      be configured to use FIPS-compliant cryptographic modules.
+    category: Encryption
+    subcategory: FIPS Compliance
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: |
+        1. Check if FIPS mode is enabled
+        2. Verify OpenSSL provider is configured for FIPS
+        3. Check JVM security properties
+      check_command: |
+        grep -i fips $JAVA_HOME/lib/security/java.security
+        /subsystem=elytron/server-ssl-context=*:read-attribute(name=provider-name)
+    remediation:
+      remediation_step: |
+        1. Configure RHEL for FIPS mode (if using RHEL)
+        2. Configure JVM for FIPS mode in JAVA_OPTS
+        3. Configure Elytron to use OpenSSL FIPS provider:
+           /subsystem=elytron/server-ssl-context=httpsSSC:write-attribute(name=provider-name,value=openssl)
+        4. Use FIPS-approved cipher suites only
+        5. Test FIPS compliance
+        6. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Only FIPS-approved algorithms available
+      estimated_time: "60 minutes"
+    context:
+      rationale: |
+        FIPS 140-2 compliance is required for certain government and
+        regulated environments.
+      impact: |
+        Non-FIPS compliant cryptography may not meet regulatory requirements.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - FIPS 140-2 Compliant Cryptography"
+    tags:
+      - encryption
+      - fips
+      - compliance
+      - medium
+
+  - rule_id: JEAP8-015
+    rule_name: Configure HTTPS for Web Applications
+    rule_description: |
+      All web applications must be accessed over HTTPS. HTTP access
+      should be redirected to HTTPS or disabled entirely.
+    category: Encryption
+    subcategory: Web Security
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if HTTPS listener is configured
+        2. Verify HTTP redirect is configured
+        3. Check if HTTP is disabled or redirects to HTTPS
+      check_command: |
+        /subsystem=undertow/server=default-server/http-listener=default:read-resource
+        /subsystem=undertow/server=default-server/https-listener=https:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure HTTPS listener:
+           /subsystem=undertow/server=default-server/https-listener=https:add(socket-binding=https,ssl-context=httpsSSC)
+        2. Redirect HTTP to HTTPS:
+           /subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=redirect-socket,value=https)
+        3. Or disable HTTP entirely:
+           /subsystem=undertow/server=default-server/http-listener=default:remove()
+        4. Configure secure port in socket-binding-group
+        5. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: HTTP access redirected or disabled
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Unencrypted HTTP traffic exposes sensitive data including session
+        cookies and credentials.
+      impact: |
+        HTTP traffic can be intercepted to steal credentials or session
+        cookies.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Enable One-way SSL/TLS for Applications"
+    tags:
+      - ssl
+      - https
+      - web-security
+      - critical
+
+  - rule_id: JEAP8-016
+    rule_name: Configure Secure HTTP Headers
+    rule_description: |
+      Configure Undertow to send security headers including HSTS,
+      X-Frame-Options, X-Content-Type-Options, and X-XSS-Protection.
+    category: Web Security
+    subcategory: HTTP Headers
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check undertow filter configuration
+        2. Verify security headers are present in responses
+        3. Test with curl or browser developer tools
+      check_command: |
+        /subsystem=undertow/configuration=filter/response-header=*:read-resource
+        curl -I https://localhost:8443/ | grep -E "Strict-Transport|X-Frame|X-Content|X-XSS"
+    remediation:
+      remediation_step: |
+        1. Add response header filter for HSTS:
+           /subsystem=undertow/configuration=filter/response-header=hsts-header:add(header-name=Strict-Transport-Security,header-value="max-age=31536000; includeSubDomains")
+        2. Add X-Frame-Options:
+           /subsystem=undertow/configuration=filter/response-header=frame-options:add(header-name=X-Frame-Options,header-value=SAMEORIGIN)
+        3. Add X-Content-Type-Options:
+           /subsystem=undertow/configuration=filter/response-header=content-type:add(header-name=X-Content-Type-Options,header-value=nosniff)
+        4. Add X-XSS-Protection:
+           /subsystem=undertow/configuration=filter/response-header=xss-protection:add(header-name=X-XSS-Protection,header-value="1; mode=block")
+        5. Apply filters to host:
+           /subsystem=undertow/server=default-server/host=default-host:write-attribute(name=filter-ref,value=[{name=hsts-header},{name=frame-options},{name=content-type},{name=xss-protection}])
+        6. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Minimal
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Security headers protect against common web vulnerabilities
+        including clickjacking, XSS, and protocol downgrade attacks.
+      impact: |
+        Missing security headers can enable various client-side attacks.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Configure Undertow"
+    tags:
+      - http-headers
+      - web-security
+      - hsts
+      - medium
+
+  - rule_id: JEAP8-017
+    rule_name: Disable Directory Listing
+    rule_description: |
+      Directory listing must be disabled to prevent exposing the
+      contents of directories to unauthorized users.
+    category: Web Security
+    subcategory: Content Exposure
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check undertow servlet container configuration
+        2. Verify directory listing is disabled
+        3. Test by accessing a directory URL
+      check_command: |
+        /subsystem=undertow/servlet-container=default:read-attribute(name=directory-listing)
+    remediation:
+      remediation_step: |
+        1. Disable directory listing:
+           /subsystem=undertow/servlet-container=default:write-attribute(name=directory-listing,value=false)
+        2. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Directory listing can expose sensitive files and directory
+        structure to attackers.
+      impact: |
+        Exposed directories can reveal application structure, backup
+        files, or configuration information.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Configure Undertow"
+    tags:
+      - web-security
+      - directory-listing
+      - medium
+
+  - rule_id: JEAP8-018
+    rule_name: Configure Session Cookie Security
+    rule_description: |
+      Session cookies must be configured with secure, httpOnly, and
+      same-site attributes to prevent session hijacking and XSS attacks.
+    category: Session Management
+    subcategory: Cookie Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check undertow servlet container cookie configuration
+        2. Verify secure and http-only flags are set
+        3. Test with browser developer tools
+      check_command: |
+        /subsystem=undertow/servlet-container=default/setting=session-cookie:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure secure session cookies:
+           /subsystem=undertow/servlet-container=default/setting=session-cookie:add(http-only=true,secure=true)
+        2. Configure same-site attribute (EAP 8.x+):
+           /subsystem=undertow/servlet-container=default/setting=session-cookie:write-attribute(name=same-site,value=strict)
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: None
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Insecure session cookies can be stolen via XSS or intercepted
+        over unencrypted connections.
+      impact: |
+        Session hijacking allows attackers to impersonate authenticated
+        users.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Configure Undertow"
+    tags:
+      - session-management
+      - cookies
+      - xss
+      - high
+
+  - rule_id: JEAP8-019
+    rule_name: Configure Session Timeout
+    rule_description: |
+      Session timeout must be configured to an appropriate value to
+      limit the window of opportunity for session hijacking.
+    category: Session Management
+    subcategory: Timeout Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check undertow servlet container session timeout
+        2. Verify timeout is configured appropriately
+      check_command: |
+        /subsystem=undertow/servlet-container=default:read-attribute(name=default-session-timeout)
+    remediation:
+      remediation_step: |
+        1. Set session timeout (in minutes):
+           /subsystem=undertow/servlet-container=default:write-attribute(name=default-session-timeout,value=30)
+        2. Or configure in web.xml for individual applications
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Sessions expire after timeout
+      estimated_time: "5 minutes"
+    context:
+      rationale: |
+        Long-lived sessions increase the window of opportunity for
+        session hijacking attacks.
+      impact: |
+        Hijacked sessions can be used to impersonate users for extended
+        periods.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Configure Undertow"
+    tags:
+      - session-management
+      - timeout
+      - medium
+
+  - rule_id: JEAP8-020
+    rule_name: Remove Default Welcome Content
+    rule_description: |
+      The default welcome content and error pages must be removed or
+      replaced to avoid exposing server information.
+    category: Information Disclosure
+    subcategory: Default Content
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if default welcome content exists
+        2. Verify custom error pages are configured
+        3. Access the root URL and verify no default content
+      check_command: |
+        ls $JBOSS_HOME/welcome-content/
+        /subsystem=undertow/server=default-server/host=default-host:read-attribute(name=default-web-module)
+    remediation:
+      remediation_step: |
+        1. Remove or disable welcome-content:
+           rm -rf $JBOSS_HOME/welcome-content/
+        2. Or configure default-web-module to a custom application:
+           /subsystem=undertow/server=default-server/host=default-host:write-attribute(name=default-web-module,value=your-app.war)
+        3. Configure custom error pages
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Default welcome page removed
+      estimated_time: "10 minutes"
+    context:
+      rationale: |
+        Default content reveals server type and version, aiding attackers
+        in reconnaissance.
+      impact: |
+        Information disclosure helps attackers identify vulnerabilities
+        specific to the server version.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Configure Undertow"
+    tags:
+      - information-disclosure
+      - default-content
+      - low
+
+  - rule_id: JEAP8-021
+    rule_name: Configure LDAP Authentication Securely
+    rule_description: |
+      When using LDAP for authentication, the connection must use
+      SSL/TLS (LDAPS) or StartTLS to protect credentials.
+    category: Authentication
+    subcategory: LDAP Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check LDAP directory configuration in Elytron
+        2. Verify SSL/TLS is enabled for LDAP connection
+        3. Check connection URL uses ldaps:// or starttls
+      check_command: |
+        /subsystem=elytron/dir-context=*:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure LDAP with SSL:
+           /subsystem=elytron/dir-context=ldap-connection:add(url=ldaps://ldap.example.com:636,credential-reference={clear-text=password},principal=cn=admin,dc=example,dc=com)
+        2. Or configure StartTLS:
+           /subsystem=elytron/dir-context=ldap-connection:add(url=ldap://ldap.example.com:389,ssl-context=ldapSSLContext,credential-reference={clear-text=password},principal=cn=admin,dc=example,dc=com)
+        3. Configure trust store for LDAP server certificate
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: LDAP authentication requires SSL
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Unencrypted LDAP connections expose credentials and user
+        information to network sniffing.
+      impact: |
+        LDAP credentials and user data can be intercepted on the network.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Securing Applications Using LDAP"
+    tags:
+      - authentication
+      - ldap
+      - ssl
+      - critical
+
+  - rule_id: JEAP8-022
+    rule_name: Disable Legacy Security Subsystem
+    rule_description: |
+      The legacy security subsystem should be disabled in favor of
+      Elytron to ensure consistent security configuration.
+    category: Security Framework
+    subcategory: Legacy Security
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if legacy security subsystem is present
+        2. Verify all security uses Elytron
+      check_command: |
+        ls /subsystem=security
+    remediation:
+      remediation_step: |
+        1. Migrate all security configuration to Elytron
+        2. Remove the legacy security subsystem:
+           /subsystem=security:remove()
+        3. Verify all applications work correctly
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Requires complete migration to Elytron
+      estimated_time: "60 minutes"
+    context:
+      rationale: |
+        The legacy security subsystem is deprecated and may have
+        security vulnerabilities. Elytron provides better security.
+      impact: |
+        Mixed security configuration can lead to misconfiguration
+        and security gaps.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Disabling the Security Subsystem"
+    tags:
+      - elytron
+      - legacy-security
+      - migration
+      - medium
+
+  - rule_id: JEAP8-023
+    rule_name: Configure Cluster Security
+    rule_description: |
+      JGroups clustering must be configured with authentication and
+      encryption to prevent unauthorized nodes from joining the cluster.
+    category: Cluster Security
+    subcategory: JGroups Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check JGroups channel configuration
+        2. Verify auth protocol is configured
+        3. Check if encryption is enabled
+      check_command: |
+        /subsystem=jgroups/channel=*:read-resource(recursive=true)
+        /subsystem=jgroups/stack=*:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure JGroups authentication:
+           /subsystem=jgroups/stack=tcp/protocol=AUTH:add()
+           /subsystem=jgroups/stack=tcp/protocol=AUTH/token=token:add(type=org.jgroups.auth.MD5Token,auth-value=cluster-secret)
+        2. Configure encryption with Elytron:
+           /subsystem=jgroups/channel=ee:write-attribute(name=ssl-context,value=clusterSSLContext)
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Cluster nodes require authentication
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Unsecured clustering allows rogue nodes to join the cluster
+        and access or corrupt data.
+      impact: |
+        Unauthorized cluster access can lead to data breaches or
+        denial of service.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Elytron Integration with JGroups"
+    tags:
+      - clustering
+      - jgroups
+      - authentication
+      - critical
+
+  - rule_id: JEAP8-024
+    rule_name: Configure Remote EJB Security
+    rule_description: |
+      Remote EJB invocations must be secured with SSL/TLS and proper
+      authentication to prevent unauthorized access.
+    category: Application Security
+    subcategory: EJB Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check remoting connector configuration
+        2. Verify SSL/TLS is configured
+        3. Check authentication is required
+      check_command: |
+        /subsystem=remoting/connector=*:read-resource
+        /subsystem=ejb3/service=remote:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure SSL for remoting connector:
+           /subsystem=remoting/connector=remoting-connector:write-attribute(name=sasl-protocol,value=remote)
+           /subsystem=remoting/connector=remoting-connector:write-attribute(name=security-realm,value=ApplicationRealm)
+        2. Enable one-way SSL:
+           /subsystem=remoting/http-connector=http-remoting-connector:write-attribute(name=connector-ref,value=https)
+        3. Configure EJB3 remote service security:
+           /subsystem=ejb3/service=remote:write-attribute(name=connectors,value=[http-remoting-connector])
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Remote EJB requires SSL and authentication
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Unsecured remote EJB allows unauthorized access to business
+        logic and data.
+      impact: |
+        Exposed EJB interfaces can be exploited to access or modify
+        sensitive data.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Elytron Integration with Remoting"
+    tags:
+      - ejb
+      - remoting
+      - ssl
+      - high
+
+  - rule_id: JEAP8-025
+    rule_name: Secure Datasource Connections
+    rule_description: |
+      Database connections must use SSL/TLS to protect data in transit
+      and credentials must be stored in credential store.
+    category: Database Security
+    subcategory: Datasource Configuration
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check datasource connection URL
+        2. Verify SSL is enabled for database connections
+        3. Check if credentials use credential-reference
+      check_command: |
+        /subsystem=datasources/data-source=*:read-resource
+        /subsystem=datasources/xa-data-source=*:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure SSL in connection URL:
+           connection-url=jdbc:postgresql://db.example.com:5432/mydb?ssl=true&sslmode=verify-full
+        2. Store credentials in credential store:
+           /subsystem=elytron/credential-store=cs:add-alias(alias=db-password,secret-value=dbpassword)
+        3. Update datasource to use credential-reference:
+           /subsystem=datasources/data-source=ExampleDS:write-attribute(name=credential-reference,value={store=cs,alias=db-password})
+        4. Remove clear-text password:
+           /subsystem=datasources/data-source=ExampleDS:undefine-attribute(name=password)
+        5. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Database connections require SSL
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Unencrypted database connections expose sensitive data and
+        credentials to interception.
+      impact: |
+        Database credentials and data can be intercepted on the network.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Secure Storage for Credentials"
+    tags:
+      - database
+      - datasource
+      - ssl
+      - critical
+
+  - rule_id: JEAP8-026
+    rule_name: Configure ModCluster Security
+    rule_description: |
+      When using mod_cluster for load balancing, the connection to
+      the HTTPD proxy must be secured with SSL/TLS.
+    category: Load Balancing
+    subcategory: ModCluster Security
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check mod_cluster configuration
+        2. Verify SSL is configured for proxy connections
+        3. Check client SSL context is configured
+      check_command: |
+        /subsystem=modcluster:read-resource(recursive=true)
+    remediation:
+      remediation_step: |
+        1. Create client SSL context:
+           /subsystem=elytron/client-ssl-context=modclusterCS:add(key-manager=clientKM,trust-manager=clientTM)
+        2. Configure mod_cluster to use SSL:
+           /subsystem=modcluster/proxy=default:write-attribute(name=ssl-context,value=modclusterCS)
+        3. Configure proxy URL to use HTTPS:
+           /subsystem=modcluster/proxy=default:write-attribute(name=proxy-list,value=[proxy.example.com:8443])
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Load balancer connections require SSL
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Unsecured mod_cluster connections can be intercepted or
+        manipulated by attackers.
+      impact: |
+        Man-in-the-middle attacks can redirect or intercept traffic
+        between load balancer and application servers.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Elytron Integration with ModCluster"
+    tags:
+      - modcluster
+      - load-balancing
+      - ssl
+      - high
+
+  - rule_id: JEAP8-027
+    rule_name: Enable Syslog Audit Logging
+    rule_description: |
+      For centralized logging, configure Elytron to send audit logs
+      to a syslog server for security monitoring.
+    category: Logging and Monitoring
+    subcategory: Syslog Configuration
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if syslog audit logging is configured
+        2. Verify syslog server connection
+      check_command: |
+        /subsystem=elytron/syslog-audit-log=*:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure syslog audit logging:
+           /subsystem=elytron/syslog-audit-log=syslog:add(server-address=syslog.example.com,port=514,transport=TCP,format=JSON,host-name=jboss-eap-1)
+        2. Configure security domain to use syslog:
+           /subsystem=elytron/security-domain=ApplicationDomain:write-attribute(name=security-event-listener,value=syslog)
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Minimal
+      estimated_time: "15 minutes"
+    context:
+      rationale: |
+        Centralized logging enables security monitoring and incident
+        response across multiple servers.
+      impact: |
+        Without centralized logging, security incidents may go
+        undetected or be difficult to investigate.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Enabling Syslog Audit Logging"
+    tags:
+      - logging
+      - audit
+      - syslog
+      - medium
+
+  - rule_id: JEAP8-028
+    rule_name: Configure Certificate Revocation Checking
+    rule_description: |
+      Configure certificate revocation checking using CRL or OCSP to
+      ensure revoked certificates are rejected.
+    category: Encryption
+    subcategory: Certificate Validation
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check trust manager configuration
+        2. Verify CRL or OCSP is configured
+        3. Test with a revoked certificate
+      check_command: |
+        /subsystem=elytron/trust-manager=*:read-attribute(name=certificate-revocation-list)
+        /subsystem=elytron/trust-manager=*:read-attribute(name=ocsp)
+    remediation:
+      remediation_step: |
+        1. Configure CRL checking:
+           /subsystem=elytron/trust-manager=httpsTM:write-attribute(name=certificate-revocation-list,value={path=/path/to/crl.pem})
+        2. Configure OCSP checking:
+           /subsystem=elytron/trust-manager=httpsTM:write-attribute(name=ocsp,value={responder-url=http://ocsp.example.com})
+        3. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Revoked certificates are rejected
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Without revocation checking, revoked certificates can still
+        be used for authentication.
+      impact: |
+        Compromised or revoked certificates could allow unauthorized
+        access.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Configuring Certificate Revocation"
+    tags:
+      - ssl
+      - certificates
+      - crl
+      - ocsp
+      - high
+
+  - rule_id: JEAP8-029
+    rule_name: Configure Scoped Roles
+    rule_description: |
+      Use scoped roles to limit administrative access to specific
+      resources, implementing the principle of least privilege.
+    category: Authorization
+    subcategory: Scoped Roles
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check if scoped roles are configured
+        2. Verify users are assigned appropriate scoped roles
+      check_command: |
+        /core-service=management/access=authorization/role-mapping=*:read-resource
+        /core-service=management/access=authorization/constraint=application-classification=*/core=*=*/classification=*:read-resource
+    remediation:
+      remediation_step: |
+        1. Create a scoped role:
+           /core-service=management/access=authorization/host-scoped-role=HostMaster:add(base-role=Master,host-names=[host1])
+        2. Or create a server group scoped role:
+           /core-service=management/access=authorization/server-group-scoped-role=AppAdmin:add(base-role=Deployer,server-groups=[app-group])
+        3. Assign users to scoped roles
+        4. Reload the server
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Users have limited access
+      estimated_time: "30 minutes"
+    context:
+      rationale: |
+        Scoped roles limit administrative access to specific resources,
+        reducing the risk of accidental or malicious changes.
+      impact: |
+        Overly permissive roles can lead to unauthorized changes or
+        data exposure.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Scoped Roles"
+    tags:
+      - authorization
+      - rbac
+      - scoped-roles
+      - medium
+
+  - rule_id: JEAP8-030
+    rule_name: Configure Domain Mode Security
+    rule_description: |
+      In domain mode, secure the connection between domain controller
+      and host controllers with SSL/TLS and authentication.
+    category: Domain Security
+    subcategory: Domain Controller
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: |
+        1. Check domain controller configuration
+        2. Verify SSL/TLS is configured
+        3. Verify authentication is required
+      check_command: |
+        /host=master:read-attribute(name=domain-controller)
+        /host=master/core-service=management/security-realm=*:read-resource
+    remediation:
+      remediation_step: |
+        1. Configure SSL for domain controller:
+           /host=master/core-service=management/security-realm=ManagementRealm/server-identity=ssl:add(keystore-path=server.keystore.jks,keystore-password=changeit)
+        2. Configure authentication:
+           /host=master/core-service=management/security-realm=ManagementRealm/authentication=properties:add(path=mgmt-users.properties,relative-to=jboss.domain.config.dir)
+        3. Configure host controllers to use SSL:
+           /host=slave:write-attribute(name=domain-controller,address={remote={host=master,port=9999,security-realm=ManagementRealm}}
+        4. Restart the domain
+      rollback_supported: true
+      reboot_required: true
+      service_impact: Domain requires SSL
+      estimated_time: "60 minutes"
+    context:
+      rationale: |
+        Unsecured domain controller connections expose configuration
+        and allow unauthorized management operations.
+      impact: |
+        Compromised domain controller can affect all servers in the
+        domain.
+      false_positive_risk: Low
+      references:
+        - type: Red Hat Documentation
+          reference: "How to Configure Server Security - Securing a Managed Domain"
+    tags:
+      - domain
+      - ssl
+      - domain-controller
+      - critical
