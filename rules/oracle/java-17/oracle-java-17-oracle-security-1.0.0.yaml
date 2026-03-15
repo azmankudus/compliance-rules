@@ -1,0 +1,628 @@
+schema_version: 1.0.0
+metadata:
+  name: Oracle Java 17 Runtime Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules for Oracle Java 17 Runtime Environment (LTS)
+    based on Oracle and OpenJDK security documentation
+  platform: Oracle Java 17
+  benchmark: Oracle/OpenJDK Security Documentation
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Oracle Java 17 (JDK/JRE)
+  - OpenJDK 17
+  - Amazon Corretto 17
+  - Adoptium (Temurin) 17
+  - Azul Zulu 17
+  - Microsoft Build of OpenJDK 17
+  references:
+  - type: Oracle Documentation
+    reference: https://docs.oracle.com/en/java/javase/17/security/
+  - type: OpenJDK Security
+    reference: https://openjdk.org/groups/security/
+compliance_info:
+  framework: oracle
+  version: '1.0.0'
+  profile: unofficial
+  source:
+    framework: oracle
+    benchmark: Oracle Java SE Security Guide
+    version: '17'
+    profile: unofficial
+    notes: No official CIS or STIG exists for Java Runtime. Rules derived from Oracle
+      and OpenJDK security documentation.
+rules:
+- rule_id: JAVA17-SEC-001
+  legacy_ids: []
+  rule_name: Migrate from Security Manager
+  rule_description: |
+    Security Manager is deprecated for removal in Java 17. Applications should migrate to alternative security mechanisms such as containers, namespaces, or application-level security frameworks.
+  category: Access Control
+  subcategory: Security Manager Migration
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check if Security Manager is still in use:
+      
+      ps -ef | grep java | grep -i "security.manager"
+      
+      If Security Manager is still used, plan migration - this is a warning finding.
+    check_command: ps -ef | grep java | grep -i "security.manager"
+    expected_value: Security Manager should not be used
+  remediation:
+    remediation_step: |
+      Migrate away from Security Manager to alternatives:
+      
+      1. Container-level security (Docker, Kubernetes):
+         - Run containers with limited capabilities
+         - Use seccomp profiles
+         - Use AppArmor/SELinux
+      
+      2. Application-level security:
+         - Spring Security
+         - Apache Shiro
+         - Custom authorization checks
+      
+      3. OS-level security:
+         - Linux namespaces
+         - chroot
+         - SELinux policies
+      
+      Remove -Djava.security.manager from startup arguments.
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application architecture changes may be required
+    estimated_time: 120 minutes
+  context:
+    rationale: Security Manager is deprecated for removal. Modern security should use container and OS-level mechanisms.
+    impact: Significant application changes may be required
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - security-manager
+  - deprecated
+  - migration
+
+- rule_id: JAVA17-SEC-002
+  legacy_ids:
+  - JAVA-SEC-003
+  rule_name: Configure TLS 1.2 and TLS 1.3
+  rule_description: |
+    Configure Java 17 to use TLS 1.2 and TLS 1.3. TLS 1.3 is fully supported and preferred.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check TLS configuration:
+      
+      grep -E "jdk.tls.disabledAlgorithms" $JAVA_HOME/conf/security/java.security
+      
+      Verify older protocols are disabled.
+    check_command: grep -E "jdk.tls.disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: TLSv1, TLSv1.1, SSLv3 should be disabled
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, SSLv2Hello, DTLSv1.0, DTLSv1.2
+      
+      Enable TLS 1.3 (default in Java 17):
+      jdk.tls.server.protocols=TLSv1.2, TLSv1.3
+      jdk.tls.client.protocols=TLSv1.2, TLSv1.3
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: TLS 1.3 provides improved security and performance.
+    impact: Legacy clients may need updates
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - tls
+  - tls1.3
+
+- rule_id: JAVA17-SEC-003
+  legacy_ids:
+  - JAVA-SEC-004
+  rule_name: Disable weak cryptographic algorithms
+  rule_description: |
+    Configure Java 17 to disable weak cryptographic algorithms. Java 17 has stronger defaults.
+  category: Cryptography
+  subcategory: Algorithm Restrictions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check disabled algorithms:
+      
+      grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security
+      
+      Verify SHA-1 is disabled for certificates.
+    check_command: grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: Weak algorithms disabled
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Java 17 recommended configuration:
+      jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1 jdkCA & usage TLSServer, \\
+          RSA keySize < 2048, DSA keySize < 2048, EC keySize < 224, \\
+          SHA1 usage SignedJAR & denyAfter 2019-01-01, \\
+          SHA256 usage TLSServer & constrain After 2024-01-01
+      
+      jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024, DSA keySize < 1024, \\
+          SHA1 denyAfter 2019-01-01
+      
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, RC4, DES, MD5withRSA, \\
+          DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, \\
+          TLSv1.2, TLSv1.3
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Java 17 has strong defaults but should be reviewed.
+    impact: Legacy systems may need updates
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - cryptography
+  - algorithms
+
+- rule_id: JAVA17-SEC-004
+  legacy_ids:
+  - JAVA-SEC-016
+  rule_name: Configure deserialization filters
+  rule_description: |
+    Configure Java deserialization filters using JEP 290 enhanced in Java 17.
+  category: Application Security
+  subcategory: Deserialization
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check deserialization filter:
+      
+      grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security
+      
+      If not configured, this is a finding.
+    check_command: grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: jdk.serialFilter configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      jdk.serialFilter=pattern
+      
+      Recommended patterns:
+      jdk.serialFilter=java.base/*;!*
+      jdk.serialFilter=maxdepth=100;maxarray=1000000;maxbytes=50000000
+      
+      Or via command line:
+      -Djdk.serialFilter=java.base/*;!*
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect serialization-heavy applications
+    estimated_time: 30 minutes
+  context:
+    rationale: Deserialization filters prevent remote code execution attacks.
+    impact: Applications using serialization may need tuning
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java17
+  - deserialization
+  - jep290
+
+- rule_id: JAVA17-SEC-005
+  legacy_ids: []
+  rule_name: Use sealed classes for security
+  rule_description: |
+    Leverage sealed classes (JEP 409) to restrict which classes can extend or implement them, improving domain modeling and security.
+  category: Application Security
+  subcategory: Sealed Classes
+  assessment:
+    severity: Low
+    is_auto: false
+    automation_level: Partial
+    audit_type: code
+    detection_step: |
+      Review application code for use of sealed classes in security-sensitive areas.
+      
+      Sealed classes restrict inheritance, improving security by limiting what can extend critical classes.
+      
+      This is a code review item, not a configuration check.
+    check_command: echo "This is a code-level security practice, not a runtime configuration."
+    expected_value: Sealed classes used where appropriate
+  remediation:
+    remediation_step: |
+      Use sealed classes in application code:
+      
+      public sealed interface SecurityContext
+          permits UserContext, ServiceContext, AdminContext {
+          // methods
+      }
+      
+      public final class UserContext implements SecurityContext {
+          // implementation
+      }
+      
+      This prevents unauthorized implementations of security interfaces.
+      
+      Code changes required - rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application rebuild required
+    estimated_time: 60 minutes
+  context:
+    rationale: Sealed classes provide compile-time guarantees about inheritance, improving security modeling.
+    impact: Requires code changes
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - sealed-classes
+  - code-security
+
+- rule_id: JAVA17-SEC-006
+  legacy_ids:
+  - JAVA11-SEC-005
+  rule_name: Configure module system security
+  rule_description: |
+    Use the Java Platform Module System to limit module access.
+  category: Access Control
+  subcategory: Module Security
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check module opens/exports:
+      
+      ps -ef | grep java | grep -E "--add-opens|--add-exports|--add-reads"
+      
+      Excessive opens/exports weaken module encapsulation.
+    check_command: ps -ef | grep java | grep -E "--add-opens|--add-exports" | head -5
+    expected_value: Minimal module opens/exports
+  remediation:
+    remediation_step: |
+      Minimize --add-opens and --add-exports:
+      
+      Review each:
+      --add-opens java.base/java.lang=ALL-UNNAMED  # REMOVE if possible
+      
+      Use explicit module declarations:
+      module com.example.mymodule {
+          requires transitive java.sql;
+          exports com.example.api to com.example.consumer;
+          opens com.example.internal to com.example.mapper;
+      }
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: Module encapsulation improves security by limiting access to internal APIs.
+    impact: Reflection-heavy code may need updates
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java17
+  - modules
+  - jpms
+
+- rule_id: JAVA17-SEC-007
+  legacy_ids:
+  - JAVA-SEC-005
+  rule_name: Configure SecureRandom with DRBG
+  rule_description: |
+    Configure SecureRandom to use DRBG (Deterministic Random Bit Generator) available in Java 17.
+  category: Cryptography
+  subcategory: Random Number Generation
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SecureRandom configuration:
+      
+      grep -E "securerandom" $JAVA_HOME/conf/security/java.security
+      
+      DRBG is the recommended algorithm in Java 17.
+    check_command: grep -E "securerandom" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: DRBG configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure DRBG:
+      securerandom.source=file:/dev/urandom
+      securerandom.strongAlgorithms=DRBG:SUN,NativePRNGBlocking:SUN,SHA1PRNG:SUN
+      
+      In code, use:
+      SecureRandom.getInstance("DRBG");
+      SecureRandom.getInstanceStrong(); // Uses DRBG
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: DRBG is NIST SP 800-90A compliant and recommended for Java 17+.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - securerandom
+  - drbg
+
+- rule_id: JAVA17-SEC-008
+  legacy_ids:
+  - JAVA-SEC-006
+  rule_name: Change keystore default password
+  rule_description: |
+    Change the default password for the Java cacerts keystore.
+  category: Cryptography
+  subcategory: Keystore Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Test default password:
+      
+      keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>/dev/null | head -3
+      
+      If successful, password is still 'changeit' - this is a finding.
+    check_command: keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>&1 | head -3
+    expected_value: Command should fail
+  remediation:
+    remediation_step: |
+      Change keystore password:
+      
+      keytool -storepasswd -keystore $JAVA_HOME/lib/security/cacerts
+      
+      Enter old password (changeit) and new strong password.
+      
+      Document in password manager.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Applications using cacerts need password update
+    estimated_time: 15 minutes
+  context:
+    rationale: Default password must be changed to prevent unauthorized modifications.
+    impact: Applications using cacerts need configuration update
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - keystore
+  - password
+
+- rule_id: JAVA17-SEC-009
+  legacy_ids:
+  - JAVA-SEC-017
+  rule_name: Secure JMX remote access
+  rule_description: |
+    Disable or secure JMX remote access with SSL and authentication.
+  category: Network Security
+  subcategory: JMX Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JMX configuration:
+      
+      ps -ef | grep java | grep -E "com.sun.management.jmxremote"
+      
+      If JMX remote is enabled without SSL and authentication, this is a finding.
+    check_command: ps -ef | grep java | grep -E "com.sun.management.jmxremote" | head -3
+    expected_value: JMX secured or disabled
+  remediation:
+    remediation_step: |
+      Secure JMX:
+      
+      -Dcom.sun.management.jmxremote.port=9010
+      -Dcom.sun.management.jmxremote.authenticate=true
+      -Dcom.sun.management.jmxremote.ssl=true
+      -Dcom.sun.management.jmxremote.ssl.need.client.auth=true
+      -Dcom.sun.management.jmxremote.registry.ssl=true
+      -Dcom.sun.management.jmxremote.password.file=/path/to/jmxremote.password
+      -Dcom.sun.management.jmxremote.access.file=/path/to/jmxremote.access
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: JMX requires authentication
+    estimated_time: 20 minutes
+  context:
+    rationale: Unsecured JMX can lead to remote code execution.
+    impact: Monitoring tools need credentials
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - jmx
+  - ssl
+
+- rule_id: JAVA17-SEC-010
+  legacy_ids:
+  - JAVA-SEC-014
+  rule_name: Set appropriate file permissions
+  rule_description: |
+    Set appropriate file permissions on Java installation.
+  category: Access Control
+  subcategory: File Permissions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check permissions:
+      
+      ls -la $JAVA_HOME/ | head -10
+      ls -la $JAVA_HOME/lib/security/ | head -10
+      
+      World-writable files are a finding.
+    check_command: ls -la $JAVA_HOME/ | head -5; ls -la $JAVA_HOME/lib/security/ 2>/dev/null | head -5
+    expected_value: Restricted permissions
+  remediation:
+    remediation_step: |
+      Set permissions:
+      
+      chown -R root:root $JAVA_HOME/
+      chmod -R 755 $JAVA_HOME/
+      chmod 644 $JAVA_HOME/conf/security/java.security
+      chmod 600 $JAVA_HOME/lib/security/cacerts
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper permissions prevent unauthorized modifications.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - file-permissions
+
+- rule_id: JAVA17-SEC-011
+  legacy_ids: []
+  rule_name: Use Strong Encapsulation
+  rule_description: |
+    Java 17 enforces strong encapsulation by default. Ensure applications do not bypass this with excessive --add-opens.
+  category: Access Control
+  subcategory: Encapsulation
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for strong encapsulation bypasses:
+      
+      ps -ef | grep java | grep -E "--add-opens.*ALL-UNNAMED|--add-exports.*ALL-UNNAMED|--illegal-access"
+      
+      Using --illegal-access=permit is deprecated. Using ALL-UNNAMED opens to all modules.
+      
+      If excessive bypasses are found, this is a finding.
+    check_command: ps -ef | grep java | grep -E "add-opens.*ALL-UNNAMED|add-exports.*ALL-UNNAMED|illegal-access" | head -5
+    expected_value: No encapsulation bypasses
+  remediation:
+    remediation_step: |
+      Remove encapsulation bypasses:
+      
+      Remove:
+      --add-opens java.base/java.lang=ALL-UNNAMED
+      --add-exports java.base/sun.security=ALL-UNNAMED
+      --illegal-access=permit  # Deprecated in Java 17
+      
+      Use specific module targets:
+      --add-opens java.base/java.lang=com.example.app
+      
+      Update code to use public APIs instead of internal APIs.
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May require code changes
+    estimated_time: 60 minutes
+  context:
+    rationale: Strong encapsulation protects internal APIs and improves security.
+    impact: Code using internal APIs may fail
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java17
+  - encapsulation
+  - modules
+
+- rule_id: JAVA17-SEC-012
+  legacy_ids:
+  - JAVA-SEC-009
+  rule_name: Configure JVM memory limits
+  rule_description: |
+    Configure appropriate JVM memory limits.
+  category: Configuration
+  subcategory: Memory Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check memory settings:
+      
+      ps -ef | grep java | grep -E "Xmx|Xms"
+      
+      If not configured, this is a finding.
+    check_command: ps -ef | grep java | grep -E "Xmx|Xms" | head -5
+    expected_value: Memory limits configured
+  remediation:
+    remediation_step: |
+      Configure memory:
+      
+      java -Xms256m -Xmx2g -XX:MaxMetaspaceSize=256m -jar myapp.jar
+      
+      For Java 17, consider ZGC for large heaps:
+      -XX:+UseZGC -Xmx16g
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Memory limits prevent resource exhaustion.
+    impact: May cause OutOfMemoryError if too low
+    false_positive_risk: Low
+  tags:
+  - java
+  - java17
+  - memory
+  - jvm
