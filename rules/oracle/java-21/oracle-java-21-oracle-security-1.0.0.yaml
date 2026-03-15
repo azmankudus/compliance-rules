@@ -1,0 +1,629 @@
+schema_version: 1.0.0
+metadata:
+  name: Oracle Java 21 Runtime Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules for Oracle Java 21 Runtime Environment (LTS)
+    based on Oracle and OpenJDK security documentation
+  platform: Oracle Java 21
+  benchmark: Oracle/OpenJDK Security Documentation
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Oracle Java 21 (JDK/JRE)
+  - OpenJDK 21
+  - Amazon Corretto 21
+  - Adoptium (Temurin) 21
+  - Azul Zulu 21
+  - Microsoft Build of OpenJDK 21
+  references:
+  - type: Oracle Documentation
+    reference: https://docs.oracle.com/en/java/javase/21/security/
+  - type: OpenJDK Security
+    reference: https://openjdk.org/groups/security/
+compliance_info:
+  framework: oracle
+  version: '1.0.0'
+  profile: unofficial
+  source:
+    framework: oracle
+    benchmark: Oracle Java SE Security Guide
+    version: '21'
+    profile: unofficial
+    notes: No official CIS or STIG exists for Java Runtime. Rules derived from Oracle
+      and OpenJDK security documentation.
+rules:
+- rule_id: JAVA21-SEC-001
+  legacy_ids: []
+  rule_name: Security Manager removal confirmation
+  rule_description: |
+    Java 21 has removed the Security Manager. Applications must use alternative security mechanisms.
+  category: Access Control
+  subcategory: Security Architecture
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for Security Manager references:
+      
+      ps -ef | grep java | grep -i "security.manager"
+      grep -r "SecurityManager" /path/to/app/*.java 2>/dev/null
+      
+      If Security Manager is still referenced, this is a finding.
+    check_command: ps -ef | grep java | grep -i "security.manager" | head -3
+    expected_value: No Security Manager references
+  remediation:
+    remediation_step: |
+      Security Manager is removed in Java 21. Migrate to:
+      
+      1. Container security:
+         - Docker: --cap-drop=ALL --security-opt=no-new-privileges
+         - Kubernetes: pod security contexts, PSPs
+      
+      2. Application frameworks:
+         - Spring Security
+         - Apache Shiro
+         - Jakarta EE security
+      
+      3. OS-level:
+         - SELinux/AppArmor
+         - Linux namespaces
+      
+      Remove all Security Manager references from code and configuration.
+      
+      Rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Significant code changes may be required
+    estimated_time: 240 minutes
+  context:
+    rationale: Security Manager is removed in Java 21. Modern security uses container and OS-level mechanisms.
+    impact: Applications using Security Manager will fail
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - security-manager
+  - removed
+
+- rule_id: JAVA21-SEC-002
+  legacy_ids:
+  - JAVA-SEC-003
+  rule_name: Configure TLS 1.2 and TLS 1.3
+  rule_description: |
+    Configure Java 21 to use TLS 1.2 and TLS 1.3. TLS 1.3 is the default and preferred.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check TLS configuration:
+      
+      grep -E "jdk.tls.disabledAlgorithms" $JAVA_HOME/conf/security/java.security
+      
+      Verify older protocols are disabled.
+    check_command: grep -E "jdk.tls.disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: TLSv1, TLSv1.1, SSLv3 disabled
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, SSLv2Hello, DTLSv1.0, DTLSv1.2
+      
+      TLS 1.3 is default in Java 21.
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: TLS 1.3 provides the best security and performance.
+    impact: Legacy clients may need updates
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - tls
+  - tls1.3
+
+- rule_id: JAVA21-SEC-003
+  legacy_ids:
+  - JAVA17-SEC-004
+  rule_name: Configure deserialization filters
+  rule_description: |
+    Configure Java deserialization filters using JEP 290 enhanced in Java 21.
+  category: Application Security
+  subcategory: Deserialization
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check deserialization filter:
+      
+      grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security
+      ps -ef | grep java | grep serialFilter
+      
+      If not configured, this is a finding.
+    check_command: grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security 2>/dev/null; ps -ef | grep java | grep serialFilter | head -2
+    expected_value: jdk.serialFilter configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      jdk.serialFilter=pattern
+      
+      Recommended:
+      jdk.serialFilter=java.base/*;java.util.*;java.lang.*;!*
+      jdk.serialFilter=maxdepth=100;maxarray=1000000;maxbytes=50000000
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect serialization-heavy applications
+    estimated_time: 30 minutes
+  context:
+    rationale: Deserialization filters prevent RCE attacks.
+    impact: Applications using serialization may need tuning
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java21
+  - deserialization
+  - jep290
+
+- rule_id: JAVA21-SEC-004
+  legacy_ids: []
+  rule_name: Use virtual threads securely
+  rule_description: |
+    Java 21 introduces virtual threads (Project Loom). Ensure virtual threads are used securely with proper resource management.
+  category: Configuration
+  subcategory: Virtual Threads
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check virtual thread usage:
+      
+      ps -ef | grep java | grep -E "virtual.threads|Executors.newVirtualThreadPerTaskExecutor"
+      
+      Review application code for:
+      - Proper use of structured concurrency
+      - Resource management in virtual threads
+      - Thread-local usage (may cause memory issues with many virtual threads)
+      
+      If virtual threads are used without proper resource management, this is a finding.
+    check_command: ps -ef | grep java | grep -E "virtual|loom" | head -3
+    expected_value: Virtual threads used with proper resource management
+  remediation:
+    remediation_step: |
+      Use virtual threads correctly:
+      
+      // Correct usage
+      try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+          executor.submit(() -> doTask());
+      }
+      
+      // Use structured concurrency (preview in Java 21)
+      try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+          var task1 = scope.fork(() -> doTask1());
+          var task2 = scope.fork(() -> doTask2());
+          scope.join();
+          scope.throwIfFailed();
+      }
+      
+      // Avoid excessive ThreadLocal usage
+      // Use ScopedValue (preview) instead
+      
+      Rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Code changes may be required
+    estimated_time: 60 minutes
+  context:
+    rationale: Virtual threads enable massive concurrency but require careful resource management.
+    impact: May require code refactoring
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java21
+  - virtual-threads
+  - loom
+
+- rule_id: JAVA21-SEC-005
+  legacy_ids: []
+  rule_name: Use pattern matching securely
+  rule_description: |
+    Java 21 enhances pattern matching. Use pattern matching for switch and instanceof securely.
+  category: Application Security
+  subcategory: Pattern Matching
+  assessment:
+    severity: Low
+    is_auto: false
+    automation_level: Partial
+    audit_type: code
+    detection_step: |
+      Review application code for pattern matching usage.
+      
+      Ensure pattern matching is used securely:
+      - Exhaustive switch expressions
+      - Proper null handling
+      - Secure type checking
+      
+      This is a code review item.
+    check_command: echo "This is a code-level security practice."
+    expected_value: Pattern matching used correctly
+  remediation:
+    remediation_step: |
+      Use pattern matching correctly:
+      
+      // Pattern matching for switch
+      static String formatter(Object o) {
+          return switch (o) {
+              case Integer i -> "int " + i;
+              case Long l    -> "long " + l;
+              case Double d  -> "double " + d;
+              case String s  -> "String " + s;
+              default        -> "Unknown";
+          };
+      }
+      
+      // Record patterns
+      static void printSum(Object o) {
+          if (o instanceof Point(int x, int y)) {
+              System.out.println(x + y);
+          }
+      }
+      
+      Ensure exhaustive matching and proper null handling.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Code changes required
+    estimated_time: 30 minutes
+  context:
+    rationale: Pattern matching improves code clarity and reduces errors.
+    impact: Code changes required
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - pattern-matching
+  - code-security
+
+- rule_id: JAVA21-SEC-006
+  legacy_ids:
+  - JAVA17-SEC-003
+  rule_name: Disable weak cryptographic algorithms
+  rule_description: |
+    Configure Java 21 to disable weak cryptographic algorithms.
+  category: Cryptography
+  subcategory: Algorithm Restrictions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check disabled algorithms:
+      
+      grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security
+      
+      Verify weak algorithms are disabled.
+    check_command: grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: Weak algorithms disabled
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Java 21 recommended configuration:
+      jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1 jdkCA & usage TLSServer, \\
+          RSA keySize < 2048, DSA keySize < 2048, EC keySize < 224
+      
+      jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024
+      
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, RC4, DES, MD5withRSA, \\
+          DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Java 21 has strong defaults but should be reviewed.
+    impact: Legacy systems may need updates
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - cryptography
+  - algorithms
+
+- rule_id: JAVA21-SEC-007
+  legacy_ids:
+  - JAVA17-SEC-007
+  rule_name: Configure SecureRandom with DRBG
+  rule_description: |
+    Configure SecureRandom to use DRBG.
+  category: Cryptography
+  subcategory: Random Number Generation
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SecureRandom configuration:
+      
+      grep -E "securerandom" $JAVA_HOME/conf/security/java.security
+    check_command: grep -E "securerandom" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: DRBG configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      securerandom.source=file:/dev/urandom
+      securerandom.strongAlgorithms=DRBG:SUN,NativePRNGBlocking:SUN
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: DRBG is NIST SP 800-90A compliant.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - securerandom
+  - drbg
+
+- rule_id: JAVA21-SEC-008
+  legacy_ids:
+  - JAVA-SEC-006
+  rule_name: Change keystore default password
+  rule_description: |
+    Change the default password for the Java cacerts keystore.
+  category: Cryptography
+  subcategory: Keystore Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Test default password:
+      
+      keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>/dev/null | head -3
+      
+      If successful, this is a finding.
+    check_command: keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>&1 | head -3
+    expected_value: Command should fail
+  remediation:
+    remediation_step: |
+      Change keystore password:
+      
+      keytool -storepasswd -keystore $JAVA_HOME/lib/security/cacerts
+      
+      Document in password manager.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Applications using cacerts need password update
+    estimated_time: 15 minutes
+  context:
+    rationale: Default password must be changed.
+    impact: Applications using cacerts need update
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - keystore
+  - password
+
+- rule_id: JAVA21-SEC-009
+  legacy_ids:
+  - JAVA-SEC-017
+  rule_name: Secure JMX remote access
+  rule_description: |
+    Disable or secure JMX remote access.
+  category: Network Security
+  subcategory: JMX Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JMX configuration:
+      
+      ps -ef | grep java | grep -E "com.sun.management.jmxremote"
+      
+      If enabled without SSL and authentication, this is a finding.
+    check_command: ps -ef | grep java | grep -E "com.sun.management.jmxremote" | head -3
+    expected_value: JMX secured or disabled
+  remediation:
+    remediation_step: |
+      Secure JMX:
+      
+      -Dcom.sun.management.jmxremote.port=9010
+      -Dcom.sun.management.jmxremote.authenticate=true
+      -Dcom.sun.management.jmxremote.ssl=true
+      -Dcom.sun.management.jmxremote.ssl.need.client.auth=true
+      -Dcom.sun.management.jmxremote.registry.ssl=true
+      -Dcom.sun.management.jmxremote.password.file=/path/to/jmxremote.password
+      -Dcom.sun.management.jmxremote.access.file=/path/to/jmxremote.access
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: JMX requires authentication
+    estimated_time: 20 minutes
+  context:
+    rationale: Unsecured JMX can lead to RCE.
+    impact: Monitoring tools need credentials
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - jmx
+  - ssl
+
+- rule_id: JAVA21-SEC-010
+  legacy_ids:
+  - JAVA-SEC-014
+  rule_name: Set appropriate file permissions
+  rule_description: |
+    Set appropriate file permissions on Java installation.
+  category: Access Control
+  subcategory: File Permissions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check permissions:
+      
+      ls -la $JAVA_HOME/ | head -10
+      ls -la $JAVA_HOME/lib/security/ | head -10
+    check_command: ls -la $JAVA_HOME/ | head -5; ls -la $JAVA_HOME/lib/security/ 2>/dev/null | head -5
+    expected_value: Restricted permissions
+  remediation:
+    remediation_step: |
+      Set permissions:
+      
+      chown -R root:root $JAVA_HOME/
+      chmod -R 755 $JAVA_HOME/
+      chmod 644 $JAVA_HOME/conf/security/java.security
+      chmod 600 $JAVA_HOME/lib/security/cacerts
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper permissions prevent unauthorized modifications.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - file-permissions
+
+- rule_id: JAVA21-SEC-011
+  legacy_ids: []
+  rule_name: Use Key Encapsulation Mechanism (KEM)
+  rule_description: |
+    Java 21 introduces Key Encapsulation Mechanism API (JEP 452) for post-quantum cryptography preparation.
+  category: Cryptography
+  subcategory: Post-Quantum
+  assessment:
+    severity: Medium
+    is_auto: false
+    automation_level: Partial
+    audit_type: code
+    detection_step: |
+      Review application for KEM usage if post-quantum security is required.
+      
+      Check if KEM is configured:
+      grep -r "KEM\|KeyEncapsulation" /path/to/app/*.java 2>/dev/null
+      
+      This is a code review item for applications requiring post-quantum security.
+    check_command: echo "Check application code for KEM usage if post-quantum security required."
+    expected_value: KEM used if post-quantum security required
+  remediation:
+    remediation_step: |
+      Use KEM API for key exchange:
+      
+      KEM kem = KEM.getInstance("DHKEM");
+      KEM.Encapsulator encapsulator = kem.newEncapsulator(publicKey);
+      KEM.Encapsulated encapsulated = encapsulator.encapsulate();
+      
+      KEM.Decapsulator decapsulator = kem.newDecapsulator(privateKey);
+      SecretKey key = decapsulator.decapsulate(encapsulated.encapsulation());
+      
+      This prepares for post-quantum cryptography.
+      
+      Rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Code changes required
+    estimated_time: 120 minutes
+  context:
+    rationale: KEM prepares for post-quantum cryptography transition.
+    impact: Requires code changes
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - kem
+  - post-quantum
+  - cryptography
+
+- rule_id: JAVA21-SEC-012
+  legacy_ids:
+  - JAVA-SEC-009
+  rule_name: Configure JVM memory limits
+  rule_description: |
+    Configure appropriate JVM memory limits.
+  category: Configuration
+  subcategory: Memory Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check memory settings:
+      
+      ps -ef | grep java | grep -E "Xmx|Xms"
+    check_command: ps -ef | grep java | grep -E "Xmx|Xms" | head -5
+    expected_value: Memory limits configured
+  remediation:
+    remediation_step: |
+      Configure memory:
+      
+      java -Xms256m -Xmx2g -XX:MaxMetaspaceSize=256m -jar myapp.jar
+      
+      For Java 21, ZGC is production-ready:
+      -XX:+UseZGC -Xmx16g
+      
+      Or Generational ZGC (Java 21):
+      -XX:+UseZGC -XX:+ZGenerational -Xmx16g
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Memory limits prevent resource exhaustion.
+    impact: May cause OutOfMemoryError if too low
+    false_positive_risk: Low
+  tags:
+  - java
+  - java21
+  - memory
+  - jvm
+  - zgc
