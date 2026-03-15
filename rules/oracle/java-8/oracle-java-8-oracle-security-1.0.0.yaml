@@ -1,0 +1,1068 @@
+schema_version: 1.0.0
+metadata:
+  name: Oracle Java 8 Runtime Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules for Oracle Java 8 Runtime Environment based on
+    Oracle and OpenJDK security documentation
+  platform: Oracle Java 8
+  benchmark: Oracle/OpenJDK Security Documentation
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Oracle Java 8 (JDK/JRE)
+  - OpenJDK 8
+  - Amazon Corretto 8
+  - Adoptium (Temurin) 8
+  - Azul Zulu 8
+  references:
+  - type: Oracle Documentation
+    reference: https://docs.oracle.com/javase/8/docs/technotes/guides/security/
+  - type: OpenJDK Security
+    reference: https://openjdk.org/groups/security/
+  - type: Oracle Secure Coding
+    reference: https://www.oracle.com/java/technologies/javase/seccodeguide.html
+compliance_info:
+  framework: oracle
+  version: '1.0.0'
+  profile: unofficial
+  source:
+    framework: oracle
+    benchmark: Oracle Java SE Security Guide
+    version: '8'
+    profile: unofficial
+    notes: No official CIS or STIG exists for Java Runtime. Rules derived from Oracle
+      and OpenJDK security documentation.
+rules:
+- rule_id: JAVA-SEC-001
+  legacy_ids: []
+  rule_name: Enable Java Security Manager
+  rule_description: |
+    The Java Security Manager is a security policy enforcement mechanism that allows administrators to define fine-grained access control policies for Java applications. When enabled, it restricts what Java code can do based on the security policy.
+  category: Access Control
+  subcategory: Security Manager
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check if the Security Manager is enabled by examining the Java startup arguments:
+      
+      ps -ef | grep java | grep -i "security.manager"
+      
+      Or check the application's startup script:
+      
+      grep -r "security.manager" /path/to/app/
+      
+      Expected output should include:
+      -Djava.security.manager
+      
+      If the Security Manager is not enabled, this is a finding.
+    check_command: ps -ef | grep java | grep -i "security.manager"
+    expected_value: -Djava.security.manager should be present
+  remediation:
+    remediation_step: |
+      Enable the Java Security Manager by adding the following JVM argument:
+      
+      -Djava.security.manager
+      
+      Optionally specify a custom policy file:
+      
+      -Djava.security.manager -Djava.security.policy=/path/to/java.policy
+      
+      Example:
+      java -Djava.security.manager -Djava.security.policy=myapp.policy -jar myapp.jar
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: The Security Manager provides a sandboxing mechanism that restricts what Java code can do, preventing unauthorized operations.
+    impact: Some applications may require policy modifications to function correctly
+    false_positive_risk: Low
+  tags:
+  - java
+  - security-manager
+  - access-control
+  - sandbox
+
+- rule_id: JAVA-SEC-002
+  legacy_ids: []
+  rule_name: Configure Java Security Policy
+  rule_description: |
+    Configure a proper Java security policy file that defines what permissions are granted to different code sources. The policy file controls access to system resources.
+  category: Access Control
+  subcategory: Security Policy
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the Java security policy file:
+      
+      cat $JAVA_HOME/jre/lib/security/java.policy
+      
+      Or check for custom policy files:
+      
+      grep -r "java.security.policy" /path/to/app/
+      cat /path/to/custom.policy
+      
+      Verify that:
+      1. Policy file exists and is readable
+      2. Excessive permissions (AllPermission) are not granted
+      3. Permissions are granted based on code source (principle of least privilege)
+      
+      If the policy grants AllPermission to all code or is missing, this is a finding.
+    check_command: cat $JAVA_HOME/jre/lib/security/java.policy 2>/dev/null || cat $JAVA_HOME/lib/security/java.policy 2>/dev/null
+    expected_value: Policy file with restricted permissions
+  remediation:
+    remediation_step: |
+      Create or modify the Java security policy file:
+      
+      // Example policy file (myapp.policy)
+      grant codeBase "file:/opt/myapp/-" {
+          permission java.io.FilePermission "/opt/myapp/-", "read,write";
+          permission java.net.SocketPermission "localhost:8080", "connect";
+      };
+      
+      // Grant minimal permissions to libraries
+      grant codeBase "file:/opt/myapp/lib/-" {
+          permission java.io.FilePermission "/opt/myapp/lib/-", "read";
+      };
+      
+      Apply the policy:
+      java -Djava.security.manager -Djava.security.policy=myapp.policy -jar myapp.jar
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: A properly configured security policy enforces the principle of least privilege and limits the impact of security vulnerabilities.
+    impact: Applications may fail if required permissions are not granted
+    false_positive_risk: Low
+  tags:
+  - java
+  - security-policy
+  - access-control
+  - permissions
+
+- rule_id: JAVA-SEC-003
+  legacy_ids: []
+  rule_name: Configure TLS 1.2 or higher
+  rule_description: |
+    Configure Java to use TLS 1.2 or higher for all SSL/TLS connections. Java 8 supports TLS 1.2 by default but should be explicitly configured to disable older protocols.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the Java security properties for TLS configuration:
+      
+      grep -E "jdk.tls.disabledAlgorithms|jdk.tls.client.protocols" $JAVA_HOME/jre/lib/security/java.security
+      
+      Or check system properties in the running JVM:
+      
+      jinfo <pid> | grep -i tls
+      
+      Verify that:
+      1. TLSv1 and TLSv1.1 are disabled
+      2. SSLv3 is disabled
+      3. TLSv1.2 or TLSv1.3 is enabled
+      
+      If older TLS versions are not disabled, this is a finding.
+    check_command: grep -E "jdk.tls.disabledAlgorithms|jdk.tls.client.protocols" $JAVA_HOME/jre/lib/security/java.security 2>/dev/null || grep -E "jdk.tls.disabledAlgorithms|jdk.tls.client.protocols" $JAVA_HOME/lib/security/java.security 2>/dev/null
+    expected_value: TLSv1, TLSv1.1, SSLv3 should be disabled
+  remediation:
+    remediation_step: |
+      Edit the java.security file to disable legacy TLS versions:
+      
+      vi $JAVA_HOME/jre/lib/security/java.security
+      
+      Add or modify:
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, SSLv2Hello
+      
+      Or set JVM properties at startup:
+      
+      -Djdk.tls.client.protocols=TLSv1.2,TLSv1.3
+      -Djdk.tls.server.protocols=TLSv1.2,TLSv1.3
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: TLS 1.2 and higher provide strong encryption and address vulnerabilities in older SSL/TLS versions.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - java
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: JAVA-SEC-004
+  legacy_ids: []
+  rule_name: Disable weak cryptographic algorithms
+  rule_description: |
+    Configure Java to disable weak cryptographic algorithms including DES, 3DES, RC4, MD5, and SHA-1 for security-sensitive operations.
+  category: Cryptography
+  subcategory: Algorithm Restrictions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the Java security properties for disabled algorithms:
+      
+      grep -E "jdk.certpath.disabledAlgorithms|jdk.jar.disabledAlgorithms|jdk.xml.dsig.secureValidationPolicy" $JAVA_HOME/jre/lib/security/java.security
+      
+      Verify that weak algorithms are disabled:
+      - MD5, SHA-1 for certificate validation
+      - DES, 3DES, RC4 for encryption
+      - RSA keys less than 2048 bits
+      
+      If weak algorithms are not disabled, this is a finding.
+    check_command: grep -E "disabledAlgorithms" $JAVA_HOME/jre/lib/security/java.security 2>/dev/null || grep -E "disabledAlgorithms" $JAVA_HOME/lib/security/java.security 2>/dev/null
+    expected_value: Weak algorithms should be disabled
+  remediation:
+    remediation_step: |
+      Edit the java.security file:
+      
+      vi $JAVA_HOME/jre/lib/security/java.security
+      
+      Configure disabled algorithms:
+      
+      jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1 jdkCA & usage TLSServer, \\
+          RSA keySize < 2048, DSA keySize < 2048, EC keySize < 224
+      
+      jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024
+      
+      jdk.tls.disabledAlgorithms=SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, \\
+          EC keySize < 224, 3DES_EDE_CBC, anon, NULL
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Weak cryptographic algorithms can be exploited to decrypt sensitive data or forge signatures.
+    impact: Some legacy systems may not support modern algorithms
+    false_positive_risk: Low
+  tags:
+  - java
+  - cryptography
+  - algorithms
+  - encryption
+
+- rule_id: JAVA-SEC-005
+  legacy_ids: []
+  rule_name: Configure SecureRandom for cryptographic operations
+  rule_description: |
+    Ensure that SecureRandom is configured to use a cryptographically strong random number generator for security-sensitive operations.
+  category: Cryptography
+  subcategory: Random Number Generation
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the Java security properties for SecureRandom configuration:
+      
+      grep -E "securerandom.source|securerandom.strongAlgorithms" $JAVA_HOME/jre/lib/security/java.security
+      
+      Verify that:
+      1. securerandom.source is set to a strong source (e.g., file:/dev/urandom or NativePRNG)
+      2. Strong algorithms are configured
+      
+      Default strong configuration:
+      securerandom.source=file:/dev/urandom
+      securerandom.strongAlgorithms=NativePRNGBlocking:SUN,SHA1PRNG:SUN
+      
+      If SecureRandom is not configured properly, this is a finding.
+    check_command: grep -E "securerandom" $JAVA_HOME/jre/lib/security/java.security 2>/dev/null || grep -E "securerandom" $JAVA_HOME/lib/security/java.security 2>/dev/null
+    expected_value: securerandom.source should use strong random source
+  remediation:
+    remediation_step: |
+      Edit the java.security file:
+      
+      vi $JAVA_HOME/jre/lib/security/java.security
+      
+      Configure SecureRandom:
+      
+      securerandom.source=file:/dev/urandom
+      securerandom.strongAlgorithms=NativePRNGBlocking:SUN,SHA1PRNG:SUN
+      
+      Or use NativePRNG for better performance:
+      
+      securerandom.source=file:/dev/random
+      securerandom.strongAlgorithms=NativePRNG:SUN
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Strong random number generation is critical for cryptographic keys, session IDs, and other security-sensitive operations.
+    impact: Minimal - uses system entropy source
+    false_positive_risk: Low
+  tags:
+  - java
+  - cryptography
+  - random
+  - securerandom
+
+- rule_id: JAVA-SEC-006
+  legacy_ids: []
+  rule_name: Configure keystore password
+  rule_description: |
+    Ensure that the Java keystore (cacerts) has been changed from the default password. The default password for the cacerts keystore is 'changeit'.
+  category: Cryptography
+  subcategory: Keystore Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Verify the keystore password has been changed from default:
+      
+      keytool -list -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit 2>/dev/null
+      
+      If this command succeeds, the password is still 'changeit' and this is a finding.
+      
+      The expected result is that the default password should NOT work.
+    check_command: keytool -list -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit 2>&1 | head -5
+    expected_value: Command should fail if password is changed
+  remediation:
+    remediation_step: |
+      Change the keystore password:
+      
+      keytool -storepasswd -keystore $JAVA_HOME/jre/lib/security/cacerts
+      
+      Enter the old password (changeit) and then enter a new strong password.
+      
+      Document the new password in a secure location (password manager).
+      
+      Update any applications that reference this keystore with the new password.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Applications using the keystore need password update
+    estimated_time: 15 minutes
+  context:
+    rationale: The default keystore password is well-known and must be changed to prevent unauthorized modifications to trusted certificates.
+    impact: All applications using the keystore must be updated with the new password
+    false_positive_risk: Low
+  tags:
+  - java
+  - keystore
+  - password
+  - certificates
+
+- rule_id: JAVA-SEC-007
+  legacy_ids: []
+  rule_name: Remove or disable unnecessary cryptographic providers
+  rule_description: |
+    Review and remove or disable any unnecessary cryptographic providers from the Java security configuration.
+  category: Cryptography
+  subcategory: Provider Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      List configured security providers:
+      
+      grep -E "^security.provider" $JAVA_HOME/jre/lib/security/java.security
+      
+      Or programmatically:
+      
+      java -listproviders 2>/dev/null || echo "Run: java -XshowSettings:all 2>&1 | grep -i provider"
+      
+      Review the list and verify only necessary providers are configured.
+      Default providers in Java 8:
+      1. SUN (core)
+      2. SunRsaSign (RSA signatures)
+      3. SunEC (Elliptic Curve)
+      4. SunJSSE (SSL/TLS)
+      5. SunJCE (Java Cryptography Extension)
+      6. SunJGSS (GSS-API)
+      7. SunSASL (SASL)
+      
+      If unnecessary third-party providers are configured, this is a finding.
+    check_command: grep -E "^security.provider" $JAVA_HOME/jre/lib/security/java.security 2>/dev/null || grep -E "^security.provider" $JAVA_HOME/lib/security/java.security 2>/dev/null
+    expected_value: Only necessary providers should be configured
+  remediation:
+    remediation_step: |
+      Edit the java.security file to remove or comment out unnecessary providers:
+      
+      vi $JAVA_HOME/jre/lib/security/java.security
+      
+      Comment out unnecessary providers:
+      #security.provider.10=org.bouncycastle.jce.provider.BouncyCastleProvider
+      
+      Ensure required providers are properly ordered by preference.
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Minimizing the number of security providers reduces the attack surface and potential vulnerabilities.
+    impact: Applications requiring specific providers may fail
+    false_positive_risk: Medium
+  tags:
+  - java
+  - cryptography
+  - providers
+  - configuration
+
+- rule_id: JAVA-SEC-008
+  legacy_ids: []
+  rule_name: Enable JAR signing verification
+  rule_description: |
+    Ensure that JAR signing verification is enabled to verify the integrity and authenticity of signed JAR files.
+  category: Integrity
+  subcategory: Code Signing
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JAR signing verification settings:
+      
+      grep -E "sun.jar.disabledAlgorithms|jdk.jar.disabledAlgorithms" $JAVA_HOME/jre/lib/security/java.security
+      
+      Check if JAR verification is disabled (it should NOT be):
+      
+      grep -E "sun.security.util.disableJarVerification" $JAVA_HOME/jre/lib/security/java.security
+      
+      If JAR verification is disabled or weak algorithms are allowed, this is a finding.
+    check_command: grep -E "jar.*disabled|disableJarVerification" $JAVA_HOME/jre/lib/security/java.security 2>/dev/null || grep -E "jar.*disabled" $JAVA_HOME/lib/security/java.security 2>/dev/null
+    expected_value: JAR verification should be enabled with strong algorithms
+  remediation:
+    remediation_step: |
+      Edit the java.security file:
+      
+      vi $JAVA_HOME/jre/lib/security/java.security
+      
+      Ensure JAR verification is enabled with strong algorithms:
+      
+      jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024
+      
+      Do NOT set:
+      # sun.security.util.disableJarVerification=true
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: JAR signing verification ensures that code has not been tampered with and comes from a trusted source.
+    impact: Unsigned or weakly signed JARs will be rejected
+    false_positive_risk: Low
+  tags:
+  - java
+  - jar-signing
+  - code-integrity
+  - verification
+
+- rule_id: JAVA-SEC-009
+  legacy_ids: []
+  rule_name: Configure JVM memory limits
+  rule_description: |
+    Configure appropriate JVM memory limits to prevent denial of service from excessive memory consumption and to limit the impact of memory-based attacks.
+  category: Configuration
+  subcategory: Memory Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JVM memory settings:
+      
+      ps -ef | grep java | grep -E "Xmx|Xms|Xss"
+      
+      Or check running JVMs:
+      
+      jinfo <pid> | grep -E "MaxHeapSize|InitialHeapSize|ThreadStackSize"
+      
+      Verify that:
+      1. Maximum heap size (-Xmx) is set appropriately
+      2. Initial heap size (-Xms) is configured
+      3. Stack size (-Xss) is limited
+      
+      If memory limits are not configured, this is a finding.
+    check_command: ps -ef | grep java | grep -E "Xmx|Xms|Xss" | head -5
+    expected_value: Memory limits should be configured
+  remediation:
+    remediation_step: |
+      Configure JVM memory settings based on application requirements:
+      
+      java -Xms256m -Xmx2g -Xss512k -jar myapp.jar
+      
+      Guidelines:
+      - -Xms: Initial heap size (e.g., 256m, 512m)
+      - -Xmx: Maximum heap size (e.g., 2g, 4g)
+      - -Xss: Thread stack size (e.g., 256k, 512k)
+      - -XX:MaxMetaspaceSize: Limit metaspace (e.g., 256m)
+      
+      Restart the Java application with new settings.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Memory limits prevent excessive resource consumption and limit the impact of memory-based attacks.
+    impact: Applications requiring more memory may fail with OutOfMemoryError
+    false_positive_risk: Low
+  tags:
+  - java
+  - memory
+  - jvm
+  - resource-limits
+
+- rule_id: JAVA-SEC-010
+  legacy_ids: []
+  rule_name: Configure logging and auditing
+  rule_description: |
+    Configure Java logging to capture security-relevant events for monitoring and forensic analysis.
+  category: Logging and Auditing
+  subcategory: Security Logging
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Java logging configuration:
+      
+      cat $JAVA_HOME/jre/lib/logging.properties 2>/dev/null | head -30
+      
+      Check application logging configuration:
+      
+      find /opt -name "log4j*.properties" -o -name "log4j*.xml" -o -name "logback*.xml" 2>/dev/null
+      
+      Verify that:
+      1. Logging is configured (not disabled)
+      2. Log level is appropriate (INFO or more verbose)
+      3. Logs are written to a persistent location
+      
+      If logging is not configured or is disabled, this is a finding.
+    check_command: cat $JAVA_HOME/jre/lib/logging.properties 2>/dev/null | head -20
+    expected_value: Logging should be configured
+  remediation:
+    remediation_step: |
+      Configure Java logging in logging.properties:
+      
+      vi $JAVA_HOME/jre/lib/logging.properties
+      
+      Set appropriate levels:
+      .level=INFO
+      java.util.logging.ConsoleHandler.level=INFO
+      java.util.logging.FileHandler.level=INFO
+      java.util.logging.FileHandler.pattern=/var/log/java/java%u.log
+      
+      Or use a logging framework (Log4j2, Logback) with security appender:
+      
+      <Appenders>
+          <RollingFile name="SecurityLog" fileName="/var/log/app/security.log"
+                       filePattern="/var/log/app/security-%d{yyyy-MM-dd}.log">
+              <PatternLayout pattern="%d{ISO8601} [%t] %-5p %c{1} - %m%n"/>
+          </RollingFile>
+      </Appenders>
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Security logging enables detection of attacks, forensic analysis, and compliance monitoring.
+    impact: Additional disk space required for log storage
+    false_positive_risk: Low
+  tags:
+  - java
+  - logging
+  - auditing
+  - monitoring
+
+- rule_id: JAVA-SEC-011
+  legacy_ids: []
+  rule_name: Disable Java Web Start and Applet support
+  rule_description: |
+    Disable Java Web Start and Applet support if not required. These technologies have been deprecated and are common attack vectors.
+  category: Configuration
+  subcategory: Deprecated Features
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check if Java Web Start is enabled:
+      
+      ls -la $JAVA_HOME/jre/bin/javaws 2>/dev/null
+      
+      Check deployment configuration:
+      
+      cat ~/.java/deployment.properties 2>/dev/null | grep -E "deployment.webjava.enabled|deployment.javaws"
+      
+      Check if applets are blocked:
+      
+      grep -E "deployment.security.level" ~/.java/deployment.properties 2>/dev/null
+      
+      If Java Web Start or Applets are enabled and not required, this is a finding.
+    check_command: which javaws 2>/dev/null; cat ~/.java/deployment.properties 2>/dev/null | grep -E "deployment.webjava.enabled|deployment.security.level"
+    expected_value: Java Web Start and Applets should be disabled
+  remediation:
+    remediation_step: |
+      Create or edit deployment.properties:
+      
+      mkdir -p ~/.java
+      vi ~/.java/deployment.properties
+      
+      Add the following:
+      deployment.webjava.enabled=false
+      deployment.security.level=VERY_HIGH
+      deployment.security.askgrantdialog.show=false
+      deployment.security.askgrantdialog.notinca=false
+      
+      Or remove Java Web Start:
+      
+      rm -f $JAVA_HOME/jre/bin/javaws
+      
+      For system-wide configuration:
+      vi /etc/.java/deployment.properties
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Java Web Start applications will not run
+    estimated_time: 5 minutes
+  context:
+    rationale: Java Web Start and Applets have been common attack vectors and are deprecated. They should be disabled if not required.
+    impact: Java Web Start applications and Applets will not function
+    false_positive_risk: Low
+  tags:
+  - java
+  - webstart
+  - applet
+  - deprecated
+
+- rule_id: JAVA-SEC-012
+  legacy_ids: []
+  rule_name: Configure package access restrictions
+  rule_description: |
+    Configure package access restrictions in the Java security properties to prevent untrusted code from accessing sensitive internal APIs.
+  category: Access Control
+  subcategory: Package Restrictions
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check package access restrictions:
+      
+      grep -E "package.access" $JAVA_HOME/jre/lib/security/java.security
+      
+      Expected configuration:
+      package.access=sun.,com.sun.xml.internal.,com.sun.imageio.,...
+      
+      If package access restrictions are not configured, this is a finding.
+    check_command: grep -E "package.access" $JAVA_HOME/jre/lib/security/java.security 2>/dev/null || grep -E "package.access" $JAVA_HOME/lib/security/java.security 2>/dev/null
+    expected_value: Package access restrictions should be configured
+  remediation:
+    remediation_step: |
+      Edit the java.security file:
+      
+      vi $JAVA_HOME/jre/lib/security/java.security
+      
+      Configure package access restrictions:
+      
+      package.access=sun.,com.sun.xml.internal.,com.sun.imageio.,com.sun.istack.internal.,com.sun.jmx.,com.sun.proxy.,com.sun.org.apache.,com.sun.tools.
+      
+      Configure package definition restrictions:
+      
+      package.definition=sun.,java.,com.sun.xml.internal.,com.sun.imageio.
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Package access restrictions prevent untrusted code from accessing internal Java APIs that could be exploited.
+    impact: Some applications using internal APIs may fail
+    false_positive_risk: Low
+  tags:
+  - java
+  - package-access
+  - access-control
+  - internal-apis
+
+- rule_id: JAVA-SEC-013
+  legacy_ids: []
+  rule_name: Enable FIPS mode if required
+  rule_description: |
+    Configure Java to operate in FIPS 140-2 compliant mode if required by organizational policy. This requires using a FIPS-certified cryptographic provider.
+  category: Cryptography
+  subcategory: FIPS Compliance
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for FIPS configuration:
+      
+      grep -i fips $JAVA_HOME/jre/lib/security/java.security
+      
+      Check for FIPS provider:
+      
+      grep -E "security.provider.*NSS|security.provider.*BouncyCastle.*FIPS" $JAVA_HOME/jre/lib/security/java.security
+      
+      Check JVM arguments:
+      
+      ps -ef | grep java | grep -i fips
+      
+      If FIPS mode is required but not configured, this is a finding.
+    check_command: grep -i fips $JAVA_HOME/jre/lib/security/java.security 2>/dev/null; ps -ef | grep java | grep -i fips | head -3
+    expected_value: FIPS mode configured if required
+  remediation:
+    remediation_step: |
+      For FIPS 140-2 compliance, use a FIPS-certified provider such as:
+      
+      1. Bouncy Castle FIPS Provider:
+         - Download bc-fips-*.jar
+         - Configure in java.security:
+           security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
+         
+      2. NSS (Network Security Services) on Red Hat:
+         - Configure SunPKCS11-NSS provider
+         - Set system-wide FIPS mode on RHEL
+      
+      Example configuration:
+      security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider BCFIPS
+      security.provider.2=SUN
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required; may require code changes
+    estimated_time: 60 minutes
+  context:
+    rationale: FIPS 140-2 compliance is required for certain government and regulated environments.
+    impact: Requires FIPS-certified provider; may impact cryptographic operations
+    false_positive_risk: Low
+  tags:
+  - java
+  - fips
+  - cryptography
+  - compliance
+
+- rule_id: JAVA-SEC-014
+  legacy_ids: []
+  rule_name: Set appropriate file permissions for Java home
+  rule_description: |
+    Set appropriate file permissions on the Java installation directory to prevent unauthorized modification.
+  category: Access Control
+  subcategory: File Permissions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Java home directory permissions:
+      
+      ls -la $JAVA_HOME/
+      ls -la $JAVA_HOME/jre/lib/security/
+      
+      Verify that:
+      1. JAVA_HOME is owned by root or appropriate user
+      2. Files are not world-writable
+      3. Security files (java.security, cacerts) have restricted permissions
+      
+      If permissions are too permissive, this is a finding.
+    check_command: ls -la $JAVA_HOME/ | head -10; ls -la $JAVA_HOME/jre/lib/security/ 2>/dev/null || ls -la $JAVA_HOME/lib/security/ 2>/dev/null
+    expected_value: Restricted file permissions
+  remediation:
+    remediation_step: |
+      Set appropriate permissions:
+      
+      chown -R root:root $JAVA_HOME/
+      chmod -R 755 $JAVA_HOME/
+      chmod 644 $JAVA_HOME/jre/lib/security/java.security
+      chmod 644 $JAVA_HOME/jre/lib/security/java.policy
+      chmod 644 $JAVA_HOME/jre/lib/security/cacerts
+      
+      For sensitive files:
+      chmod 600 $JAVA_HOME/jre/lib/security/cacerts
+      
+      No restart required.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper file permissions prevent unauthorized modification of Java installation and security configuration.
+    impact: Minimal - only affects file access
+    false_positive_risk: Low
+  tags:
+  - java
+  - file-permissions
+  - access-control
+  - hardening
+
+- rule_id: JAVA-SEC-015
+  legacy_ids: []
+  rule_name: Disable or restrict RMI registry
+  rule_description: |
+    Disable or restrict Java RMI (Remote Method Invocation) registry if not required, as it can be a security risk.
+  category: Network Security
+  subcategory: RMI Security
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: runtime
+    detection_step: |
+      Check if RMI registry is running:
+      
+      netstat -tlnp | grep -E "1099|rmiregistry"
+      
+      Check JVM arguments for RMI configuration:
+      
+      ps -ef | grep java | grep -i rmi
+      
+      Check for RMI codebase configuration:
+      
+      grep -E "java.rmi.server.codebase|java.rmi.server.useCodebaseOnly" $JAVA_HOME/jre/lib/security/java.security
+      
+      If RMI is enabled without proper restrictions, this is a finding.
+    check_command: netstat -tlnp 2>/dev/null | grep -E "1099|rmiregistry"; ps -ef | grep java | grep -i rmi | head -3
+    expected_value: RMI should be disabled or properly restricted
+  remediation:
+    remediation_step: |
+      If RMI is not required, disable it by removing RMI-related configurations.
+      
+      If RMI is required, secure it:
+      
+      1. Set JVM properties:
+         -Djava.rmi.server.useCodebaseOnly=true
+         -Djava.rmi.server.hostname=your.hostname.com
+         -Djava.rmi.server.RMIClassLoaderSpi=java.rmi.server.RMIClassLoaderSpi
+      
+      2. Configure RMI socket factories:
+         -Djava.rmi.server.socketFactory=javax.rmi.ssl.SslRMIServerSocketFactory
+         -Djavax.rmi.ssl.client.enabledCipherSuites=TLS_RSA_WITH_AES_128_CBC_SHA
+      
+      3. Restrict codebase:
+         -Djava.rmi.server.codebase=allowed.codebase.url
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: RMI applications may require configuration changes
+    estimated_time: 20 minutes
+  context:
+    rationale: RMI can be exploited for remote code execution if not properly secured.
+    impact: RMI-dependent applications require proper configuration
+    false_positive_risk: Low
+  tags:
+  - java
+  - rmi
+  - network-security
+  - remote-access
+
+- rule_id: JAVA-SEC-016
+  legacy_ids: []
+  rule_name: Configure deserialization filters
+  rule_description: |
+    Configure Java deserialization filters to prevent deserialization attacks. Java 9+ includes JEP 290, but Java 8 requires manual configuration.
+  category: Application Security
+  subcategory: Deserialization
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for deserialization filter configuration:
+      
+      grep -E "jdk.serialFilter|sun.misc.ProxyGenerator.saveGeneratedFiles" $JAVA_HOME/jre/lib/security/java.security
+      
+      Check JVM arguments:
+      
+      ps -ef | grep java | grep -i "serialFilter"
+      
+      For Java 8, check if a custom ObjectInputFilter is implemented.
+      
+      If deserialization filters are not configured, this is a finding.
+    check_command: grep -E "jdk.serialFilter" $JAVA_HOME/jre/lib/security/java.security 2>/dev/null; ps -ef | grep java | grep -i "serialFilter" | head -3
+    expected_value: Deserialization filters should be configured
+  remediation:
+    remediation_step: |
+      Configure deserialization filter (Java 9+ syntax, limited support in Java 8):
+      
+      In java.security:
+      jdk.serialFilter=pattern
+      
+      Example patterns:
+      jdk.serialFilter=java.base/*;!*
+      jdk.serialFilter=maxdepth=100;maxarray=100000;maxbytes=5000000;
+      
+      Or via JVM argument:
+      -Djdk.serialFilter=java.base/*;!com.example.**;!*
+      
+      For Java 8, implement custom ObjectInputFilter or upgrade to Java 9+.
+      
+      Alternatively, use third-party tools:
+      - Apache Commons IO ValidatingObjectInputStream
+      - Contrast Security's deserialization filter
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect serialization-heavy applications
+    estimated_time: 30 minutes
+  context:
+    rationale: Deserialization vulnerabilities are a common attack vector in Java applications. Filters prevent malicious objects from being deserialized.
+    impact: Applications using serialization may require filter tuning
+    false_positive_risk: Medium
+  tags:
+  - java
+  - deserialization
+  - security-filter
+  - application-security
+
+- rule_id: JAVA-SEC-017
+  legacy_ids: []
+  rule_name: Disable or restrict JMX remote access
+  rule_description: |
+    Disable or secure JMX remote access. JMX can expose sensitive information and allow remote code execution if not properly secured.
+  category: Network Security
+  subcategory: JMX Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for JMX remote configuration:
+      
+      ps -ef | grep java | grep -E "com.sun.management.jmxremote"
+      
+      Check JMX ports:
+      
+      netstat -tlnp | grep -E "9010|jmx"
+      
+      If JMX remote is enabled without authentication and SSL, this is a finding.
+    check_command: ps -ef | grep java | grep -E "com.sun.management.jmxremote" | head -3
+    expected_value: JMX remote should be disabled or secured with SSL and authentication
+  remediation:
+    remediation_step: |
+      If JMX is not required, disable it:
+      Remove all -Dcom.sun.management.jmxremote.* properties
+      
+      If JMX is required, secure it:
+      
+      -Dcom.sun.management.jmxremote.port=9010
+      -Dcom.sun.management.jmxremote.rmi.port=9010
+      -Dcom.sun.management.jmxremote.local.only=false
+      -Dcom.sun.management.jmxremote.authenticate=true
+      -Dcom.sun.management.jmxremote.ssl=true
+      -Dcom.sun.management.jmxremote.ssl.need.client.auth=true
+      -Dcom.sun.management.jmxremote.registry.ssl=true
+      -Dcom.sun.management.jmxremote.password.file=/path/to/jmxremote.password
+      -Dcom.sun.management.jmxremote.access.file=/path/to/jmxremote.access
+      
+      Create password and access files with restricted permissions (600).
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: JMX monitoring requires authentication
+    estimated_time: 20 minutes
+  context:
+    rationale: Unsecured JMX can expose sensitive information and allow remote code execution.
+    impact: Monitoring tools need credentials
+    false_positive_risk: Low
+  tags:
+  - java
+  - jmx
+  - remote-access
+  - monitoring
+
+- rule_id: JAVA-SEC-018
+  legacy_ids: []
+  rule_name: Remove deprecated and insecure JVM options
+  rule_ids: []
+  rule_description: |
+    Remove deprecated and insecure JVM options from Java startup configurations.
+  category: Configuration
+  subcategory: JVM Options
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for deprecated or insecure JVM options:
+      
+      ps -ef | grep java | grep -E "Xbootclasspath/p|Xmixed|Xint|-XX:-UseSplitVerifier"
+      
+      Check for permgen settings (deprecated in Java 8):
+      
+      ps -ef | grep java | grep -E "PermSize|MaxPermSize"
+      
+      If deprecated or insecure options are found, this is a finding.
+    check_command: ps -ef | grep java | grep -E "Xbootclasspath|PermSize|-XX:-UseSplitVerifier" | head -5
+    expected_value: No deprecated or insecure options
+  remediation:
+    remediation_step: |
+      Remove deprecated options:
+      
+      1. Remove PermSize options (Java 8 uses Metaspace):
+         -XX:PermSize -> -XX:MetaspaceSize
+         -XX:MaxPermSize -> -XX:MaxMetaspaceSize
+      
+      2. Remove -Xbootclasspath/p with untrusted paths
+      
+      3. Remove -XX:-UseSplitVerifier (deprecated)
+      
+      4. Update to modern GC options:
+         -XX:+UseConcMarkSweepGC -> -XX:+UseG1GC
+      
+      Update startup scripts and restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Deprecated options may have security implications or may not work correctly in newer Java versions.
+    impact: May require testing to ensure application works correctly
+    false_positive_risk: Medium
+  tags:
+  - java
+  - jvm-options
+  - deprecated
+  - configuration
