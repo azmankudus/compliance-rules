@@ -1,0 +1,619 @@
+schema_version: 1.0.0
+metadata:
+  name: Oracle Java 25 Runtime Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules for Oracle Java 25 Runtime Environment based
+    on Oracle and OpenJDK security documentation (forward-looking, based on Java 21+)
+  platform: Oracle Java 25
+  benchmark: Oracle/OpenJDK Security Documentation
+  author: Compliance Rules Team
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Oracle Java 25 (JDK/JRE)
+  - OpenJDK 25
+  - Amazon Corretto 25
+  - Adoptium (Temurin) 25
+  - Azul Zulu 25
+  - Microsoft Build of OpenJDK 25
+  references:
+  - type: Oracle Documentation
+    reference: https://docs.oracle.com/en/java/javase/25/security/
+  - type: OpenJDK Security
+    reference: https://openjdk.org/groups/security/
+  - type: OpenJDK JDK 25
+    reference: https://openjdk.org/projects/jdk/25/
+compliance_info:
+  framework: oracle
+  version: '1.0.0'
+  profile: unofficial
+  source:
+    framework: oracle
+    benchmark: Oracle Java SE Security Guide
+    version: '25'
+    profile: unofficial
+    notes: No official CIS or STIG exists for Java Runtime. Rules derived from Oracle
+      and OpenJDK security documentation. Java 25 is a future version; rules are based
+      on Java 21+ patterns and expected features.
+rules:
+- rule_id: JAVA25-SEC-001
+  legacy_ids: []
+  rule_name: Verify Security Manager removal
+  rule_description: |
+    Security Manager is removed in Java 21+. Java 25 applications must use alternative security mechanisms.
+  category: Access Control
+  subcategory: Security Architecture
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check for any Security Manager references:
+      
+      ps -ef | grep java | grep -i "security.manager"
+      grep -r "SecurityManager" /path/to/app/ 2>/dev/null
+      
+      If Security Manager is referenced, this is a finding.
+    check_command: ps -ef | grep java | grep -i "security.manager" | head -3
+    expected_value: No Security Manager references
+  remediation:
+    remediation_step: |
+      Security Manager is removed. Use alternatives:
+      
+      1. Container security (Docker, Kubernetes, Podman)
+      2. Application security frameworks (Spring Security, Jakarta Security)
+      3. OS-level security (SELinux, AppArmor, seccomp)
+      4. Cloud-native security (service mesh, network policies)
+      
+      Remove all Security Manager code and configuration.
+      
+      Rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Code changes required
+    estimated_time: 240 minutes
+  context:
+    rationale: Security Manager is permanently removed.
+    impact: Legacy applications must be updated
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - security-manager
+  - removed
+
+- rule_id: JAVA25-SEC-002
+  legacy_ids:
+  - JAVA-SEC-003
+  rule_name: Configure TLS 1.3
+  rule_description: |
+    Configure Java 25 to use TLS 1.3. TLS 1.2 should only be used for legacy compatibility.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check TLS configuration:
+      
+      grep -E "jdk.tls.disabledAlgorithms" $JAVA_HOME/conf/security/java.security
+      
+      Verify only TLS 1.3 is enabled for new deployments.
+    check_command: grep -E "jdk.tls.disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: TLSv1, TLSv1.1, TLSv1.2 disabled for new deployments
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      For new deployments (TLS 1.3 only):
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, TLSv1.2, SSLv2Hello
+      
+      For legacy compatibility (TLS 1.2+1.3):
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, SSLv2Hello
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: TLS 1.3 provides the best security and performance.
+    impact: Legacy clients may need updates
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - tls
+  - tls1.3
+
+- rule_id: JAVA25-SEC-003
+  legacy_ids:
+  - JAVA21-SEC-004
+  rule_name: Configure virtual threads
+  rule_description: |
+    Java 25 virtual threads are fully production-ready. Ensure proper usage with structured concurrency.
+  category: Configuration
+  subcategory: Virtual Threads
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check virtual thread usage:
+      
+      ps -ef | grep java | grep -E "virtual|Executors.newVirtualThreadPerTaskExecutor"
+      
+      Review for:
+      - Proper structured concurrency
+      - Avoiding pinning issues
+      - Thread-local management
+      
+      If virtual threads are misconfigured, this is a finding.
+    check_command: ps -ef | grep java | grep -E "virtual|loom" | head -3
+    expected_value: Virtual threads properly configured
+  remediation:
+    remediation_step: |
+      Use virtual threads correctly:
+      
+      // With structured concurrency (standard in Java 25)
+      try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+          var task1 = scope.fork(() -> doTask1());
+          var task2 = scope.fork(() -> doTask2());
+          scope.join();
+          scope.throwIfFailed();
+          return new Result(task1.result(), task2.result());
+      }
+      
+      // Avoid pinning with synchronized blocks - use ReentrantLock
+      // Use ScopedValue instead of ThreadLocal for massive concurrency
+      
+      Rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Code changes may be required
+    estimated_time: 60 minutes
+  context:
+    rationale: Virtual threads enable massive concurrency but require proper patterns.
+    impact: May require code refactoring
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java25
+  - virtual-threads
+  - structured-concurrency
+
+- rule_id: JAVA25-SEC-004
+  legacy_ids:
+  - JAVA21-SEC-003
+  rule_name: Configure deserialization filters
+  rule_description: |
+    Configure Java deserialization filters using enhanced JEP 290 support.
+  category: Application Security
+  subcategory: Deserialization
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check deserialization filter:
+      
+      grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security
+      
+      If not configured, this is a finding.
+    check_command: grep -E "jdk.serialFilter" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: jdk.serialFilter configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure:
+      jdk.serialFilter=java.base/*;java.util.*;java.lang.*;!*
+      jdk.serialFilter=maxdepth=100;maxarray=1000000;maxbytes=50000000
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect serialization-heavy applications
+    estimated_time: 30 minutes
+  context:
+    rationale: Deserialization filters prevent RCE attacks.
+    impact: Applications using serialization may need tuning
+    false_positive_risk: Medium
+  tags:
+  - java
+  - java25
+  - deserialization
+  - jep290
+
+- rule_id: JAVA25-SEC-005
+  legacy_ids:
+  - JAVA21-SEC-011
+  rule_name: Use post-quantum cryptography
+  rule_description: |
+    Java 25 may include post-quantum cryptography algorithms. Prepare for quantum-resistant security.
+  category: Cryptography
+  subcategory: Post-Quantum
+  assessment:
+    severity: High
+    is_auto: false
+    automation_level: Partial
+    audit_type: code
+    detection_step: |
+      Review application for post-quantum cryptography readiness:
+      
+      grep -r "KEM\|ML-KEM\|ML-DSA\|Kyber\|Dilithium" /path/to/app/*.java 2>/dev/null
+      
+      Check if legacy RSA/ECDSA key sizes are sufficient for transition period.
+      
+      This is a forward-looking security item.
+    check_command: echo "Review application for post-quantum cryptography readiness."
+    expected_value: Post-quantum cryptography planned or implemented
+  remediation:
+    remediation_step: |
+      Prepare for post-quantum cryptography:
+      
+      1. Use hybrid key exchange (classical + post-quantum)
+      2. Increase RSA key sizes to 4096 bits minimum
+      3. Use ECDSA with curve P-384 or P-521
+      4. Plan migration to ML-KEM (Kyber) and ML-DSA (Dilithium)
+      
+      Example using KEM:
+      KEM kem = KEM.getInstance("ML-KEM-768");
+      
+      Rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Code and infrastructure changes required
+    estimated_time: 480 minutes
+  context:
+    rationale: Quantum computers threaten current cryptography. Early preparation is essential.
+    impact: Significant infrastructure changes
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - post-quantum
+  - cryptography
+  - kem
+
+- rule_id: JAVA25-SEC-006
+  legacy_ids:
+  - JAVA17-SEC-003
+  rule_name: Disable weak cryptographic algorithms
+  rule_description: |
+    Configure Java 25 to disable all weak cryptographic algorithms.
+  category: Cryptography
+  subcategory: Algorithm Restrictions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check disabled algorithms:
+      
+      grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security
+      
+      Verify all weak algorithms are disabled.
+    check_command: grep -E "disabledAlgorithms" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: All weak algorithms disabled
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Java 25 recommended configuration:
+      jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1, SHA224, \\
+          RSA keySize < 3072, DSA keySize < 3072, EC keySize < 384
+      
+      jdk.jar.disabledAlgorithms=MD2, MD5, SHA1, RSA keySize < 2048
+      
+      jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, TLSv1.2, \\
+          RC4, DES, 3DES, MD5withRSA, DH keySize < 2048, EC keySize < 256, \\
+          anon, NULL, ECDH
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: Java 25 should use the strongest available algorithms.
+    impact: Legacy systems must be updated
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - cryptography
+  - algorithms
+
+- rule_id: JAVA25-SEC-007
+  legacy_ids:
+  - JAVA17-SEC-007
+  rule_name: Configure SecureRandom with DRBG
+  rule_description: |
+    Configure SecureRandom to use DRBG with highest security strength.
+  category: Cryptography
+  subcategory: Random Number Generation
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SecureRandom configuration:
+      
+      grep -E "securerandom" $JAVA_HOME/conf/security/java.security
+    check_command: grep -E "securerandom" $JAVA_HOME/conf/security/java.security 2>/dev/null
+    expected_value: DRBG with highest strength configured
+  remediation:
+    remediation_step: |
+      Edit java.security:
+      
+      vi $JAVA_HOME/conf/security/java.security
+      
+      Configure DRBG with maximum strength:
+      securerandom.source=file:/dev/urandom
+      securerandom.strongAlgorithms=DRBG:SUN
+      securerandom.drbg.config=SHA-512,256,AND
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: DRBG provides NIST-compliant secure random generation.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - securerandom
+  - drbg
+
+- rule_id: JAVA25-SEC-008
+  legacy_ids:
+  - JAVA-SEC-006
+  rule_name: Change keystore default password
+  rule_description: |
+    Change the default password for the Java cacerts keystore.
+  category: Cryptography
+  subcategory: Keystore Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Test default password:
+      
+      keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>/dev/null | head -3
+      
+      If successful, this is a finding.
+    check_command: keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit 2>&1 | head -3
+    expected_value: Command should fail
+  remediation:
+    remediation_step: |
+      Change keystore password:
+      
+      keytool -storepasswd -keystore $JAVA_HOME/lib/security/cacerts
+      
+      Consider migrating to PKCS12 keystore format:
+      keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts \\
+          -destkeystore $JAVA_HOME/lib/security/cacerts.p12 -deststoretype pkcs12
+      
+      Document in password manager.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Applications using cacerts need password update
+    estimated_time: 15 minutes
+  context:
+    rationale: Default password must be changed.
+    impact: Applications using cacerts need update
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - keystore
+  - password
+
+- rule_id: JAVA25-SEC-009
+  legacy_ids:
+  - JAVA-SEC-017
+  rule_name: Secure JMX remote access
+  rule_description: |
+    Disable or secure JMX remote access with SSL and authentication.
+  category: Network Security
+  subcategory: JMX Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JMX configuration:
+      
+      ps -ef | grep java | grep -E "com.sun.management.jmxremote"
+      
+      If enabled without SSL and authentication, this is a finding.
+    check_command: ps -ef | grep java | grep -E "com.sun.management.jmxremote" | head -3
+    expected_value: JMX secured or disabled
+  remediation:
+    remediation_step: |
+      Secure JMX:
+      
+      -Dcom.sun.management.jmxremote.port=9010
+      -Dcom.sun.management.jmxremote.authenticate=true
+      -Dcom.sun.management.jmxremote.ssl=true
+      -Dcom.sun.management.jmxremote.ssl.need.client.auth=true
+      -Dcom.sun.management.jmxremote.registry.ssl=true
+      -Dcom.sun.management.jmxremote.password.file=/path/to/jmxremote.password
+      -Dcom.sun.management.jmxremote.access.file=/path/to/jmxremote.access
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: JMX requires authentication
+    estimated_time: 20 minutes
+  context:
+    rationale: Unsecured JMX can lead to RCE.
+    impact: Monitoring tools need credentials
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - jmx
+  - ssl
+
+- rule_id: JAVA25-SEC-010
+  legacy_ids:
+  - JAVA-SEC-014
+  rule_name: Set appropriate file permissions
+  rule_description: |
+    Set appropriate file permissions on Java installation.
+  category: Access Control
+  subcategory: File Permissions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check permissions:
+      
+      ls -la $JAVA_HOME/ | head -10
+      ls -la $JAVA_HOME/lib/security/ | head -10
+    check_command: ls -la $JAVA_HOME/ | head -5; ls -la $JAVA_HOME/lib/security/ 2>/dev/null | head -5
+    expected_value: Restricted permissions
+  remediation:
+    remediation_step: |
+      Set permissions:
+      
+      chown -R root:root $JAVA_HOME/
+      chmod -R 755 $JAVA_HOME/
+      chmod 644 $JAVA_HOME/conf/security/java.security
+      chmod 600 $JAVA_HOME/lib/security/cacerts
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper permissions prevent unauthorized modifications.
+    impact: Minimal
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - file-permissions
+
+- rule_id: JAVA25-SEC-011
+  legacy_ids:
+  - JAVA-SEC-009
+  rule_name: Configure JVM memory limits
+  rule_description: |
+    Configure appropriate JVM memory limits with Generational ZGC.
+  category: Configuration
+  subcategory: Memory Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check memory settings:
+      
+      ps -ef | grep java | grep -E "Xmx|Xms"
+    check_command: ps -ef | grep java | grep -E "Xmx|Xms" | head -5
+    expected_value: Memory limits configured
+  remediation:
+    remediation_step: |
+      Configure memory with Generational ZGC:
+      
+      java -Xms256m -Xmx2g -XX:MaxMetaspaceSize=256m -jar myapp.jar
+      
+      For large heaps (Generational ZGC is default in Java 25):
+      -XX:+UseZGC -Xmx32g
+      
+      Restart the Java application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Application restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: Memory limits prevent resource exhaustion.
+    impact: May cause OutOfMemoryError if too low
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - memory
+  - jvm
+  - zgc
+
+- rule_id: JAVA25-SEC-012
+  legacy_ids: []
+  rule_name: Use Foreign Function Interface securely
+  rule_description: |
+    Java 25's Foreign Function Interface (FFI) allows calling native code. Ensure it's used securely with proper memory management.
+  category: Application Security
+  subcategory: Native Interop
+  assessment:
+    severity: High
+    is_auto: false
+    automation_level: Partial
+    audit_type: code
+    detection_step: |
+      Review application for FFI usage:
+      
+      grep -r "Linker\|SymbolLookup\|MemorySegment\|MemorySession" /path/to/app/*.java 2>/dev/null
+      
+      Ensure:
+      - Proper memory allocation/deallocation
+      - Restricted native library loading
+      - Bounds checking
+      
+      This is a code review item.
+    check_command: echo "Review application code for FFI usage and security."
+    expected_value: FFI used securely if required
+  remediation:
+    remediation_step: |
+      Use FFI securely:
+      
+      // Use try-with-resources for memory management
+      try (Arena arena = Arena.ofConfined()) {
+          MemorySegment segment = arena.allocate(100);
+          // Use segment
+      } // Automatically freed
+      
+      // Restrict native library loading
+      System.loadLibrary("mylib"); // Only from java.library.path
+      
+      // Use native linker with caution
+      Linker linker = Linker.nativeLinker();
+      
+      Rebuild and redeploy application.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Code changes may be required
+    estimated_time: 120 minutes
+  context:
+    rationale: FFI enables native code calls but requires careful memory management.
+    impact: May require code changes
+    false_positive_risk: Low
+  tags:
+  - java
+  - java25
+  - ffi
+  - panama
+  - native
