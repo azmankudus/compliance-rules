@@ -1,0 +1,681 @@
+schema_version: 1.0.0
+metadata:
+  name: NGINX Security Hardening Guide
+  version: '1.0.0'
+  description: Security hardening rules from official NGINX and F5 documentation
+  platform: NGINX
+  benchmark: NGINX/F5 Official Security Documentation
+  author: Compliance Rules Team
+  created: '2026-03-15T00:00:00Z'
+  modified: '2026-03-15T00:00:00Z'
+  compatible_platforms:
+  - NGINX Open Source
+  - NGINX Plus
+  - F5 NGINX
+  references:
+  - type: NGINX Documentation
+    reference: https://docs.nginx.com/nginx/admin-guide/security-controls/
+  - type: F5 NGINX
+    reference: https://www.f5.com/products/nginx
+  - type: NGINX SSL Termination
+    reference: https://docs.nginx.com/nginx/admin-guide/security-controls/terminating-ssl-http/
+compliance_info:
+  framework: nginx
+  version: '1.0.0'
+  profile: official
+rules:
+- rule_id: NGINX-SSL-001
+  legacy_ids: []
+  rule_name: Configure HTTPS server with SSL termination
+  rule_description: |
+    Configure NGINX to terminate SSL/TLS connections, relieving upstream servers of the computational load of encryption. This includes proper certificate configuration, protocol selection, and cipher suite configuration.
+  category: Cryptography
+  subcategory: SSL Termination
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for HTTPS server configuration:
+      
+      nginx -T 2>/dev/null | grep -A10 'listen.*443.*ssl'
+      
+      Verify the following are configured:
+      - listen 443 ssl;
+      - ssl_certificate directive
+      - ssl_certificate_key directive
+      - ssl_protocols directive
+      - ssl_ciphers directive
+      
+      If any required directive is missing, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'listen.*443|ssl_certificate|ssl_protocols|ssl_ciphers'
+    expected_value: All SSL directives should be configured
+  remediation:
+    remediation_step: |
+      Configure the HTTPS server in nginx.conf:
+      
+      server {
+          listen 443 ssl;
+          server_name www.example.com;
+          
+          ssl_certificate /etc/nginx/certs/www.example.com.crt;
+          ssl_certificate_key /etc/nginx/certs/www.example.com.key;
+          ssl_protocols TLSv1.2 TLSv1.3;
+          ssl_ciphers HIGH:!aNULL:!MD5;
+          ssl_session_cache shared:SSL:10m;
+          ssl_session_timeout 10m;
+          
+          # Additional configuration...
+      }
+      
+      Test and reload:
+      nginx -t && nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 15 minutes
+  context:
+    rationale: SSL termination at the edge provides security and offloads encryption from backend servers.
+    impact: Requires valid SSL certificates
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - ssl
+  - tls
+  - encryption
+  - https
+
+- rule_id: NGINX-SSL-002
+  legacy_ids: []
+  rule_name: Enable SSL session caching for performance
+  rule_description: |
+    Configure SSL session caching to improve HTTPS performance by reusing SSL session parameters for parallel and subsequent connections.
+  category: Cryptography
+  subcategory: Session Cache
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for SSL session cache:
+      
+      nginx -T 2>/dev/null | grep -E 'ssl_session_cache|ssl_session_timeout'
+      
+      Expected output:
+      ssl_session_cache shared:SSL:10m;
+      ssl_session_timeout 10m;
+      
+      If session caching is not configured, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'ssl_session_cache|ssl_session_timeout'
+    expected_value: ssl_session_cache shared:SSL:10m;
+  remediation:
+    remediation_step: |
+      Add SSL session cache configuration to the http block:
+      
+      http {
+          ssl_session_cache shared:SSL:10m;
+          ssl_session_timeout 10m;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Session caching improves HTTPS performance by reducing SSL handshake overhead.
+    impact: Approximately 4000 sessions per MB of cache
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - ssl
+  - performance
+  - caching
+
+- rule_id: NGINX-AUTH-001
+  legacy_ids: []
+  rule_name: Configure HTTP Basic Authentication
+  rule_description: |
+    Implement HTTP Basic authentication to control access to web resources. This provides a simple but effective access control mechanism for protected areas.
+  category: Authentication
+  subcategory: Basic Authentication
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for authentication settings:
+      
+      nginx -T 2>/dev/null | grep -E 'auth_basic|auth_basic_user_file'
+      
+      For protected locations, verify:
+      - auth_basic is set (not 'off')
+      - auth_basic_user_file points to a valid htpasswd file
+      
+      If authentication is not configured for sensitive areas, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'auth_basic|auth_basic_user_file'
+    expected_value: auth_basic should be configured for protected areas
+  remediation:
+    remediation_step: |
+      Create a password file using htpasswd or openssl:
+      
+      htpasswd -c /etc/nginx/.htpasswd username
+      
+      Configure authentication in nginx.conf:
+      
+      location /admin/ {
+          auth_basic "Restricted Area";
+          auth_basic_user_file /etc/nginx/.htpasswd;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 10 minutes
+  context:
+    rationale: Basic authentication provides access control for web resources without complex infrastructure.
+    impact: Users must authenticate to access protected areas
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - authentication
+  - access-control
+  - basic-auth
+
+- rule_id: NGINX-JWT-001
+  legacy_ids: []
+  rule_name: Configure JWT Authentication
+  rule_description: |
+    Configure JSON Web Token (JWT) authentication for API access control. JWT provides secure, stateless authentication for modern applications.
+  category: Authentication
+  subcategory: JWT Authentication
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX Plus configuration for JWT authentication:
+      
+      nginx -T 2>/dev/null | grep -E 'auth_jwt|auth_jwt_key'
+      
+      For protected APIs, verify:
+      - auth_jwt is configured
+      - auth_jwt_key_file or auth_jwt_key_request is set
+      
+      If JWT authentication is not configured for API endpoints, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'auth_jwt|auth_jwt_key'
+    expected_value: auth_jwt should be configured for API endpoints
+  remediation:
+    remediation_step: |
+      Configure JWT authentication in nginx.conf (NGINX Plus):
+      
+      location /api/ {
+          auth_jwt "API Authentication";
+          auth_jwt_key_file /etc/nginx/jwt_key.jwk;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 15 minutes
+  context:
+    rationale: JWT authentication provides secure, scalable authentication for APIs and microservices.
+    impact: Requires JWT infrastructure and key management
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - authentication
+  - jwt
+  - api-security
+  - nginx-plus
+
+- rule_id: NGINX-OIDC-001
+  legacy_ids: []
+  rule_name: Configure OpenID Connect Single Sign-On
+  rule_description: |
+    Configure OpenID Connect (OIDC) based single sign-on for applications proxied by NGINX Plus. This enables integration with identity providers.
+  category: Authentication
+  subcategory: Single Sign-On
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX Plus configuration for OIDC settings:
+      
+      nginx -T 2>/dev/null | grep -E 'oidc|openid'
+      
+      Verify OIDC configuration includes:
+      - Client ID and secret
+      - Identity provider endpoints
+      - Redirect URIs
+      
+      If OIDC is required but not configured, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'oidc|openid'
+    expected_value: OIDC should be configured for SSO requirements
+  remediation:
+    remediation_step: |
+      Configure OIDC in nginx.conf (NGINX Plus):
+      
+      location / {
+          auth_oidc "My IdP" "https://idp.example.com" "client_id" "client_secret";
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 30 minutes
+  context:
+    rationale: OIDC provides enterprise SSO capabilities and integrates with existing identity infrastructure.
+    impact: Requires identity provider configuration
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - authentication
+  - sso
+  - oidc
+  - nginx-plus
+
+- rule_id: NGINX-RATE-001
+  legacy_ids: []
+  rule_name: Configure request rate limiting
+  rule_description: |
+    Implement rate limiting to protect upstream servers from excessive requests and potential DoS attacks.
+  category: Network Security
+  subcategory: Rate Limiting
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for rate limiting:
+      
+      nginx -T 2>/dev/null | grep -E 'limit_req_zone|limit_req'
+      
+      Verify rate limiting is configured:
+      - limit_req_zone defines the rate limit zone
+      - limit_req applies the limit to specific locations
+      
+      If rate limiting is not configured for public endpoints, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'limit_req_zone|limit_req'
+    expected_value: Rate limiting should be configured
+  remediation:
+    remediation_step: |
+      Configure rate limiting in nginx.conf:
+      
+      http {
+          limit_req_zone $binary_remote_addr zone=mylimit:10m rate=10r/s;
+          
+          server {
+              location /api/ {
+                  limit_req zone=mylimit burst=20 nodelay;
+                  ...
+              }
+          }
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 10 minutes
+  context:
+    rationale: Rate limiting protects against DoS attacks and ensures fair resource allocation.
+    impact: Excessive requests will be delayed or rejected
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - rate-limiting
+  - dos-protection
+  - security
+
+- rule_id: NGINX-RATE-002
+  legacy_ids: []
+  rule_name: Configure connection limiting
+  rule_description: |
+    Limit the number of connections from a single IP address to prevent connection-based DoS attacks.
+  category: Network Security
+  subcategory: Connection Limiting
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for connection limiting:
+      
+      nginx -T 2>/dev/null | grep -E 'limit_conn_zone|limit_conn'
+      
+      Verify connection limiting is configured:
+      - limit_conn_zone defines the connection limit zone
+      - limit_conn applies the limit to specific locations
+      
+      If connection limiting is not configured, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'limit_conn_zone|limit_conn'
+    expected_value: Connection limiting should be configured
+  remediation:
+    remediation_step: |
+      Configure connection limiting in nginx.conf:
+      
+      http {
+          limit_conn_zone $binary_remote_addr zone=addr:10m;
+          
+          server {
+              location / {
+                  limit_conn addr 10;
+                  ...
+              }
+          }
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 10 minutes
+  context:
+    rationale: Connection limiting prevents a single client from consuming all available connections.
+    impact: Clients exceeding the limit will receive 503 errors
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - connection-limiting
+  - dos-protection
+  - security
+
+- rule_id: NGINX-UPSTREAM-001
+  legacy_ids: []
+  rule_name: Secure upstream HTTP connections
+  rule_description: |
+    Configure SSL/TLS encryption for connections between NGINX and upstream servers to protect data in transit.
+  category: Cryptography
+  subcategory: Upstream Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for upstream SSL settings:
+      
+      nginx -T 2>/dev/null | grep -E 'proxy_ssl|proxy_pass https'
+      
+      Verify upstream SSL is configured:
+      - proxy_pass uses https://
+      - proxy_ssl_protocols is set
+      - proxy_ssl_ciphers is configured (optional)
+      
+      If upstream SSL is not configured for sensitive traffic, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'proxy_ssl|proxy_pass https'
+    expected_value: Upstream SSL should be configured for sensitive data
+  remediation:
+    remediation_step: |
+      Configure upstream SSL in nginx.conf:
+      
+      location /api/ {
+          proxy_pass https://backend.example.com;
+          proxy_ssl_protocols TLSv1.2 TLSv1.3;
+          proxy_ssl_ciphers HIGH:!aNULL:!MD5;
+          proxy_ssl_verify on;
+          proxy_ssl_trusted_certificate /etc/nginx/certs/backend-ca.crt;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 15 minutes
+  context:
+    rationale: Encrypting upstream traffic prevents eavesdropping and man-in-the-middle attacks.
+    impact: Requires SSL certificates on upstream servers
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - upstream
+  - ssl
+  - encryption
+  - backend-security
+
+- rule_id: NGINX-HEADERS-001
+  legacy_ids: []
+  rule_name: Configure security headers
+  rule_description: |
+    Add security-related HTTP headers to protect against common web vulnerabilities such as XSS, clickjacking, and MIME-type sniffing.
+  category: Application Security
+  subcategory: Security Headers
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for security headers:
+      
+      nginx -T 2>/dev/null | grep -E 'add_header.*(X-Frame-Options|X-Content-Type-Options|X-XSS-Protection|Strict-Transport-Security|Content-Security-Policy)'
+      
+      Verify the following headers are configured:
+      - X-Frame-Options: DENY or SAMEORIGIN
+      - X-Content-Type-Options: nosniff
+      - X-XSS-Protection: 1; mode=block
+      - Strict-Transport-Security (for HTTPS)
+      
+      If security headers are not configured, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'add_header.*(X-Frame|X-Content|X-XSS|Strict-Transport)'
+    expected_value: Security headers should be configured
+  remediation:
+    remediation_step: |
+      Add security headers in nginx.conf:
+      
+      server {
+          add_header X-Frame-Options "SAMEORIGIN" always;
+          add_header X-Content-Type-Options "nosniff" always;
+          add_header X-XSS-Protection "1; mode=block" always;
+          add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+          add_header Content-Security-Policy "default-src 'self'" always;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 10 minutes
+  context:
+    rationale: Security headers provide defense-in-depth protection against common web attacks.
+    impact: May affect application behavior if not properly configured
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - security-headers
+  - xss-protection
+  - clickjacking
+  - hardening
+
+- rule_id: NGINX-BUFFER-001
+  legacy_ids: []
+  rule_name: Configure client body buffer size
+  rule_description: |
+    Configure appropriate buffer sizes for client requests to prevent buffer overflow attacks and resource exhaustion.
+  category: Configuration
+  subcategory: Buffer Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for buffer settings:
+      
+      nginx -T 2>/dev/null | grep -E 'client_body_buffer_size|client_max_body_size|client_header_buffer_size'
+      
+      Verify buffer sizes are set appropriately:
+      - client_max_body_size limits maximum upload size
+      - client_body_buffer_size controls memory allocation
+      
+      If buffer sizes are not configured or are too large, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'client_body_buffer_size|client_max_body_size|client_header_buffer_size'
+    expected_value: Buffer sizes should be configured appropriately
+  remediation:
+    remediation_step: |
+      Configure buffer settings in nginx.conf:
+      
+      http {
+          client_body_buffer_size 16k;
+          client_header_buffer_size 1k;
+          client_max_body_size 10m;
+          large_client_header_buffers 4 8k;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper buffer sizing prevents memory exhaustion and buffer overflow attacks.
+    impact: Large uploads may be rejected if client_max_body_size is too small
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - buffer
+  - memory
+  - hardening
+
+- rule_id: NGINX-GEO-001
+  legacy_ids: []
+  rule_name: Configure geo-based access control
+  rule_description: |
+    Use the GeoIP module to restrict or allow access based on geographical location of the client IP address.
+  category: Access Control
+  subcategory: Geo-based Access
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for GeoIP settings:
+      
+      nginx -T 2>/dev/null | grep -E 'geoip|geo|allow|deny'
+      
+      Verify geo-based access control is configured if required:
+      - GeoIP database is loaded
+      - Access rules are defined based on country/region
+      
+      If geo-based access is required but not configured, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'geoip|geo'
+    expected_value: Geo-based access control should be configured if required
+  remediation:
+    remediation_step: |
+      Configure GeoIP in nginx.conf:
+      
+      http {
+          geoip_country /usr/share/GeoIP/GeoIP.dat;
+          
+          map $geoip_country_code $allowed_country {
+              default no;
+              US yes;
+              CA yes;
+          }
+          
+          server {
+              if ($allowed_country = no) {
+                  return 403;
+              }
+              ...
+          }
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 15 minutes
+  context:
+    rationale: Geo-based access control can help comply with data residency requirements and block traffic from high-risk regions.
+    impact: Requires GeoIP database and may block legitimate users
+    false_positive_risk: Medium
+  tags:
+  - nginx
+  - geoip
+  - access-control
+  - geolocation
+
+- rule_id: NGINX-OCSP-001
+  legacy_ids: []
+  rule_name: Enable OCSP stapling
+  rule_description: |
+    Enable OCSP stapling to improve SSL handshake performance while maintaining certificate revocation checking.
+  category: Cryptography
+  subcategory: Certificate Validation
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for OCSP stapling:
+      
+      nginx -T 2>/dev/null | grep -E 'ssl_stapling|ssl_stapling_verify'
+      
+      Expected output:
+      ssl_stapling on;
+      ssl_stapling_verify on;
+      
+      If OCSP stapling is not enabled for HTTPS servers, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'ssl_stapling|ssl_stapling_verify'
+    expected_value: ssl_stapling on; ssl_stapling_verify on;
+  remediation:
+    remediation_step: |
+      Enable OCSP stapling in nginx.conf:
+      
+      server {
+          listen 443 ssl;
+          ssl_stapling on;
+          ssl_stapling_verify on;
+          resolver 8.8.8.8 8.8.4.4 valid=300s;
+          resolver_timeout 5s;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: OCSP stapling improves performance and privacy by allowing the server to provide certificate revocation status.
+    impact: Minimal - improves SSL handshake performance
+    false_positive_risk: Low
+  tags:
+  - nginx
+  - ssl
+  - ocsp
+  - certificate
+  - performance

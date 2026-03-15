@@ -1,0 +1,86 @@
+schema_version: 1.0.0
+metadata:
+  name: F5 NGINX STIG - Category I
+  version: '1.1'
+  description: DISA F5 NGINX Security Technical Implementation Guide V1R1 - Category I (High Severity)
+  platform: F5 NGINX
+  benchmark: F5 NGINX STIG V1R1
+  author: Compliance Rules Team
+  created: '2026-03-15T00:00:00Z'
+  modified: '2026-03-15T00:00:00Z'
+  compatible_platforms:
+  - F5 NGINX
+  - NGINX Open Source
+  - NGINX Plus
+  references:
+  - type: DISA STIG
+    reference: F5 NGINX STIG V1R1
+  - type: DISA
+    reference: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_F5_NGINX_V1R1_STIG.zip
+compliance_info:
+  framework: STIG
+  version: '1.1'
+  profile: official
+rules:
+- rule_id: STIG-V-278381
+  legacy_ids:
+  - V-278381
+  - NGNX-APP-000040
+  rule_name: NGINX must use TLS 1.2, at a minimum, to protect data confidentiality using remote access.
+  rule_description: 'Using older unauthorized versions or incorrectly configuring protocol negotiation makes the gateway vulnerable to known and unknown attacks that exploit vulnerabilities in this protocol. This requirement applies to Transport Layer Security (TLS) gateways (also known as Secure Sockets Layer [SSL] gateways), web servers, and web applications and is not applicable to virtual private network (VPN) devices. Application protocols such as HTTPS and DNSSEC use TLS as the underlying security protocol and thus are in scope for this requirement. NIST SP 800-52 provides guidance for client negotiation on either DOD-only or on public-facing servers. Satisfies: SRG-APP-000014, SRG-APP-000015, SRG-APP-000560, SRG-APP-000565false'
+  category: Cryptography
+  subcategory: TLS/SSL
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine the path to NGINX config file(s): nginx -qT | grep "# configuration" # configuration file /etc/nginx/nginx.conf: Note: The default NGINX configuration is "/etc/nginx/nginx.conf", though various files may also be included. Verify "ssl_protocols" are set to TLSv1.2 or higher: nginx -c -qT | grep ssl_protocols ssl_protocols TLSv1.2 TLSv1.3; If "ssl_protocols" does not exist or does not specify TLSv1.2 or greater, this is a finding'
+    check_command: 'Determine the path to NGINX config file(s): nginx -qT | grep "# configuration" # configuration file /etc/nginx/nginx.conf: Note: The default NGINX configuration is "/etc/nginx/nginx.conf", though various files may also be included. Verify "ssl_protocols" are set to TLSv1.2 or higher: nginx -c -qT | grep ssl_protocols ssl_protocols TLSv1.2 TLSv1.3; If "ssl_protocols" does not exist or does not specify TLSv1.2 or greater, this is a finding'
+  remediation:
+    remediation_step: 'Specify the allowed TLS protocols by adding the following line to the server {} block: ssl_protocols TLSv1.2 TLSv1.3; Restart NGINX with saved configuration: nginx -s reload'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: Using older unauthorized versions or incorrectly configuring protocol negotiation makes the gateway vulnerable to known and unknown attacks that exploit vulnerabilities in this protocol. This requirement applies to Transport Layer Security (TLS) gateways (also known as Secure Sockets Layer [SSL] gateways), web servers, and web applications and is not applicable to virtual private network (VPN) devices. Application protocols such as HTTPS and DNSSEC use TLS as the underlying security protocol and
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - nginx
+  - f5
+  - web-server
+  - cryptography
+- rule_id: STIG-V-278396
+  legacy_ids:
+  - V-278396
+  - NGNX-APP-001400
+  rule_name: NGINX must off-load audit records to a central log server.
+  rule_description: 'Information stored in one location is vulnerable to accidental or incidental deletion or alteration. Off-loading is a common process in information systems with limited audit storage capacity. Satisfies: SRG-APP-000358, SRG-APP-000125, SRG-APP-000515false'
+  category: Logging and Auditing
+  subcategory: Audit Records
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Determine the path to NGINX config file(s): # nginx -qT | grep "# configuration" # configuration file /etc/nginx/nginx.conf: Note: The default NGINX configuration is "/etc/nginx/nginx.conf", though various files may also be included. Verify that "syslog:server= prefix" is included in any log directive: # cat Find the "error_log: or "access_log" directives and verify the syslog:server= prefix is included. If "error_log" or "access_log" exists and does not include "syslog:server=", this is a finding.'
+    check_command: 'Determine the path to NGINX config file(s): # nginx -qT | grep "# configuration" # configuration file /etc/nginx/nginx.conf: Note: The default NGINX configuration is "/etc/nginx/nginx.conf", though various files may also be included. Verify that "syslog:server= prefix" is included in any log directive: # cat Find the "error_log: or "access_log" directives and verify the syslog:server= prefix is included. If "error_log" or "access_log" exists and does not include "syslog:server=", this is a finding.'
+  remediation:
+    remediation_step: 'Determine the path to NGINX config file(s): # nginx -qT | grep "# configuration" # configuration file /etc/nginx/nginx.conf: Note: The default NGINX configuration is "/etc/nginx/nginx.conf", though various files may also be included. Include the "syslog:server= prefix" (which can be a domain name, an IP address, or a UNIX-domain socket path. A domain name or IP address can be specified with a port to override the default port, 514. A UNIX-domain socket path can be specified after the unix: prefix:) in any log directives and configure the optional parameters (facility, tag, severity). After saving the configuration, reload NGINX: # nginx -s reload'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart may be required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'Information stored in one location is vulnerable to accidental or incidental deletion or alteration. Off-loading is a common process in information systems with limited audit storage capacity. Satisfies: SRG-APP-000358, SRG-APP-000125, SRG-APP-000515false'
+    impact: Non-compliance may result in security vulnerabilities
+    false_positive_risk: Low
+  tags:
+  - stig
+  - nginx
+  - f5
+  - web-server
+  - logging-and-auditing

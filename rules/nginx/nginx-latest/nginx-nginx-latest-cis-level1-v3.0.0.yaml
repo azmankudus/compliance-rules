@@ -1,0 +1,724 @@
+schema_version: 1.0.0
+metadata:
+  name: CIS NGINX Benchmark - Level 1
+  version: '3.0.0'
+  description: CIS NGINX Benchmark v3.0.0 - Level 1 (Server and Workstation)
+  platform: NGINX
+  benchmark: CIS NGINX Benchmark v3.0.0
+  author: Compliance Rules Team
+  created: '2026-03-15T00:00:00Z'
+  modified: '2026-03-15T00:00:00Z'
+  compatible_platforms:
+  - NGINX Open Source
+  - NGINX Plus
+  - F5 NGINX
+  references:
+  - type: CIS Benchmark
+    reference: CIS NGINX Benchmark v3.0.0
+  - type: CIS
+    reference: https://www.cisecurity.org/benchmark/nginx
+compliance_info:
+  framework: CIS
+  version: '3.0.0'
+  profile: Level 1 - Server
+rules:
+- rule_id: CIS-1.1.1
+  legacy_ids:
+  - 1.1.1
+  rule_name: Run NGINX as a non-privileged user
+  rule_description: |
+    Running NGINX as a non-privileged user (such as 'nginx') reduces the potential impact of a security vulnerability. If NGINX is compromised, the attacker will only have the privileges of that user account.
+  category: User Accounts
+  subcategory: Service Account
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration file for the user directive:
+      
+      grep -E '^\s*user\s+' /etc/nginx/nginx.conf
+      
+      Expected output:
+      user nginx;
+      
+      Verify the user exists and has limited privileges:
+      getent passwd nginx
+      
+      Verify the user has no login shell:
+      getent passwd nginx | grep -E '/sbin/nologin|/usr/sbin/nologin|/bin/false'
+      
+      If NGINX is running as root or a privileged user, this is a finding.
+    check_command: grep -E '^\s*user\s+' /etc/nginx/nginx.conf && getent passwd nginx
+    expected_value: user nginx;
+  remediation:
+    remediation_step: |
+      Edit the NGINX configuration file and set the user directive:
+      
+      user nginx;
+      
+      Ensure the nginx user exists with no shell access:
+      useradd -r -s /sbin/nologin nginx
+      
+      Restart NGINX:
+      systemctl restart nginx
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Running services as non-privileged users is a fundamental security practice that limits the potential damage from security vulnerabilities.
+    impact: Minimal - NGINX continues to function normally as a non-privileged user
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - user-management
+  - privilege
+
+- rule_id: CIS-1.2.1
+  legacy_ids:
+  - 1.2.1
+  rule_name: Set NGINX user group appropriately
+  rule_description: |
+    The NGINX worker process should run with an appropriate group that has minimal system privileges.
+  category: User Accounts
+  subcategory: Group Membership
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check if the NGINX user is in any privileged groups:
+      
+      groups nginx
+      
+      Verify the user is not in sudo, wheel, or admin groups:
+      id nginx
+      
+      If the NGINX user is a member of any elevated group, this is a finding.
+    check_command: groups nginx && id nginx
+    expected_value: nginx groups should not include sudo, wheel, or admin
+  remediation:
+    remediation_step: |
+      Remove the nginx user from any privileged groups:
+      
+      sudo gpasswd -d nginx sudo
+      sudo gpasswd -d nginx wheel
+      sudo gpasswd -d nginx admin
+      
+      Restart NGINX:
+      systemctl restart nginx
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Minimizing group membership reduces the attack surface and prevents privilege escalation.
+    impact: Minimal - NGINX does not require elevated group privileges
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - user-management
+  - groups
+
+- rule_id: CIS-2.1.1
+  legacy_ids:
+  - 2.1.1
+  rule_name: Enable TLS 1.2 or higher
+  rule_description: |
+    NGINX must use TLS 1.2 or higher for all encrypted connections. Older SSL and TLS versions have known vulnerabilities and should be disabled.
+  category: Cryptography
+  subcategory: TLS Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for SSL/TLS protocol settings:
+      
+      nginx -T 2>/dev/null | grep -i ssl_protocols
+      
+      Expected output:
+      ssl_protocols TLSv1.2 TLSv1.3;
+      
+      If ssl_protocols is not set or includes SSLv3, TLSv1.0, or TLSv1.1, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -i ssl_protocols
+    expected_value: ssl_protocols TLSv1.2 TLSv1.3;
+  remediation:
+    remediation_step: |
+      Add or modify the ssl_protocols directive in the server block:
+      
+      server {
+          listen 443 ssl;
+          ssl_protocols TLSv1.2 TLSv1.3;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: TLS 1.2 and 1.3 provide strong encryption and address vulnerabilities in older protocols.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: CIS-2.1.2
+  legacy_ids:
+  - 2.1.2
+  rule_name: Configure strong cipher suites
+  rule_description: |
+    Configure NGINX to use strong cipher suites and disable weak ciphers that could be exploited.
+  category: Cryptography
+  subcategory: Cipher Suites
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for cipher suite settings:
+      
+      nginx -T 2>/dev/null | grep -i ssl_ciphers
+      
+      Expected output should include strong ciphers and exclude weak ones:
+      ssl_ciphers HIGH:!aNULL:!MD5:!3DES:!DES:!RC4;
+      
+      If ssl_ciphers is not configured or allows weak ciphers (NULL, MD5, 3DES, RC4), this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -i ssl_ciphers
+    expected_value: ssl_ciphers HIGH:!aNULL:!MD5;
+  remediation:
+    remediation_step: |
+      Add or modify the ssl_ciphers directive in the server block:
+      
+      server {
+          listen 443 ssl;
+          ssl_ciphers HIGH:!aNULL:!MD5:!3DES:!DES:!RC4;
+          ssl_prefer_server_ciphers on;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Strong cipher suites protect against cryptographic attacks and ensure data confidentiality.
+    impact: Some very old clients may not support modern ciphers
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - tls
+  - ciphers
+  - encryption
+
+- rule_id: CIS-2.1.3
+  legacy_ids:
+  - 2.1.3
+  rule_name: Disable SSL session tickets
+  rule_description: |
+    SSL session tickets can compromise Perfect Forward Secrecy (PFS) if the ticket key is compromised. Disable session tickets for enhanced security.
+  category: Cryptography
+  subcategory: Session Security
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for session ticket settings:
+      
+      nginx -T 2>/dev/null | grep -i ssl_session_tickets
+      
+      Expected output:
+      ssl_session_tickets off;
+      
+      If ssl_session_tickets is not set to 'off', this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -i ssl_session_tickets
+    expected_value: ssl_session_tickets off;
+  remediation:
+    remediation_step: |
+      Add the ssl_session_tickets directive to the server block:
+      
+      server {
+          listen 443 ssl;
+          ssl_session_tickets off;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Disabling session tickets ensures Perfect Forward Secrecy is maintained even if server keys are compromised.
+    impact: Session resumption will use session cache instead of tickets
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - tls
+  - pfs
+  - session
+
+- rule_id: CIS-3.1.1
+  legacy_ids:
+  - 3.1.1
+  rule_name: Configure access logging
+  rule_description: |
+    NGINX must be configured to log all access requests for security monitoring and forensic analysis.
+  category: Logging and Auditing
+  subcategory: Access Logs
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for access logging:
+      
+      nginx -T 2>/dev/null | grep -E 'access_log|log_format'
+      
+      Verify that access_log is configured and not set to 'off':
+      
+      If access logging is disabled or not configured, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'access_log|log_format'
+    expected_value: access_log should be configured with a valid path
+  remediation:
+    remediation_step: |
+      Configure access logging in the http, server, or location block:
+      
+      http {
+          log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+          access_log /var/log/nginx/access.log main;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Access logs are essential for security monitoring, incident response, and compliance requirements.
+    impact: Minimal disk space usage for log storage
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - logging
+  - auditing
+
+- rule_id: CIS-3.1.2
+  legacy_ids:
+  - 3.1.2
+  rule_name: Configure error logging
+  rule_description: |
+    NGINX must be configured to log errors for troubleshooting and security monitoring.
+  category: Logging and Auditing
+  subcategory: Error Logs
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for error logging:
+      
+      nginx -T 2>/dev/null | grep -E 'error_log'
+      
+      Verify that error_log is configured with an appropriate level (warn, error, crit):
+      
+      error_log /var/log/nginx/error.log warn;
+      
+      If error logging is disabled or set to a lower level than 'warn', this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -E 'error_log'
+    expected_value: error_log /var/log/nginx/error.log warn;
+  remediation:
+    remediation_step: |
+      Configure error logging in the main, http, server, or location block:
+      
+      error_log /var/log/nginx/error.log warn;
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Error logs help identify security issues, configuration problems, and potential attacks.
+    impact: Minimal disk space usage for log storage
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - logging
+  - error-handling
+
+- rule_id: CIS-4.1.1
+  legacy_ids:
+  - 4.1.1
+  rule_name: Hide NGINX version information
+  rule_description: |
+    The NGINX version should not be disclosed in server headers and error pages to prevent attackers from targeting specific vulnerabilities.
+  category: Configuration
+  subcategory: Information Disclosure
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for server_tokens setting:
+      
+      nginx -T 2>/dev/null | grep -i server_tokens
+      
+      Expected output:
+      server_tokens off;
+      
+      If server_tokens is not set to 'off', this is a finding.
+      
+      Verify with a curl request:
+      curl -I http://localhost 2>/dev/null | grep -i server
+    check_command: nginx -T 2>/dev/null | grep -i server_tokens
+    expected_value: server_tokens off;
+  remediation:
+    remediation_step: |
+      Add the server_tokens directive to the http or server block:
+      
+      http {
+          server_tokens off;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Hiding version information makes it harder for attackers to identify specific vulnerabilities.
+    impact: Minimal - only affects server header and error pages
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - information-disclosure
+  - hardening
+
+- rule_id: CIS-5.1.1
+  legacy_ids:
+  - 5.1.1
+  rule_name: Set appropriate client body timeout
+  rule_description: |
+    Configure the client body timeout to prevent slowloris attacks and resource exhaustion.
+  category: Network Security
+  subcategory: Timeouts
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for client body timeout:
+      
+      nginx -T 2>/dev/null | grep -i client_body_timeout
+      
+      Expected output:
+      client_body_timeout 10;
+      
+      If client_body_timeout is not set or is greater than 10 seconds, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -i client_body_timeout
+    expected_value: client_body_timeout 10;
+  remediation:
+    remediation_step: |
+      Add the client_body_timeout directive to the http or server block:
+      
+      http {
+          client_body_timeout 10;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Low timeout values help prevent denial-of-service attacks that exploit slow connections.
+    impact: Very slow clients may experience timeouts
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - timeout
+  - dos-protection
+
+- rule_id: CIS-5.1.2
+  legacy_ids:
+  - 5.1.2
+  rule_name: Set appropriate client header timeout
+  rule_description: |
+    Configure the client header timeout to prevent slowloris attacks and resource exhaustion.
+  category: Network Security
+  subcategory: Timeouts
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for client header timeout:
+      
+      nginx -T 2>/dev/null | grep -i client_header_timeout
+      
+      Expected output:
+      client_header_timeout 10;
+      
+      If client_header_timeout is not set or is greater than 10 seconds, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -i client_header_timeout
+    expected_value: client_header_timeout 10;
+  remediation:
+    remediation_step: |
+      Add the client_header_timeout directive to the http or server block:
+      
+      http {
+          client_header_timeout 10;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Low timeout values help prevent denial-of-service attacks that exploit slow connections.
+    impact: Very slow clients may experience timeouts
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - timeout
+  - dos-protection
+
+- rule_id: CIS-5.1.3
+  legacy_ids:
+  - 5.1.3
+  rule_name: Set appropriate send timeout
+  rule_description: |
+    Configure the send timeout to prevent resource exhaustion from unresponsive clients.
+  category: Network Security
+  subcategory: Timeouts
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for send timeout:
+      
+      nginx -T 2>/dev/null | grep -i send_timeout
+      
+      Expected output:
+      send_timeout 10;
+      
+      If send_timeout is not set or is greater than 10 seconds, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep -i send_timeout
+    expected_value: send_timeout 10;
+  remediation:
+    remediation_step: |
+      Add the send_timeout directive to the http or server block:
+      
+      http {
+          send_timeout 10;
+          ...
+      }
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Low timeout values help prevent denial-of-service attacks from unresponsive clients.
+    impact: Slow clients may experience timeouts
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - timeout
+  - dos-protection
+
+- rule_id: CIS-6.1.1
+  legacy_ids:
+  - 6.1.1
+  rule_name: Set worker_connections appropriately
+  rule_description: |
+    Configure the maximum number of simultaneous connections per worker process based on organizational requirements.
+  category: Configuration
+  subcategory: Connection Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the NGINX configuration for worker_connections:
+      
+      nginx -T 2>/dev/null | grep -i worker_connections
+      
+      Expected output (example):
+      worker_connections 1024;
+      
+      Verify the value is set to an organization-defined number appropriate for your deployment.
+    check_command: nginx -T 2>/dev/null | grep -i worker_connections
+    expected_value: worker_connections should be set to an appropriate value
+  remediation:
+    remediation_step: |
+      Add or modify the worker_connections directive in the events block:
+      
+      events {
+          worker_connections 1024;
+      }
+      
+      Restart NGINX:
+      systemctl restart nginx
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: Proper connection limits help prevent resource exhaustion and DoS attacks.
+    impact: Limits maximum concurrent connections
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - connections
+  - capacity
+
+- rule_id: CIS-7.1.1
+  legacy_ids:
+  - 7.1.1
+  rule_name: Restrict access to NGINX configuration files
+  rule_description: |
+    NGINX configuration files must be protected from unauthorized access and modification.
+  category: Access Control
+  subcategory: File Permissions
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check the permissions on NGINX configuration files:
+      
+      stat -c '%a %n' /etc/nginx/nginx.conf
+      stat -c '%a %n' /etc/nginx/conf.d/*
+      
+      Expected permissions: 644 or more restrictive (owner read/write, group/others read-only)
+      
+      If configuration files are writable by anyone other than the owner, this is a finding.
+    check_command: stat -c '%a %n' /etc/nginx/nginx.conf
+    expected_value: 644 or more restrictive
+  remediation:
+    remediation_step: |
+      Set appropriate permissions on NGINX configuration files:
+      
+      chmod 644 /etc/nginx/nginx.conf
+      chmod 644 /etc/nginx/conf.d/*
+      chown root:root /etc/nginx/nginx.conf
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Protecting configuration files prevents unauthorized modifications that could compromise security.
+    impact: Minimal - only affects file access
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - file-permissions
+  - access-control
+
+- rule_id: CIS-8.1.1
+  legacy_ids:
+  - 8.1.1
+  rule_name: Restrict access to SSL/TLS private keys
+  rule_description: |
+    SSL/TLS private key files must be protected with strict file permissions to prevent unauthorized access.
+  category: Cryptography
+  subcategory: Key Management
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Identify SSL certificate key files in the NGINX configuration:
+      
+      nginx -T 2>/dev/null | grep ssl_certificate_key
+      
+      Check permissions on each key file:
+      
+      stat -c '%a %n' <path_to_key_file>
+      
+      Expected permissions: 600 or 400 (owner read/write or read-only only)
+      
+      If private key files are readable by anyone other than the owner, this is a finding.
+    check_command: nginx -T 2>/dev/null | grep ssl_certificate_key
+    expected_value: Private key permissions should be 600 or 400
+  remediation:
+    remediation_step: |
+      Set appropriate permissions on SSL private key files:
+      
+      chmod 600 <path_to_key_file>
+      chown root:root <path_to_key_file>
+      
+      Reload NGINX:
+      nginx -s reload
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service reload required
+    estimated_time: 5 minutes
+  context:
+    rationale: Private keys must be protected to prevent impersonation and man-in-the-middle attacks.
+    impact: Minimal - only affects file access
+    false_positive_risk: Low
+  tags:
+  - cis
+  - nginx
+  - ssl
+  - key-management
+  - access-control
