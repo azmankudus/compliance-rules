@@ -1,0 +1,1234 @@
+schema_version: 1.0.0
+metadata:
+  name: Red Hat JBoss Web Server 5 Security Hardening
+  version: 1.0.0
+  description: Security hardening rules for Red Hat JBoss Web Server 5 based on Red
+    Hat official documentation
+  platform: Red Hat JBoss Web Server 5
+  benchmark: Red Hat JBoss Web Server Security Best Practices
+  author: Compliance Rules Team
+  created: '2026-03-14T00:00:00Z'
+  modified: '2026-03-14T00:00:00Z'
+  compatible_platforms:
+  - Red Hat JBoss Web Server 5.0
+  - Red Hat JBoss Web Server 5.1
+  - Red Hat JBoss Web Server 5.2
+  - Red Hat JBoss Web Server 5.3
+  - Red Hat JBoss Web Server 5.4
+  - Red Hat JBoss Web Server 5.5
+  - Red Hat JBoss Web Server 5.6
+  - Red Hat JBoss Web Server 5.7
+  - Red Hat JBoss Web Server 5.8
+  references:
+  - type: Red Hat Documentation
+    reference: https://docs.redhat.com/en/documentation/red_hat_jboss_web_server/5
+  - type: Red Hat Security
+    reference: https://access.redhat.com/security/security-updates/
+compliance_info:
+  framework: CIS
+  version: 1.0.0
+  profile: Production
+rules:
+- rule_id: RHJWS5-001
+  rule_name: Run JWS as Non-Root User
+  rule_description: 'JBoss Web Server must run as a non-root user to minimize the
+    impact of
+
+    potential security vulnerabilities. Running as root increases the risk
+
+    of privilege escalation if the server is compromised.
+
+    '
+  category: Access Control
+  subcategory: User Configuration
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check the user configured in the JWS service
+
+      2. Verify the process is not running as root
+
+      '
+    check_command: 'ps -ef | grep tomcat | grep -v grep
+
+      grep -i "User=" /etc/systemd/system/jws5-tomcat.service 2>/dev/null
+
+      '
+  remediation:
+    remediation_step: "1. Create a dedicated user for JWS:\n   useradd -r -s /sbin/nologin\
+      \ tomcat\n2. Configure the service to run as this user:\n   [Service]\n   User=tomcat\n\
+      \   Group=tomcat\n3. Ensure proper ownership of JWS directories:\n   chown -R\
+      \ tomcat:tomcat /opt/jws-5/tomcat/logs\n   chown -R tomcat:tomcat /opt/jws-5/tomcat/work\n\
+      \   chown -R tomcat:tomcat /opt/jws-5/tomcat/temp\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Running as non-root limits the damage from potential exploits and
+
+      follows the principle of least privilege.
+
+      '
+    impact: 'Running as root could allow complete system compromise if JWS is
+
+      successfully attacked.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - access-control
+  - user-configuration
+  - non-root
+  - critical
+  id: RHJWS5-001
+  title: Run JWS as Non-Root User
+  description: 'JBoss Web Server must run as a non-root user to minimize the impact
+    of
+
+    potential security vulnerabilities. Running as root increases the risk
+
+    of privilege escalation if the server is compromised.
+
+    '
+  severity: Critical
+  references:
+  - type: Red Hat Documentation
+    reference: Installation Guide - Running JWS as a Service
+- rule_id: RHJWS5-002
+  rule_name: Configure Java Security Manager
+  rule_description: 'The Java Security Manager should be enabled to restrict the permissions
+
+    granted to web applications. This provides an additional layer of
+
+    protection against malicious code execution.
+
+    '
+  category: Security Framework
+  subcategory: Java Security
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check if Security Manager is enabled in the service configuration
+
+      2. Verify -security flag is present in JAVA_OPTS
+
+      '
+    check_command: 'grep -i "security" /etc/systemd/system/jws5-tomcat.service
+
+      grep -i "java.security.manager" /opt/jws-5/tomcat/bin/setenv.sh 2>/dev/null
+
+      ps aux | grep tomcat | grep -i security
+
+      '
+  remediation:
+    remediation_step: "1. Enable Security Manager in setenv.sh:\n   JAVA_OPTS=\"$JAVA_OPTS\
+      \ -Djava.security.manager\"\n2. Configure security policy in catalina.policy:\n\
+      \   grant codeBase \"file:${catalina.base}/webapps/yourapp/-\" {\n       permission\
+      \ java.net.SocketPermission \"localhost:3306\", \"connect\";\n   };\n3. Restart\
+      \ JWS service\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 20 minutes
+  context:
+    rationale: 'The Java Security Manager restricts what web applications can do,
+
+      limiting the impact of compromised or malicious applications.
+
+      '
+    impact: 'Without Security Manager, web applications have full access to the
+
+      JVM and can perform any action the JVM user can.
+
+      '
+    false_positive_risk: Medium
+  tags:
+  - security-framework
+  - java-security
+  - sandbox
+  id: RHJWS5-002
+  title: Configure Java Security Manager
+  description: 'The Java Security Manager should be enabled to restrict the permissions
+
+    granted to web applications. This provides an additional layer of
+
+    protection against malicious code execution.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: Security Guide - Java Security Manager
+- rule_id: RHJWS5-003
+  rule_name: Configure Secure AJP Connector
+  rule_description: 'If using AJP connectors for communication with web servers like
+    Apache HTTPD,
+
+    they must be configured securely with requiredSecret or secret attribute
+
+    to prevent unauthorized access.
+
+    '
+  category: Network Security
+  subcategory: Connector Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check for AJP connector configuration in server.xml
+
+      2. Verify secret or requiredSecret is configured
+
+      3. Verify address is restricted if possible
+
+      '
+    check_command: 'grep -A5 "protocol=\"AJP" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Configure AJP connector with secret:\n   <Connector port=\"\
+      8009\" protocol=\"AJP/1.3\"\n              secretRequired=\"true\"\n       \
+      \       secret=\"your-strong-secret-here\"\n              address=\"127.0.0.1\"\
+      \ />\n2. Configure matching secret in Apache mod_jk or mod_proxy_ajp\n3. Restrict\
+      \ to localhost if web server is on same host\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'Ghostcat (CVE-2020-1938) demonstrated that unprotected AJP connectors
+
+      can be exploited to read files or execute code.
+
+      '
+    impact: 'Unprotected AJP connectors can allow file read and potential RCE
+
+      through deserialization attacks.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - network-security
+  - ajp
+  - connector
+  - ghostcat
+  id: RHJWS5-003
+  title: Configure Secure AJP Connector
+  description: 'If using AJP connectors for communication with web servers like Apache
+    HTTPD,
+
+    they must be configured securely with requiredSecret or secret attribute
+
+    to prevent unauthorized access.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Security Advisory
+    reference: RHSA-2020-0728
+- rule_id: RHJWS5-004
+  rule_name: Configure Secure Random for Session IDs
+  rule_description: 'JBoss Web Server must use a cryptographically secure random number
+
+    generator for session ID generation to prevent session prediction attacks.
+
+    '
+  category: Session Management
+  subcategory: Session ID Generation
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check SecureRandom configuration in context.xml
+
+      2. Verify session ID generation uses secure random
+
+      '
+    check_command: 'grep -i "SecureRandom\|randomClass" /opt/jws-5/tomcat/conf/context.xml
+
+      grep -i "sessionIdLength" /opt/jws-5/tomcat/conf/context.xml
+
+      '
+  remediation:
+    remediation_step: "1. Configure SecureRandom in context.xml:\n   <Manager className=\"\
+      org.apache.catalina.session.StandardManager\"\n            randomClass=\"java.security.SecureRandom\"\
+      \n            sessionIdLength=\"32\" />\n2. Or configure in server.xml for all\
+      \ contexts:\n   <Realm className=\"org.apache.catalina.realm.LockOutRealm\"\n\
+      \          randomClass=\"java.security.SecureRandom\">\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Predictable session IDs can be guessed by attackers to hijack
+
+      legitimate user sessions.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - session-management
+  - secure-random
+  - session-id
+  id: RHJWS5-004
+  title: Configure Secure Random for Session IDs
+  description: 'JBoss Web Server must use a cryptographically secure random number
+
+    generator for session ID generation to prevent session prediction attacks.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: Security Configuration - Session Management
+- rule_id: RHJWS5-005
+  rule_name: Enable Request Dumper Filter for Auditing
+  rule_description: 'The Request Dumper filter should be configured for detailed request
+
+    logging in security-sensitive environments to aid in incident response
+
+    and forensic analysis.
+
+    '
+  category: Logging and Auditing
+  subcategory: Request Logging
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check for RequestDumperValve in server.xml
+
+      2. Verify request logging is configured
+
+      '
+    check_command: 'grep -i "RequestDumperValve" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Add RequestDumperValve for detailed logging (development/staging):\n\
+      \   <Valve className=\"org.apache.catalina.valves.RequestDumperValve\" />\n\
+      2. For production, use AccessLogValve with comprehensive pattern:\n   <Valve\
+      \ className=\"org.apache.catalina.valves.AccessLogValve\"\n          directory=\"\
+      logs\"\n          prefix=\"access\"\n          suffix=\".log\"\n          pattern=\"\
+      %h %l %u %t &quot;%r&quot; %s %b %D %{x-forwarded-for}i\" />\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Potential performance impact
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Detailed request logging is essential for detecting attacks and
+
+      performing forensic analysis after security incidents.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - logging
+  - auditing
+  - request-logging
+  id: RHJWS5-005
+  title: Enable Request Dumper Filter for Auditing
+  description: 'The Request Dumper filter should be configured for detailed request
+
+    logging in security-sensitive environments to aid in incident response
+
+    and forensic analysis.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Logging Configuration Guide
+- rule_id: RHJWS5-006
+  rule_name: Configure Error Handling
+  rule_description: 'Custom error pages must be configured to prevent exposure of
+
+    sensitive information in error messages and provide consistent
+
+    user experience.
+
+    '
+  category: Error Handling
+  subcategory: Information Disclosure
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check for custom error pages in web.xml
+
+      2. Verify ErrorReportValve hides server info
+
+      '
+    check_command: 'grep -i "error-page" /opt/jws-5/tomcat/conf/web.xml
+
+      grep -i "ErrorReportValve" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Configure custom error pages in web.xml:\n   <error-page>\n\
+      \     <error-code>404</error-code>\n     <location>/error/404.html</location>\n\
+      \   </error-page>\n   <error-page>\n     <error-code>500</error-code>\n    \
+      \ <location>/error/500.html</location>\n   </error-page>\n   <error-page>\n\
+      \     <exception-type>java.lang.Throwable</exception-type>\n     <location>/error/error.html</location>\n\
+      \   </error-page>\n2. Configure ErrorReportValve:\n   <Valve className=\"org.apache.catalina.valves.ErrorReportValve\"\
+      \n          showServerInfo=\"false\" showReport=\"false\" />\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'Default error pages reveal server version and stack traces that
+
+      help attackers identify vulnerabilities.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - error-handling
+  - information-disclosure
+  - custom-errors
+  id: RHJWS5-006
+  title: Configure Error Handling
+  description: 'Custom error pages must be configured to prevent exposure of
+
+    sensitive information in error messages and provide consistent
+
+    user experience.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Security Guide - Error Handling
+- rule_id: RHJWS5-007
+  rule_name: Configure Rate Limiting
+  rule_description: 'Rate limiting should be configured to protect against DoS attacks
+
+    and brute force attempts on authentication endpoints.
+
+    '
+  category: Availability
+  subcategory: DoS Protection
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: '1. Check for rate limiting valve configuration
+
+      2. Check for connection limiting in connectors
+
+      '
+    check_command: 'grep -i "RateLimit\|connectionTimeout\|maxThreads" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Configure connector limits:\n   <Connector port=\"8080\"\
+      \ protocol=\"HTTP/1.1\"\n              maxThreads=\"200\"\n              acceptCount=\"\
+      100\"\n              connectionTimeout=\"20000\" />\n2. Use RemoteAddrValve\
+      \ for IP-based blocking:\n   <Valve className=\"org.apache.catalina.valves.RemoteAddrValve\"\
+      \n          deny=\"10\\.0\\.0\\.\\d+\" />\n3. Consider using mod_security with\
+      \ Apache HTTPD for advanced rate limiting\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 20 minutes
+  context:
+    rationale: 'Rate limiting protects against denial of service attacks and
+
+      credential brute forcing attempts.
+
+      '
+    false_positive_risk: Medium
+  tags:
+  - availability
+  - rate-limiting
+  - dos-protection
+  id: RHJWS5-007
+  title: Configure Rate Limiting
+  description: 'Rate limiting should be configured to protect against DoS attacks
+
+    and brute force attempts on authentication endpoints.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Performance Tuning Guide
+- rule_id: RHJWS5-008
+  rule_name: Configure Secure JMX Access
+  rule_description: 'JMX access must be secured with authentication and TLS encryption
+
+    if remote JMX monitoring is required.
+
+    '
+  category: Management Security
+  subcategory: JMX Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check JMX configuration in setenv.sh
+
+      2. Verify authentication is enabled
+
+      3. Verify SSL is configured for remote JMX
+
+      '
+    check_command: 'grep -i "jmxremote" /opt/jws-5/tomcat/bin/setenv.sh 2>/dev/null
+
+      grep -i "com.sun.management.jmxremote" /etc/systemd/system/jws5-tomcat.service
+
+      '
+  remediation:
+    remediation_step: "1. Configure secure JMX in setenv.sh:\n   JAVA_OPTS=\"$JAVA_OPTS\
+      \ -Dcom.sun.management.jmxremote.port=9010\"\n   JAVA_OPTS=\"$JAVA_OPTS -Dcom.sun.management.jmxremote.authenticate=true\"\
+      \n   JAVA_OPTS=\"$JAVA_OPTS -Dcom.sun.management.jmxremote.ssl=true\"\n   JAVA_OPTS=\"\
+      $JAVA_OPTS -Dcom.sun.management.jmxremote.access.file=/opt/jws-5/tomcat/conf/jmxremote.access\"\
+      \n   JAVA_OPTS=\"$JAVA_OPTS -Dcom.sun.management.jmxremote.password.file=/opt/jws-5/tomcat/conf/jmxremote.password\"\
+      \n2. Create JMX password file with restricted permissions:\n   echo \"monitorRole\
+      \ password123\" > /opt/jws-5/tomcat/conf/jmxremote.password\n   chmod 600 /opt/jws-5/tomcat/conf/jmxremote.password\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'Unsecured JMX allows remote code execution and complete server
+
+      compromise.
+
+      '
+    impact: 'Unauthenticated JMX access allows attackers to execute arbitrary
+
+      code on the server.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - management-security
+  - jmx
+  - remote-access
+  id: RHJWS5-008
+  title: Configure Secure JMX Access
+  description: 'JMX access must be secured with authentication and TLS encryption
+
+    if remote JMX monitoring is required.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Security Advisory
+    reference: RHSA-2020-0728
+- rule_id: RHJWS5-009
+  rule_name: Disable Unnecessary Connectors
+  rule_description: 'Only required connectors should be enabled. Unused connectors
+
+    increase the attack surface and should be disabled.
+
+    '
+  category: Configuration
+  subcategory: Connector Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. List all enabled connectors in server.xml
+
+      2. Verify only required connectors are enabled
+
+      '
+    check_command: 'grep -i "<Connector" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Comment out or remove unused connectors:\n   <!-- <Connector\
+      \ port=\"8009\" protocol=\"AJP/1.3\" /> -->\n2. Common unnecessary connectors:\n\
+      \   - AJP connector if not using Apache HTTPD\n   - Additional HTTP connectors\
+      \ for unused ports\n3. Disable the shutdown port:\n   <Server port=\"-1\" shutdown=\"\
+      SHUTDOWN\">\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Each connector represents a potential attack vector. Reducing
+
+      the number of connectors reduces attack surface.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - configuration
+  - connectors
+  - hardening
+  id: RHJWS5-009
+  title: Disable Unnecessary Connectors
+  description: 'Only required connectors should be enabled. Unused connectors
+
+    increase the attack surface and should be disabled.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Configuration Guide - Connectors
+- rule_id: RHJWS5-010
+  rule_name: Configure Secure Class Loader
+  rule_description: 'The class loader must be configured to prevent web applications
+    from
+
+    overriding server classes and accessing internal Tomcat classes.
+
+    '
+  category: Application Security
+  subcategory: Class Loading
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check catalina.properties for class loader settings
+
+      2. Verify package protection is configured
+
+      '
+    check_command: 'grep -i "package.definition\|package.access" /opt/jws-5/tomcat/conf/catalina.properties
+
+      '
+  remediation:
+    remediation_step: "1. Configure package protection in catalina.properties:\n \
+      \  package.access=sun.,org.apache.catalina.,org.apache.coyote.,org.apache.jasper.,org.apache.tomcat.\n\
+      \   package.definition=sun.,java.,org.apache.catalina.,org.apache.coyote.,org.apache.jasper.,org.apache.tomcat.\n\
+      2. Enable security manager for enforcement\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Without proper class loader restrictions, web applications could
+
+      access or override internal server classes.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - application-security
+  - class-loader
+  - package-protection
+  id: RHJWS5-010
+  title: Configure Secure Class Loader
+  description: 'The class loader must be configured to prevent web applications from
+
+    overriding server classes and accessing internal Tomcat classes.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Security Guide - Class Loading
+- rule_id: RHJWS5-011
+  rule_name: Configure Deployment Descriptor Security
+  rule_description: 'The web.xml deployment descriptor must be configured with security
+
+    constraints including authentication requirements and secure transport.
+
+    '
+  category: Application Security
+  subcategory: Deployment Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check security-constraint in web.xml
+
+      2. Verify transport-guarantee for sensitive resources
+
+      3. Verify auth-constraint for protected resources
+
+      '
+    check_command: 'grep -A20 "security-constraint" /opt/jws-5/tomcat/conf/web.xml
+
+      grep -i "transport-guarantee" /opt/jws-5/tomcat/conf/web.xml
+
+      '
+  remediation:
+    remediation_step: "1. Add security constraints in web.xml:\n   <security-constraint>\n\
+      \     <web-resource-collection>\n       <web-resource-name>Protected Area</web-resource-name>\n\
+      \       <url-pattern>/protected/*</url-pattern>\n     </web-resource-collection>\n\
+      \     <auth-constraint>\n       <role-name>admin</role-name>\n     </auth-constraint>\n\
+      \     <user-data-constraint>\n       <transport-guarantee>CONFIDENTIAL</transport-guarantee>\n\
+      \     </user-data-constraint>\n   </security-constraint>\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'Security constraints ensure that sensitive resources are only
+
+      accessible to authorized users over secure connections.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - application-security
+  - deployment-descriptor
+  - security-constraints
+  id: RHJWS5-011
+  title: Configure Deployment Descriptor Security
+  description: 'The web.xml deployment descriptor must be configured with security
+
+    constraints including authentication requirements and secure transport.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: Security Guide - Deployment Descriptors
+- rule_id: RHJWS5-012
+  rule_name: Configure Connection Pool Security
+  rule_description: 'Database connection pools must be configured securely with encrypted
+
+    credentials and restricted access to connection configuration.
+
+    '
+  category: Data Security
+  subcategory: Database Connections
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: '1. Check for datasource configuration in context.xml
+
+      2. Verify credentials are not plaintext
+
+      3. Check for connection factory encryption
+
+      '
+    check_command: 'grep -i "Resource.*name.*jdbc" /opt/jws-5/tomcat/conf/context.xml
+
+      grep -i "password" /opt/jws-5/tomcat/conf/context.xml
+
+      '
+  remediation:
+    remediation_step: "1. Use encrypted passwords in datasource configuration:\n \
+      \  <Resource name=\"jdbc/mydb\" auth=\"Container\"\n             type=\"javax.sql.DataSource\"\
+      \n             factory=\"org.apache.tomcat.jdbc.pool.DataSourceFactory\"\n \
+      \            username=\"dbuser\"\n             password=\"${db.password.encrypted}\"\
+      \n             credentialHandler=\"org.apache.catalina.realm.MessageDigestCredentialHandler\"\
+      \ />\n2. Store encrypted credentials in external properties file\n3. Restrict\
+      \ access to context.xml (chmod 640)\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 20 minutes
+  context:
+    rationale: 'Plaintext database credentials in configuration files can be
+
+      extracted by attackers to gain database access.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - data-security
+  - database
+  - credentials
+  id: RHJWS5-012
+  title: Configure Connection Pool Security
+  description: 'Database connection pools must be configured securely with encrypted
+
+    credentials and restricted access to connection configuration.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: JNDI Datasource Configuration Guide
+- rule_id: RHJWS5-013
+  rule_name: Configure Clustering Security
+  rule_description: 'If Tomcat clustering is enabled for session replication, it must
+    be
+
+    configured with encryption and authentication for cluster communication.
+
+    '
+  category: Network Security
+  subcategory: Cluster Configuration
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check for Cluster configuration in server.xml
+
+      2. Verify encryption is enabled for cluster traffic
+
+      3. Verify authentication is configured
+
+      '
+    check_command: 'grep -A30 "<Cluster" /opt/jws-5/tomcat/conf/server.xml
+
+      grep -i "encrypt\|useSecureChannel" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Configure encrypted cluster communication:\n   <Cluster\
+      \ className=\"org.apache.catalina.ha.tcp.SimpleTcpCluster\"\n            channelSendOptions=\"\
+      8\">\n     <Channel className=\"org.apache.catalina.tribes.group.GroupChannel\"\
+      >\n       <Receiver className=\"org.apache.catalina.tribes.transport.nio.NioReceiver\"\
+      \n                 address=\"auto\" port=\"4000\" />\n       <Sender className=\"\
+      org.apache.catalina.tribes.transport.ReplicationTransmitter\">\n         <Transport\
+      \ className=\"org.apache.catalina.tribes.transport.nio.PooledParallelSender\"\
+      />\n       </Sender>\n       <Interceptor className=\"org.apache.catalina.tribes.group.interceptors.EncryptInterceptor\"\
+      \n                    encryptionAlgorithm=\"AES/CBC/PKCS5Padding\"/>\n     </Channel>\n\
+      \   </Cluster>\n2. Use membership authentication\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: 'Unencrypted cluster traffic can be intercepted to steal session
+
+      data or inject malicious data into the cluster.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - network-security
+  - clustering
+  - session-replication
+  id: RHJWS5-013
+  title: Configure Clustering Security
+  description: 'If Tomcat clustering is enabled for session replication, it must be
+
+    configured with encryption and authentication for cluster communication.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: Clustering Guide - Security Configuration
+- rule_id: RHJWS5-014
+  rule_name: Configure Log Rotation
+  rule_description: 'Log rotation must be configured to prevent disk space exhaustion
+
+    and ensure logs are retained according to organizational policies.
+
+    '
+  category: Logging and Auditing
+  subcategory: Log Management
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check logging.properties for rotation settings
+
+      2. Check for logrotate configuration
+
+      3. Verify logs are being rotated
+
+      '
+    check_command: 'grep -i "limit\|count" /opt/jws-5/tomcat/conf/logging.properties
+
+      cat /etc/logrotate.d/tomcat 2>/dev/null
+
+      ls -la /opt/jws-5/tomcat/logs/
+
+      '
+  remediation:
+    remediation_step: "1. Configure log rotation in logging.properties:\n   1catalina.org.apache.juli.AsyncFileHandler.level\
+      \ = FINE\n   1catalina.org.apache.juli.AsyncFileHandler.directory = ${catalina.base}/logs\n\
+      \   1catalina.org.apache.juli.AsyncFileHandler.prefix = catalina.\n   1catalina.org.apache.juli.AsyncFileHandler.maxDays\
+      \ = 90\n2. Create logrotate configuration:\n   /opt/jws-5/tomcat/logs/*.log\
+      \ {\n       daily\n       rotate 30\n       compress\n       missingok\n   \
+      \    notifempty\n       create 640 tomcat tomcat\n   }\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Without log rotation, logs can fill the disk and cause denial of
+
+      service, and old logs may not be available for investigation.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - logging
+  - log-rotation
+  - log-management
+  id: RHJWS5-014
+  title: Configure Log Rotation
+  description: 'Log rotation must be configured to prevent disk space exhaustion
+
+    and ensure logs are retained according to organizational policies.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Logging Configuration Guide
+- rule_id: RHJWS5-015
+  rule_name: Disable Server Banner
+  rule_description: 'The server banner must be disabled to prevent disclosure of
+
+    server version information in HTTP response headers.
+
+    '
+  category: Information Disclosure
+  subcategory: Server Identification
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check for server banner in HTTP responses
+
+      2. Check server.xml for xpoweredBy and server attributes
+
+      '
+    check_command: 'curl -I http://localhost:8080 2>/dev/null | grep -i "server"
+
+      grep -i "xpoweredBy\|server=" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Disable xpoweredBy in server.xml connectors:\n   <Connector\
+      \ ... xpoweredBy=\"false\" server=\" \" />\n2. Set empty server attribute to\
+      \ remove header\n3. Configure in valve:\n   <Valve className=\"org.apache.catalina.valves.ErrorReportValve\"\
+      \n          showServerInfo=\"false\" />\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 5 minutes
+  context:
+    rationale: 'Server version information helps attackers identify known
+
+      vulnerabilities for that specific version.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - information-disclosure
+  - server-banner
+  - hardening
+  id: RHJWS5-015
+  title: Disable Server Banner
+  description: 'The server banner must be disabled to prevent disclosure of
+
+    server version information in HTTP response headers.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Security Configuration - Information Disclosure
+- rule_id: RHJWS5-016
+  rule_name: Configure Memory Limits
+  rule_description: 'JVM memory limits must be configured appropriately to prevent
+
+    out-of-memory conditions and potential denial of service.
+
+    '
+  category: Resource Management
+  subcategory: JVM Configuration
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check JVM memory settings in setenv.sh
+
+      2. Verify Xms and Xmx are configured
+
+      3. Verify memory limits are appropriate for system resources
+
+      '
+    check_command: 'grep -i "Xmx\|Xms\|MaxMetaspaceSize" /opt/jws-5/tomcat/bin/setenv.sh
+      2>/dev/null
+
+      grep -i "JAVA_OPTS\|JAVA_MEM" /etc/systemd/system/jws5-tomcat.service
+
+      '
+  remediation:
+    remediation_step: "1. Configure JVM memory in setenv.sh:\n   JAVA_OPTS=\"-Xms512m\
+      \ -Xmx2048m -XX:MaxMetaspaceSize=256m\"\n   JAVA_OPTS=\"$JAVA_OPTS -XX:+UseG1GC\"\
+      \n2. Consider system memory limits in systemd:\n   [Service]\n   MemoryMax=3G\n\
+      \   MemoryHigh=2.5G\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Properly configured memory limits prevent out-of-memory errors
+
+      and ensure stable server operation.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - resource-management
+  - jvm
+  - memory
+  id: RHJWS5-016
+  title: Configure Memory Limits
+  description: 'JVM memory limits must be configured appropriately to prevent
+
+    out-of-memory conditions and potential denial of service.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Performance Tuning Guide - JVM Settings
+- rule_id: RHJWS5-017
+  rule_name: Configure Thread Limits
+  rule_description: 'Thread limits must be configured to prevent resource exhaustion
+
+    from excessive concurrent connections.
+
+    '
+  category: Resource Management
+  subcategory: Thread Configuration
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check connector thread settings in server.xml
+
+      2. Verify maxThreads, minSpareThreads are configured
+
+      '
+    check_command: 'grep -i "maxThreads\|minSpareThreads\|acceptCount" /opt/jws-5/tomcat/conf/server.xml
+
+      '
+  remediation:
+    remediation_step: "1. Configure thread limits in server.xml:\n   <Connector port=\"\
+      8080\" protocol=\"HTTP/1.1\"\n              maxThreads=\"200\"\n           \
+      \   minSpareThreads=\"25\"\n              maxSpareThreads=\"75\"\n         \
+      \     acceptCount=\"100\"\n              connectionTimeout=\"20000\" />\n2.\
+      \ Configure executor for shared thread pools:\n   <Executor name=\"tomcatThreadPool\"\
+      \ namePrefix=\"tomcat-http-\"\n             maxThreads=\"200\" minSpareThreads=\"\
+      25\"/>\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 10 minutes
+  context:
+    rationale: 'Proper thread limits prevent resource exhaustion and ensure
+
+      predictable performance under load.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - resource-management
+  - threads
+  - performance
+  id: RHJWS5-017
+  title: Configure Thread Limits
+  description: 'Thread limits must be configured to prevent resource exhaustion
+
+    from excessive concurrent connections.
+
+    '
+  severity: Medium
+  references:
+  - type: Red Hat Documentation
+    reference: Performance Tuning Guide - Thread Configuration
+- rule_id: RHJWS5-018
+  rule_name: Enable Request Filtering
+  rule_description: 'Request filtering must be configured to block malicious requests
+
+    including path traversal, XSS attempts, and known attack patterns.
+
+    '
+  category: Request Filtering
+  subcategory: Input Validation
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check for RequestFilterValve configuration
+
+      2. Check for CSRF prevention filter
+
+      3. Check web.xml for security filters
+
+      '
+    check_command: 'grep -i "RequestFilter\|CSRF" /opt/jws-5/tomcat/conf/server.xml
+
+      grep -i "CsrfPreventionFilter" /opt/jws-5/tomcat/conf/web.xml
+
+      '
+  remediation:
+    remediation_step: "1. Enable CSRF prevention filter in web.xml:\n   <filter>\n\
+      \     <filter-name>CSRF</filter-name>\n     <filter-class>org.apache.catalina.filters.CsrfPreventionFilter</filter-class>\n\
+      \   </filter>\n   <filter-mapping>\n     <filter-name>CSRF</filter-name>\n \
+      \    <url-pattern>/*</url-pattern>\n   </filter-mapping>\n2. Configure request\
+      \ filtering for path traversal:\n   <Valve className=\"org.apache.catalina.valves.RequestFilterValve\"\
+      \n          deny=\"\\.\\.;/\" />\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'Request filtering provides defense against common web attacks
+
+      like CSRF, path traversal, and XSS.
+
+      '
+    false_positive_risk: Medium
+  tags:
+  - request-filtering
+  - csrf
+  - input-validation
+  id: RHJWS5-018
+  title: Enable Request Filtering
+  description: 'Request filtering must be configured to block malicious requests
+
+    including path traversal, XSS attempts, and known attack patterns.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: Security Guide - Request Filtering
+- rule_id: RHJWS5-019
+  rule_name: Configure SSL/TLS Certificate Management
+  rule_description: 'SSL/TLS certificates must be properly managed with appropriate
+
+    key sizes, valid certificate chains, and timely renewal.
+
+    '
+  category: Encryption
+  subcategory: Certificate Management
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: '1. Check certificate expiration dates
+
+      2. Verify certificate chain is complete
+
+      3. Check key size meets minimum requirements
+
+      '
+    check_command: 'keytool -list -v -keystore /opt/jws-5/tomcat/conf/.keystore 2>/dev/null
+      | grep -E "valid|SHA256|RSA"
+
+      echo | openssl s_client -connect localhost:8443 2>/dev/null | openssl x509 -noout
+      -dates
+
+      '
+  remediation:
+    remediation_step: "1. Generate new certificate with adequate key size:\n   keytool\
+      \ -genkeypair -alias tomcat -keyalg RSA -keysize 4096 \\\n           -sigalg\
+      \ SHA256withRSA -validity 365 \\\n           -keystore /opt/jws-5/tomcat/conf/.keystore\n\
+      2. Import CA certificate chain:\n   keytool -import -alias root -file ca-cert.pem\
+      \ \\\n           -keystore /opt/jws-5/tomcat/conf/.keystore\n3. Configure certificate\
+      \ in server.xml:\n   <Connector port=\"8443\" SSLEnabled=\"true\"\n        \
+      \      keystoreFile=\"/opt/jws-5/tomcat/conf/.keystore\"\n              keystorePass=\"\
+      changeit\"\n              keyAlias=\"tomcat\" />\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 30 minutes
+  context:
+    rationale: 'Proper certificate management ensures encrypted communications
+
+      and prevents man-in-the-middle attacks.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - encryption
+  - ssl-tls
+  - certificates
+  id: RHJWS5-019
+  title: Configure SSL/TLS Certificate Management
+  description: 'SSL/TLS certificates must be properly managed with appropriate
+
+    key sizes, valid certificate chains, and timely renewal.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: SSL/TLS Configuration Guide
+- rule_id: RHJWS5-020
+  rule_name: Configure Systemd Service Security
+  rule_description: 'The JWS systemd service must be configured with security hardening
+
+    options to restrict system access.
+
+    '
+  category: System Security
+  subcategory: Service Hardening
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: '1. Check systemd service unit for security settings
+
+      2. Verify sandbox options are configured
+
+      '
+    check_command: 'systemctl cat jws5-tomcat 2>/dev/null | grep -i "NoNewPrivileges\|PrivateTmp\|ProtectSystem"
+
+      '
+  remediation:
+    remediation_step: "1. Add security hardening to systemd service:\n   [Service]\n\
+      \   User=tomcat\n   Group=tomcat\n   NoNewPrivileges=true\n   PrivateTmp=true\n\
+      \   ProtectSystem=strict\n   ProtectHome=true\n   ReadWritePaths=/opt/jws-5/tomcat/logs\
+      \ /opt/jws-5/tomcat/work /opt/jws-5/tomcat/temp\n   Prevent privilege escalation\n\
+      \   CapabilityBoundingSet=\n   AmbientCapabilities=\n2. Reload systemd: systemctl\
+      \ daemon-reload\n3. Restart service: systemctl restart jws5-tomcat\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Service restart required
+    estimated_time: 15 minutes
+  context:
+    rationale: 'Systemd security options provide additional isolation and limit
+
+      the impact of potential compromise.
+
+      '
+    impact: 'Without systemd hardening, a compromised Tomcat process could
+
+      access more system resources.
+
+      '
+    false_positive_risk: Low
+  tags:
+  - system-security
+  - systemd
+  - sandboxing
+  id: RHJWS5-020
+  title: Configure Systemd Service Security
+  description: 'The JWS systemd service must be configured with security hardening
+
+    options to restrict system access.
+
+    '
+  severity: High
+  references:
+  - type: Red Hat Documentation
+    reference: Systemd Service Configuration Guide
