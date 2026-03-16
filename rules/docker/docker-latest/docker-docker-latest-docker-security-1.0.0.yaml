@@ -1,0 +1,762 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: Docker Security Hardening
+  version: 1.0.0
+  description: Security hardening rules for Docker based on CIS Benchmark and official documentation
+  platform: Docker
+  benchmark: CIS Docker Benchmark v1.8.0
+  author: Compliance Rules Team
+  source: https://www.cisecurity.org/benchmark/docker
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z  "
+  compatible_platforms:
+    - Docker CE 24.x
+    - Docker EE 24.x
+    - Docker on Linux
+
+system_info:
+  name: Docker
+  version: "24.0"
+  company: Docker Inc.
+  category: Container Platform
+  compatible_platforms:
+    - Linux
+    - Windows
+    - macOS
+
+compliance_info:
+  framework: STIG
+  version: 1.0.0
+  profile: Security Best Practices
+
+file_info:
+  name: docker-docker-latest-docker-security-1.0.0.yaml
+  description: Security hardening rules for Docker
+  created: "2026-03-17:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  rule_id_prefix: DOCKER
+
+profile:
+  name: Security Best Practices
+  description: Docker security hardening based on CIS and vendor documentation
+  level: 1
+
+rules:
+  - rule_id: DOCKER-SEC-001
+    rule_name: Run Docker as Non-Root User
+    rule_description: Docker daemon should run as non-root user where possible to minimize the impact of a container escape.
+    category: System Security
+    subcategory: Privileges
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify Docker is not running as root
+      check_command: "ps -ef | grep dockerd | grep -v grep | awk '{print $1}'"
+      expected_value: "Non-root user or root with proper safeguards"
+    remediation:
+      remediation_step: |
+        While Docker daemon typically runs as root, implement safeguards:
+        
+        1. Use rootless mode if possible:
+        dockerd-rootless-setuptool.sh install
+        
+        2. Use Docker socket proxy for restricted access:
+        docker run -d \\
+          -v /var/run/docker.sock:/var/run/docker.sock \\
+          -p 2375:2375 \\
+          --name docker-proxy \\
+          tecnativa/docker-socket-proxy
+        
+        3. Restrict socket permissions:
+        chmod 660 /var/run/docker.sock
+        
+        4. Add authorized users to docker group:
+        usermod -aG docker <username>
+        
+        Note: Rootless mode has limitations. Evaluate compatibility.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Running as root increases the impact of container escapes.
+      impact: High - Root-level compromise can affect entire host.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/
+    tags:
+      - privileges
+      - rootless
+      - security
+
+  - rule_id: DOCKER-SEC-002
+    rule_name: Enable TLS Authentication
+    rule_description: Docker daemon must use TLS for remote connections to protect communications and authenticate clients.
+    category: Authentication
+    subcategory: TLS
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify TLS is enabled for Docker daemon
+      check_command: "ps -ef | grep dockerd | grep -E 'tlsverify|tlscacert|tlscert|tlskey' || cat /etc/docker/daemon.json | jq .tls"
+      expected_value: "TLS verification enabled"
+    remediation:
+      remediation_step: |
+        Enable TLS for Docker daemon:
+        
+        1. Generate certificates:
+        # Create CA
+        openssl genrsa -out ca-key.pem 4096
+        openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem
+        
+        # Create server certificate
+        openssl genrsa -out server-key.pem 4096
+        openssl req -new -key server-key.pem -out server.csr
+        openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem
+        
+        # Create client certificate
+        openssl genrsa -out key.pem 4096
+        openssl req -new -key key.pem -out client.csr
+        openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out cert.pem
+        
+        2. Configure Docker daemon:
+        /etc/docker/daemon.json:
+        {
+          "tls": true,
+          "tlsverify": true,
+          "tlscacert": "/etc/docker/ca.pem",
+          "tlscert": "/etc/docker/server-cert.pem",
+          "tlskey": "/etc/docker/server-key.pem",
+          "hosts": ["tcp://0.0.0.0:2376", "unix:///var warp/run/docker.sock"]
+        }
+        
+        3. Restart Docker:
+        systemctl restart docker
+        
+        4. Test connection:
+        docker --tlsverify --tlscacert=ca.pem --tlscert=cert.pem --tlskey=key.pem -H=<host>:2376 version
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart required
+      estimated_time: 60 minutes
+    context:
+      rationale: TLS ensures encrypted communication and client authentication.
+      impact: High - Unencrypted Docker API allows remote control of containers.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/protect-access/
+    tags:
+      - tls
+      - authentication
+      - encryption
+
+  - rule_id: DOCKER-SEC-003
+    rule_name: Restrict Docker Socket Access
+    rule_description: Access to the Docker socket must be restricted to authorized users only.
+    category: Access Control
+    subcategory: Socket Security
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Docker socket permissions
+      check_command: "stat -c '%a %U:%G %n' /var/run/docker.sock"
+      expected_value: "660 root:docker /var/run/docker.sock"
+    remediation:
+      remediation_step: |
+        Restrict Docker socket access:
+        
+        1. Set proper permissions:
+        chmod 660 /var/run/docker.sock
+        chown root:docker /var/run/docker.sock
+        
+        2. Add only authorized users to docker group:
+        usermod -aG docker <username>
+        
+        3. Review docker group membership:
+        grep docker /etc/group
+        Remove unauthorized users:
+        deluser <username> docker
+        
+        4. Consider using sudo for docker commands:
+        visudo
+        %docker ALL=(ALL) NOPASSWD: /usr/bin/docker
+        
+        5. Use socket proxy for API access:
+        docker run -d \\
+          -v /var/run/docker.sock:/var/run/docker.sock \\
+          -p 2375:2375 \\
+          -e CONTAINERS=1 \\
+          tecnativa/docker-socket-proxy
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 10 minutes
+    context:
+      rationale: Socket access provides full control over Docker daemon.
+      impact: High - Unauthorized socket access allows full container control.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/
+    tags:
+      - socket
+      - access-control
+      - permissions
+
+  - rule_id: DOCKER-SEC-004
+    rule_name: Set Container Resource Limits
+    rule_description: Containers must have resource limits set to prevent resource exhaustion attacks.
+    category: Resource Management
+    subcategory: Limits
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify containers have resource limits
+      check_command: "docker inspect --format='{{.Name}} CPU: {{.HostConfig.CpuQuota}} Mem: {{.HostConfig.Memory}}' $(docker ps -q)"
+      expected_value: "All containers have CPU and memory limits"
+    remediation:
+      remediation_step: |
+        Set resource limits for all containers:
+        
+        1. CPU limits:
+        docker run --cpus=0.5 <image>
+        Or in docker-compose.yml:
+        deploy:
+          resources:
+            limits:
+              cpus: '0.50'
+        
+        2. Memory limits:
+        docker run --memory=512m --memory-swap=512m <image>
+        Or:
+        deploy:
+          resources:
+            limits:
+              memory: 512M
+        
+        3. Use Docker Swarm or Kubernetes for orchestration with resource quotas.
+        
+        4. Set default limits in daemon.json:
+        {
+          "default-ulimits": {
+            "nofile": {
+              "Name": "nofile",
+              "Hard": 65536,
+              "Soft": 1024
+            }
+          }
+        }
+        
+        5. Monitor resource usage:
+        docker stats
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Containers need to be recreated
+      estimated_time: 30 minutes
+    context:
+      rationale: Resource limits prevent a single container from exhausting host resources.
+      impact: High - Resource exhaustion can cause host and other container failures.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/config/containers/resource_constraints/
+    tags:
+      - resources
+      - limits
+      - performance
+
+  - rule_id: DOCKER-SEC-005
+    rule_name: Use Read-Only Root Filesystem
+    rule_description: Container root filesystem should be read-only where possible to prevent modification of container files.
+    category: Filesystem Security
+    subcategory: Container Hardening
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify containers use read-only root filesystem
+      check_command: "docker inspect --format='{{.Name}} Read-Only: {{.HostConfig.ReadonlyRootfs}}' $(docker ps -q)"
+      expected_value: "Containers have read-only root filesystem where applicable"
+    remediation:
+      remediation_step: |
+        Enable read-only root filesystem:
+        
+        1. Run container with read-only root:
+        docker run --read-only <image>
+        
+        2. Add required tmpfs mounts:
+        docker run --read-only \\
+          --tmpfs /tmp \\
+          --tmpfs /var/run \\
+          <image>
+        
+        3. In docker-compose.yml:
+        services:
+          app:
+            read_only: true
+            tmpfs:
+              - /tmp
+              - /var/run
+        
+        4. For applications that need write access:
+        - Mount specific directories as volumes
+        - Use tmpfs for temporary files
+        - Consider application-specific data directories
+        
+        5. Test application thoroughly after enabling.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May require application changes
+      estimated_time: 60 minutes
+    context:
+      rationale: Read-only filesystems prevent unauthorized file modifications.
+      impact: Medium - Modifiable filesystems can be exploited for persistence.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/
+    tags:
+      - filesystem
+      - read-only
+      - hardening
+
+  - rule_id: DOCKER-SEC-006
+    rule_name: Use User Namespace Isolation
+    rule_description: User namespaces should be enabled to map container root to non-root user on host.
+    category: Isolation
+    subcategory: User Namespaces
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify user namespaces are enabled
+      check_command: "cat /etc/subuid /etc/subgid && ps -ef | grep dockerd | grep userns-remap || cat /etc/docker/daemon.json | jq .\"userns-remap\""
+      expected_value: "User namespace remapping configured"
+    remediation:
+      remediation_step: |
+        Enable user namespaces:
+        
+        1. Create user for namespace mapping:
+        useradd dockremap
+        
+        2. Configure subordinate IDs:
+        echo "dockremap:100000:65536" >> /etc/subuid
+        echo "dockremap:100000:65536" >> /etc/subgid
+        
+        3. Enable in Docker daemon:
+        /etc/docker/daemon.json:
+        {
+          "userns-remap": "dockremap"
+        }
+        
+        4. Restart Docker:
+        systemctl restart docker
+        
+        5. Verify:
+        docker run --rm alpine id
+        (should show root in container)
+        
+        6. Note: Some containers may need --userns=host flag.
+        
+        7. Ensure volume permissions are correct:
+        chown -R 100000:100000 /var/lib/docker
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: User namespaces map container root to unprivileged host user.
+      impact: High - Without user namespaces, container root can access host as root.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/userns-remap/
+    tags:
+      - namespaces
+      - isolation
+      - user-remap
+
+  - rule_id: DOCKER-SEC-007
+    rule_name: Disable Inter-Container Communication
+    rule_description: Inter-container communication should be disabled by default unless explicitly required.
+    category: Network Security
+    subcategory: Container Isolation
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify ICC is disabled
+      check_command: "docker network ls && docker network inspect bridge | jq .[0].Options"
+      expected_value: "com.docker.network.bridge.enable_icc: false"
+    remediation:
+      remediation_step: |
+        Disable inter-container communication:
+        
+        1. Create custom network with ICC disabled:
+        docker network create \\
+          -d bridge \\
+          -o com.docker.network.bridge.enable_icc=false \\
+          secure_network
+        
+        2. Or configure default bridge in daemon.json:
+        {
+          "bridge": "none"
+        }
+        
+        3. Run containers on custom network:
+        docker run --network secure_network <image>
+        
+        4. Use Docker Compose:
+        networks:
+          secure_net:
+            driver: bridge
+            driver_opts:
+              com.docker.network.bridge.enable_icc: "false"
+        
+        5. For services that need to communicate:
+        - Create separate networks per service group
+        - Use service names for discovery
+        - Implement network policies if using Swarm/Kubernetes
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Containers need to be recreated
+      estimated_time: 30 minutes
+    context:
+      rationale: ICC isolation prevents unauthorized container-to-container communication.
+      impact: Medium - Enabled ICC allows lateral movement between containers.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/network/
+    tags:
+      - network
+      - icc
+      - isolation
+
+  - rule_id: DOCKER-SEC-008
+    rule_name: Use Trusted Base Images
+    rule_description: Only use container images from trusted sources and verify image signatures.
+    category: Image Security
+    subcategory: Trust
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: false
+      automation_level: Partial
+      audit_type: config
+      detection_step: Verify Docker Content Trust is enabled
+      check_command: "docker trust key list && cat /etc/docker/daemon.json | jq .\"content-trust\""
+      expected_value: "Docker Content Trust configured"
+    remediation:
+      remediation_step: |
+        Enable Docker Content Trust:
+        
+        1. Enable trust for Docker CLI:
+        export DOCKER_CONTENT_TRUST=1
+        Add to /etc/environment for persistence.
+        
+        2. Configure trust policy in daemon.json:
+        {
+          "content-trust": {
+            "trust-pin": {
+              "mode": "enforced"
+            }
+          }
+        }
+        
+        3. Use Notary for image signing:
+        docker trust sign <image>
+        
+        4. Verify image before running:
+        docker trust inspect --pretty <image>
+        
+        5. Use only trusted registries:
+        - Docker Hub Official Images
+        - Private registry with signed images
+        - Vendor-provided images
+        
+        6. Scan images for vulnerabilities:
+        docker scan <image>
+        
+        7. Implement OPA/Gatekeeper policies for image trust.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May block unsigned images
+      estimated_time: 60 minutes
+    context:
+      rationale: Untrusted images may contain malicious code or vulnerabilities.
+      impact: High - Malicious images can compromise the host and data.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/trust/
+    tags:
+      - images
+      - trust
+      - signing
+
+  - rule_id: DOCKER-SEC-009
+    rule_name: Enable Container Logging
+    rule_description: Container logs must be collected and retained for security monitoring and incident response.
+    category: Logging
+    subcategory: Log Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify logging is configured
+      check_command: "cat /etc/docker/daemon.json | jq '.log-driver, .log-opts'"
+      expected_value: "Log driver configured with size limits"
+    remediation:
+      remediation_step: |
+        Configure container logging:
+        
+        1. Set default log driver in daemon.json:
+        {
+          "log-driver": "json-file",
+          "log-opts": {
+            "max-size": "10m",
+            "max-file": "3",
+            "labels": "app,environment"
+          }
+        }
+        
+        2. Or use syslog:
+        {
+          "log-driver": "syslog",
+          "log-opts": {
+            "syslog-address": "tcp://logs.example.com:514",
+            "syslog-facility": "daemon",
+            "tag": "{{.Name}}/{{.ID}}"
+          }
+        }
+        
+        3. Forward logs to SIEM:
+        - Configure Filebeat/Fluentd
+        - Send to Elasticsearch/Splunk
+        - Enable audit logging
+        
+        4. Per-container logging:
+        docker run --log-driver json-file \\
+          --log-opt max-size=10m \\
+          --log-opt max-file=3 \\
+          <image>
+        
+        5. Monitor logs for security events:
+        docker logs <container> --follow
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Logs are essential for security monitoring and forensics.
+      impact: High - Missing logs prevent detection of security incidents.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/config/containers/logging/
+    tags:
+      - logging
+      - monitoring
+      - auditing
+
+  - rule_id: DOCKER-SEC-010
+    rule_name: Set AppArmor Profile
+    rule_description: Containers should run with AppArmor profiles to restrict capabilities.
+    category: Hardening
+    subcategory: AppArmor
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify AppArmor is configured
+      check_command: "docker inspect --format='{{.AppArmorProfile}}' $(docker ps -q)"
+      expected_value: "Containers have AppArmor profile applied"
+    remediation:
+      remediation_step: |
+        Configure AppArmor for Docker:
+        
+        1. Verify AppArmor is installed:
+        apparmor_status
+        
+        2. Use Docker's default profile:
+        docker run --security-opt apparmor=docker-default <image>
+        
+        3. Create custom profile:
+        # Create profile file
+        #include <tunables/global>
+        profile docker-<name> flags=(attach_disconnected,mediate_deleted) {
+          #include <abstractions/base>
+          network,
+          capability,
+          file,
+          umount,
+          deny /proc/*-g w,
+          deny /proc/sysrq-trigger rw,
+          deny /sys/[^f]*/** wklx,
+        }
+        
+        4. Load profile:
+        apparmor_parser -r -W /etc/apparmor.d/docker-<name>
+        
+        5. Run with custom profile:
+        docker run --security-opt apparmor=docker-<name> <image>
+        
+        6. Verify:
+        docker inspect --format='{{.AppArmorProfile}}' <container>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Containers need to be recreated
+      estimated_time: 45 minutes
+    context:
+      rationale: AppArmor provides additional security confinement for containers.
+      impact: Medium - Without AppArmor, containers have fewer restrictions.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/apparmor/
+    tags:
+      - apparmor
+      - hardening
+      - profiles
+
+  - rule_id: DOCKER-SEC-011
+    rule_name: Drop All Capabilities
+    rule_description: Containers should run with minimal capabilities by dropping all capabilities and only adding those required.
+    category: Capabilities
+    subcategory: Privilege Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify container capabilities are restricted
+      check_command: "docker inspect --format='CapAdd: {{.HostConfig.CapAdd}} CapDrop: {{.HostConfig.CapDrop}}' $(docker ps -q)"
+      expected_value: "Capabilities dropped, only necessary ones added"
+    remediation:
+      remediation_step: |
+        Restrict container capabilities:
+        
+        1. Drop all capabilities:
+        docker run --cap-drop=ALL <image>
+        
+        2. Add only required capabilities:
+        docker run --cap-drop=ALL --cap-add=NET_BIND_SERVICE <image>
+        
+        3. Common capabilities to consider:
+        - NET_BIND_SERVICE: Bind to ports < 1024
+        - CHOWN: Change file ownership
+        - SETUID/SETGID: Change user/group
+        - SYS_ADMIN: Various admin operations (use sparingly)
+        
+        4. In docker-compose.yml:
+        cap_drop:
+          - ALL
+        cap_add:
+          - NET_BIND_SERVICE
+        
+        5. List available capabilities:
+        cat /usr/include/linux/capability.h | grep CAP_
+        
+        6. Use --privileged only when absolutely necessary.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May require application changes
+      estimated_time: 30 minutes
+    context:
+      rationale: Minimal capabilities reduce the attack surface of containers.
+      impact: High - Unnecessary capabilities can be exploited for privilege escalation.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/
+    tags:
+      - capabilities
+      - privileges
+      - security
+
+  - rule_id: DOCKER-SEC-012
+    rule_name: Use Seccomp Profiles
+    rule_description: Containers should use seccomp profiles to restrict system calls.
+    category: Hardening
+    subcategory: Seccomp
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify seccomp is configured
+      check_command: "docker inspect --format='{{.HostConfig.SecurityOpt}}' $(docker ps -q)"
+      expected_value: "Seccomp profile applied"
+    remediation:
+      remediation_step: |
+        Configure seccomp profiles:
+        
+        1. Docker has a default seccomp profile. Verify:
+        docker info | grep -i seccomp
+        
+        2. Use custom seccomp profile:
+        docker run --security-opt seccomp=/path/to/profile.json <image>
+        
+        3. Create custom profile:
+        {
+          "defaultAction": "SCMP_ACT_ERRNO",
+          "architectures": ["SCMP_ARCH_X86_64"],
+          "syscalls": [
+            {
+              "names": ["read", "write", "exit", "sigreturn"],
+              "action": "SCMP_ACT_ALLOW"
+            }
+          ]
+        }
+        
+        4. Generate profile using strace:
+        strace -c docker run <image>
+        
+        5. Use runtime profile:
+        docker run --security-opt seccomp=unconfined <image>
+        (Only for debugging, not production)
+        
+        6. Combine with AppArmor for defense in depth.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May block required syscalls
+      estimated_time: 60 minutes
+    context:
+      rationale: Seccomp restricts syscalls, reducing kernel attack surface.
+      impact: Medium - Without seccomp, containers can use dangerous syscalls.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.docker.com/engine/security/seccomp/
+    tags:
+      - seccomp
+      - syscalls
+      - hardening

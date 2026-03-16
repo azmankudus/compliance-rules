@@ -1,0 +1,635 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: Podman Security Hardening
+  version: 1.0.0
+  description: Security hardening rules for Podman based on Container Platform SRG and official documentation
+  platform: Podman
+  benchmark: Container Platform SRG V2R4
+  author: Compliance Rules Team
+  source: https://podman.io/docs
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  compatible_platforms:
+    - Podman 4.x+
+    - Podman on Linux
+
+system_info:
+  name: Podman
+  version: "4.0"
+  company: Red Hat
+  category: Container Platform
+  compatible_platforms:
+    - Linux
+
+compliance_info:
+  framework: STIG
+  version: 1.0.0
+  profile: Security Best Practices
+
+file_info:
+  name: podman-podman-latest-podman-security-1.0.0.yaml
+  description: Security hardening rules for Podman
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  rule_id_prefix: PODMAN
+
+profile:
+  name: Security Best Practices
+  description: Podman security hardening based on vendor documentation and STIG
+  level: 1
+
+rules:
+  - rule_id: PODMAN-SEC-001
+    rule_name: Run Containers Rootless
+    rule_description: Podman should be configured to run containers in rootless mode where possible to minimize security risks.
+    category: System Security
+    subcategory: Rootless Mode
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify rootless Podman is configured
+      check_command: "grep '^$USER' /etc/subuid /etc/subgid && podman info | grep rootless"
+      expected_value: "Rootless mode configured"
+    remediation:
+      remediation_step: |
+        Configure rootless Podman:
+        
+        1. Check if rootless mode is available:
+        podman info | grep rootless
+        
+        2. Enable user namespace mapping:
+        # As root, add subuid/subgid for user:
+        usermod --add-subuids 100000-165535 --add-subgids 100000-165535 <username>
+        
+        3. Enable linger for user (allows containers to persist):
+        loginctl enable-linger <username>
+        
+        4. Configure sysctl for rootless networking:
+        echo 'net.ipv4.ip_unprivileged_port_start=80' >> /etc/sysctl.d/podman.conf
+        sysctl --system
+        
+        5. As the user, test rootless:
+        podman run -d alpine sleep 100
+        podman ps
+        
+        6. Configure rootless containers to start at boot:
+        # Create systemd user service
+        mkdir -p ~/.config/systemd/user/
+        podman generate systemd --name <container> --files --new
+        systemctl --user enable container-<name>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 30 minutes
+    context:
+      rationale: Rootless containers run with reduced privileges, limiting potential damage from container escapes.
+      impact: High - Root containers can compromise the host system.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md
+    tags:
+      - rootless
+      - privileges
+      - security
+
+  - rule_id: PODMAN-SEC-002
+    rule_name: Use User Namespaces
+    rule_description: User namespaces must be enabled to map container users to unprivileged host users.
+    category: Isolation
+    subcategory: User Namespaces
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify user namespaces are configured
+      check_command: "cat /etc/subuid /etc/subgid && podman inspect <container> | jq .[0].HostConfig.UsernsMode"
+      expected_value: "User namespaces configured"
+    remediation:
+      remediation_step: |
+        Configure user namespaces:
+        
+        1. Enable user namespace mapping in containers.conf:
+        mkdir -p ~/.config/containers
+        cat > ~/.config/containers/containers.conf << EOF
+        [containers]
+        default_sysctls = []
+        log_driver = "journald"
+        EOF
+        
+        2. Run with user namespace:
+        podman run --userns=keep-id <image>
+        
+        3. Configure /etc/subuid and /etc/subgid:
+        <username>:100000:65536
+        
+        4. Use --uidmap and --gidmap for custom mapping:
+        podman run --uidmap=0:100000:65536 <image>
+        
+        5. Verify user mapping:
+        podman run --rm alpine cat /proc/self/uid_map
+        (Shows the UID mapping inside container)
+        
+        6. For system-wide configuration:
+        /etc/containers/containers.conf:
+        [containers]
+        default_capabilities = []
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Containers need to be recreated
+      estimated_time: 30 minutes
+    context:
+      rationale: User namespaces isolate container user IDs from host user IDs.
+      impact: High - Without user namespaces, root in container maps to root on host.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman-run.1.html
+    tags:
+      - user-namespace
+      - isolation
+      - mapping
+
+  - rule_id: PODMAN-SEC-003
+    rule_name: Restrict Container Capabilities
+    rule_description: Containers should run with minimal capabilities, dropping all unnecessary ones.
+    category: Capabilities
+    subcategory: Privilege Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify container capabilities are restricted
+      check_command: "podman inspect --format='{{.HostConfig.CapDrop}} {{.HostConfig.CapAdd}}' $(podman ps -q)"
+      expected_value: "Capabilities dropped, only necessary ones added"
+    remediation:
+      remediation_step: |
+        Restrict container capabilities:
+        
+        1. Drop all capabilities:
+        podman run --cap-drop=ALL <image>
+        
+        2. Add only required capabilities:
+        podman run --cap-drop=ALL --cap-add=NET_BIND_SERVICE <image>
+        
+        3. Configure default capabilities in containers.conf:
+        [containers]
+        default_capabilities = [
+          "CHOWN",
+          "DAC_OVERRIDE",
+          "FOWNER",
+          "FSETID",
+          "KILL",
+          "NET_BIND_SERVICE",
+          "SETFCAP",
+          "SETGID",
+          "SETPCAP",
+          "SETUID",
+        ]
+        
+        4. In podman-compose.yml:
+        cap_drop:
+          - ALL
+        cap_add:
+          - NET_BIND_SERVICE
+        
+        5. Never use --privileged unless absolutely necessary.
+        
+        6. Audit running containers:
+        podman inspect --format='CapAdd: {{.HostConfig.CapAdd}}' <container>
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May require application changes
+      estimated_time: 30 minutes
+    context:
+      rationale: Minimal capabilities reduce attack surface for privilege escalation.
+      impact: High - Unrestricted capabilities can be exploited.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman-run.1.html
+    tags:
+      - capabilities
+      - privileges
+      - hardening
+
+  - rule_id: PODMAN-SEC-004
+    rule_name: Use Read-Only Root Filesystem
+    rule_description: Containers should use read-only root filesystem where possible.
+    category: Filesystem Security
+    subcategory: Container Hardening
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify containers use read-only root filesystem
+      check_command: "podman inspect --format='Read-Only: {{.HostConfig.ReadonlyRootfs}}' $(podman ps -q)"
+      expected_value: "Read-only root filesystem enabled where applicable"
+    remediation:
+      remediation_step: |
+        Enable read-only root filesystem:
+        
+        1. Run with read-only root:
+        podman run --read-only <image>
+        
+        2. Add tmpfs for required writable directories:
+        podman run --read-only --tmpfs /tmp --tmpfs /var/run <image>
+        
+        3. Mount volumes for persistent data:
+        podman run --read-only -v /data:/data:Z <image>
+        
+        4. In podman-compose.yml:
+        read_only: true
+        tmpfs:
+          - /tmp
+          - /var/run
+        
+        5. Configure in containers.conf:
+        [containers]
+        read_only = false  # Set to true for system default
+        
+        6. Test applications thoroughly after enabling.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May require application changes
+      estimated_time: 45 minutes
+    context:
+      rationale: Read-only filesystems prevent unauthorized modifications to container files.
+      impact: Medium - Writable root filesystems can be exploited for persistence.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman-run.1.html
+    tags:
+      - filesystem
+      - read-only
+      - hardening
+
+  - rule_id: PODMAN-SEC-005
+    rule_name: Use SELinux Contexts
+    rule_description: SELinux must be configured to enforce security policies on containers.
+    category: Hardening
+    subcategory: SELinux
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify SELinux is enforcing for containers
+      check_command: "getenforce && podman info | grep -i selinux"
+      expected_value: "SELinux in enforcing mode"
+    remediation:
+      remediation_step: |
+        Configure SELinux for Podman:
+        
+        1. Verify SELinux is enabled and enforcing:
+        getenforce
+        (Should return 'Enforcing')
+        
+        2. Set SELinux context for container:
+        podman run --security-opt label=type:spc_t <image>
+        
+        3. Use predefined MCS labels:
+        podman run --security-opt label=level:s0:c100,c200 <image>
+        
+        4. Disable SELinux for specific container (not recommended):
+        podman run --security-opt label=disable <image>
+        
+        5. Configure in containers.conf:
+        [containers]
+        label = true
+        label_keys = []
+        
+        6. For volumes, use :Z or :z suffix:
+        podman run -v /host/path:/container/path:Z <image>
+        
+        7. Audit SELinux denials:
+        ausearch -m avc -ts recent | grep container
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May require policy adjustments
+      estimated_time: 60 minutes
+    context:
+      rationale: SELinux provides mandatory access control for containers.
+      impact: High - Without SELinux, containers have fewer security boundaries.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman.1.html
+    tags:
+      - selinux
+      - hardening
+      - access-control
+
+  - rule_id: PODMAN-SEC-006
+    rule_name: Set Resource Limits
+    rule_description: Containers must have resource limits configured to prevent resource exhaustion.
+    category: Resource Management
+    subcategory: Limits
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify containers have resource limits
+      check_command: "podman inspect --format='Memory: {{.HostConfig.Memory}} CPU: {{.HostConfig.CpuQuota}}' $(podman ps -q)"
+      expected_value: "Resource limits configured"
+    remediation:
+      remediation_step: |
+        Configure resource limits:
+        
+        1. Set memory limits:
+        podman run --memory=512m --memory-swap=1g <image>
+        
+        2. Set CPU limits:
+        podman run --cpus=1 --cpu-shares=512 <image>
+        
+        3. Set PIDs limit:
+        podman run --pids-limit=100 <image>
+        
+        4. Set all limits in podman-compose.yml:
+        deploy:
+          resources:
+            limits:
+              cpus: '1'
+              memory: 512M
+            reservations:
+              memory: 256M
+        pids_limit: 100
+        
+        5. Configure system-wide limits in containers.conf:
+        [containers]
+        default_ulimits = [
+          "nofile=1024:4096",
+          "nproc=1024:2048",
+        ]
+        
+        6. Monitor resource usage:
+        podman stats
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May affect application performance
+      estimated_time: 30 minutes
+    context:
+      rationale: Resource limits prevent containers from consuming all host resources.
+      impact: Medium - Unlimited containers can cause denial of service.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman-run.1.html
+    tags:
+      - resources
+      - limits
+      - performance
+
+  - rule_id: PODMAN-SEC-007
+    rule_name: Use Trusted Registries
+    rule_description: Only use container images from trusted registries.
+    category: Image Security
+    subcategory: Trust
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify only trusted registries are configured
+      check_command: "cat /etc/containers/registries.conf | grep -A5 'registries' && podman info | grep -i registry"
+      expected_value: "Only approved registries configured"
+    remediation:
+      remediation_step: |
+        Configure trusted registries:
+        
+        1. Edit /etc/containers/registries.conf:
+        [registries.search]
+        registries = ['registry.access.redhat.com', 'registry.redhat.io']
+        
+        [registries.insecure]
+        registries = []
+        
+        [registries.block]
+        registries = ['docker.io']  # Block untrusted registries
+        
+        2. For user-specific configuration:
+        mkdir -p ~/.config/containers
+        cp /usr/share/containers/registries.conf ~/.config/containers/
+        
+        3. Require signature verification:
+        [[registry]]
+        prefix = "registry.example.com"
+        location = "registry.example.com"
+        blocked = false
+        insecure = false
+        
+        [[registry.key]]
+        type = "GPGKeys"
+        keys = ["<key-id>"]
+        
+        4. Configure signing:
+        podman pull --verify-signature <image>
+        
+        5. Audit image sources:
+        podman images --format='{{.Repository}}'
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May block access to required images
+      estimated_time: 30 minutes
+    context:
+      rationale: Trusted registries ensure image integrity and provenance.
+      impact: High - Untrusted images may contain malware or vulnerabilities.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md
+    tags:
+      - registries
+      - trust
+      - images
+
+  - rule_id: PODMAN-SEC-008
+    rule_name: Enable Container Logging
+    rule_description: Container logs must be configured and forwarded for security monitoring.
+    category: Logging
+    subcategory: Monitoring
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify logging is configured
+      check_command: "cat /etc/containers/containers.conf | grep log_driver && journalctl -u podman -n 10"
+      expected_value: "Log driver configured"
+    remediation:
+      remediation_step: |
+        Configure container logging:
+        
+        1. Configure in containers.conf:
+        [containers]
+        log_driver = "journald"
+        log_size_max = 10485760  # 10MB
+        
+        2. For json-file logging:
+        log_driver = "json-file"
+        log_path = "/var/log/containers/${name}.json"
+        
+        3. Per-container logging:
+        podman run --log-driver=journald <image>
+        
+        4. View container logs:
+        podman logs <container>
+        
+        5. For systemd integration:
+        podman run -d --name <name> <image>
+        podman generate systemd --name <name> --files
+        mv container-<name>.service /etc/systemd/system/
+        systemctl daemon-reload
+        systemctl enable container-<name>
+        
+        6. Configure log forwarding to SIEM:
+        journalctl -f | grep -i podman
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 20 minutes
+    context:
+      rationale: Logs are essential for security monitoring and forensics.
+      impact: High - Missing logs prevent detection of security incidents.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman-run.1.html
+    tags:
+      - logging
+      - journald
+      - monitoring
+
+  - rule_id: PODMAN-SEC-009
+    rule_name: Use Network Isolation
+    rule_description: Containers should run on isolated networks to restrict communication.
+    category: Network Security
+    subcategory: Isolation
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify network isolation is configured
+      check_command: "podman network ls && podman inspect --format='{{.HostConfig.NetworkMode}}' $(podman ps -q)"
+      expected_value: "Custom network or isolated configuration"
+    remediation:
+      remediation_step: |
+        Configure network isolation:
+        
+        1. Create isolated network:
+        podman network create --driver bridge \\
+          --internal \\
+          isolated_network
+        
+        2. Run container on isolated network:
+        podman run --network isolated_network <image>
+        
+        3. Create network with specific subnet:
+        podman network create \\
+          --subnet=192.168.100.0/24 \\
+          --gateway=192.168.100.1 \\
+          custom_network
+        
+        4. Disable DNS in network:
+        podman network create --dns-enabled=false custom_network
+        
+        5. Use host network only when necessary:
+        podman run --network host <image>
+        
+        6. In podman-compose.yml:
+        networks:
+          frontend:
+            driver: bridge
+          backend:
+            driver: bridge
+            internal: true
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May affect application connectivity
+      estimated_time: 30 minutes
+    context:
+      rationale: Network isolation prevents unauthorized container communication.
+      impact: Medium - Shared networks allow lateral movement between containers.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman-network.1.html
+    tags:
+      - network
+      - isolation
+      - security
+
+  - rule_id: PODMAN-SEC-010
+    rule_name: Secure Volume Mounts
+    rule_description: Volume mounts must be configured securely to prevent host filesystem exposure.
+    category: Filesystem Security
+    subcategory: Volumes
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify volume mounts are secure
+      check_command: "podman inspect --format='{{.Mounts}}' $(podman ps -q)"
+      expected_value: "No sensitive host directories mounted"
+    remediation:
+      remediation_step: |
+        Secure volume mounts:
+        
+        1. Use named volumes instead of bind mounts:
+        podman volume create app_data
+        podman run -v app_data:/data <image>
+        
+        2. For bind mounts, use read-only where possible:
+        podman run -v /host/path:/container/path:ro <image>
+        
+        3. Never mount sensitive directories:
+        # AVOID:
+        -v /:/host
+        -v /etc:/etc
+        -v /var/run/docker.sock:/var/run/docker.sock
+        
+        4. Use SELinux context for volumes:
+        podman run -v /data:/data:Z <image>
+        # Z: Private unshared label
+        # z: Shared label
+        
+        5. Use tmpfs for temporary data:
+        podman run --tmpfs /tmp <image>
+        
+        6. Audit volume mounts:
+        podman inspect --format='{{json .Mounts}}' <container> | jq .
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May require application changes
+      estimated_time: 30 minutes
+    context:
+      rationale: Improper volume mounts can expose sensitive host data.
+      impact: High - Exposed host filesystem can lead to data theft or modification.
+      false_positive_risk: Medium
+      references:
+        - type: Documentation
+          reference: https://docs.podman.io/en/latest/markdown/podman-volume.1.html
+    tags:
+      - volumes
+      - filesystem
+      - security

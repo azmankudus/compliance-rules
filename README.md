@@ -188,6 +188,19 @@ oracle-weblogic-12c-oracle-security-1.0.0.yaml
 
 **Note**: CIS Benchmark is not available for Elastic Stack. STIG rules are based on DISA Central Log Server Security Requirements Guide.
 
+### Container Platforms
+
+| Platform | STIG | Vendor Docs | Total Rules |
+|----------|------|-------------|-------------|
+| Kubernetes (latest) | 1 file (CAT I) - 18 rules | - | 18 rules |
+| Docker (latest) | 1 file (CAT I) - 8 rules | 1 file - 12 rules | 20 rules |
+| Podman (latest) | - | 1 file - 11 rules | 11 rules |
+
+**Notes**:
+- CIS Kubernetes Benchmark v1.12.0 is available but not yet implemented
+- CIS Docker Benchmark v1.8.0 is available but not yet implemented
+- Docker/Podman STIG rules are based on DISA Container Platform SRG V2R4
+
 ---
 
 ## Quick Start

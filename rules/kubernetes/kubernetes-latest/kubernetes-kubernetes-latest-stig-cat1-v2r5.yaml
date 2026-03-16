@@ -1,0 +1,822 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: DISA STIG for Kubernetes - CAT I
+  version: 2.5.0
+  description: DISA Security Technical Implementation Guide for Kubernetes V2R5 - CAT I (High Severity)
+  platform: Kubernetes
+  benchmark: DISA Kubernetes STIG V2R5
+  author: Compliance Rules Team
+  source: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Kubernetes_V2R5_STIG.zip
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  compatible_platforms:
+    - Kubernetes 1.28+
+    - kubeadm clusters
+    - managed Kubernetes services
+
+system_info:
+  name: Kubernetes
+  version: "1.28"
+  company: Cloud Native Computing Foundation
+  category: Container Orchestration
+  compatible_platforms:
+    - Linux
+    - Windows
+
+compliance_info:
+  framework: STIG
+  version: 2.5.0
+  profile: CAT I (High Severity)
+
+file_info:
+  name: kubernetes-kubernetes-latest-stig-cat1-v2r5.yaml
+  description: DISA STIG CAT I rules for Kubernetes
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  rule_id_prefix: K8S-STIG
+
+profile:
+  name: STIG CAT I
+  description: Critical security requirements from DISA Kubernetes STIG
+  level: 1
+
+rules:
+  - rule_id: K8S-STIG-242381
+    legacy_ids:
+      - SV-242381r1043176_rule
+    rule_name: Controller Manager Unique Service Accounts
+    rule_description: The Kubernetes Controller Manager must create unique service accounts for each work payload.
+    category: Access Control
+    subcategory: Service Accounts
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify the Controller Manager is configured to use unique service accounts
+      check_command: "ps -ef | grep kube-controller-manager | grep -- '--use-service-account-credentials=true'"
+      expected_value: "use-service-account-credentials=true set"
+    remediation:
+      remediation_step: |
+        Edit the Controller Manager configuration file or manifest:
+        
+        For kubeadm deployments, edit /etc/kubernetes/manifests/kube-controller-manager.yaml:
+        spec:
+          containers:
+          - command:
+            - kube-controller-manager
+            - --use-service-account-credentials=true
+        
+        Restart the kubelet service:
+        systemctl restart kubelet
+        
+        Verify the setting:
+        ps -ef | grep kube-controller-manager | grep use-service-account-credentials
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Controller Manager restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: Unique service accounts ensure proper isolation and accountability for workloads.
+      impact: High - Shared service accounts can lead to privilege escalation and lack of accountability.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-242381r1043176_rule
+    tags:
+      - service-accounts
+      - controller-manager
+      - access-control
+
+  - rule_id: K8S-STIG-242383
+    legacy_ids:
+      - SV-242383r1137641_rule
+    rule_name: Dedicated Namespaces for User Resources
+    rule_description: User-managed resources must be created in dedicated namespaces.
+    category: Access Control
+    subcategory: Namespace Isolation
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify user resources are not deployed to default namespaces
+      check_command: "kubectl get all -n default,kube-system,kube-public 2>/dev/null | grep -v 'NAME\\|clusterrole'"
+      expected_value: "No user workloads in system namespaces"
+    remediation:
+      remediation_step: |
+        Create dedicated namespaces for user workloads:
+        
+        kubectl create namespace production
+        kubectl create namespace development
+        
+        Remove any user workloads from default namespaces:
+        kubectl delete deployment/<name> -n default
+        kubectl delete pod/<name> -n default
+        
+        Implement ResourceQuotas and LimitRanges in user namespaces.
+        Use RBAC to restrict access to system namespaces.
+        
+        Document namespace policies and communicate to users.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Workloads need to be redeployed to proper namespaces
+      estimated_time: 30 minutes
+    context:
+      rationale: Dedicated namespaces enable proper RBAC implementation and resource isolation.
+      impact: High - User resources in system namespaces can lead to privilege escalation.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-242383r1137641_rule
+    tags:
+      - namespaces
+      - isolation
+      - rbac
+
+  - rule_id: K8S-STIG-242387
+    legacy_ids:
+      - SV-242387r1137639_rule
+    rule_name: Disable Kubelet Read-Only Port
+    rule_description: The Kubernetes Kubelet must have the "readOnlyPort" flag disabled.
+    category: Network Security
+    subcategory: Kubelet Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify the Kubelet read-only port is disabled
+      check_command: "ps -ef | grep kubelet | grep -- '--read-only-port' || cat /var/lib/kubelet/config.yaml | grep readOnlyPort"
+      expected_value: "readOnlyPort: 0 or flag not present (defaults to 0)"
+    remediation:
+      remediation_step: |
+        Edit the Kubelet configuration file on each node:
+        
+        For kubeadm, edit /var/lib/kubelet/config.yaml:
+        readOnlyPort: 0
+        
+        Or via command line argument:
+        --read-only-port=0
+        
+        Restart kubelet on each node:
+        systemctl restart kubelet
+        
+        Verify the setting on all nodes:
+        kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' | tr ' ' '\\n' | while read node; do
+          ssh $node 'ps -ef | grep kubelet | grep read-only-port'
+        done
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Kubelet restart required on each node
+      estimated_time: 30 minutes
+    context:
+      rationale: The read-only port provides unauthenticated access to kubelet data.
+      impact: High - Exposed read-only port allows information disclosure.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-242387r1137639_rule
+    tags:
+      - kubelet
+      - network
+      - ports
+
+  - rule_id: K8S-STIG-242390
+    legacy_ids:
+      - SV-242390r1137640_rule
+    rule_name: Disable API Server Anonymous Authentication
+    rule_description: The Kubernetes API server must have anonymous authentication disabled.
+    category: Authentication
+    subcategory: API Server
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify anonymous authentication is disabled on the API server
+      check_command: "ps -ef | grep kube-apiserver | grep -- '--anonymous-auth=false' || cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep anonymous-auth"
+      expected_value: "anonymous-auth=false"
+    remediation:
+      remediation_step: |
+        Edit the API Server configuration:
+        
+        For kubeadm, edit /etc/kubernetes/manifests/kube-apiserver.yaml:
+        spec:
+          containers:
+          - command:
+            - kube-apiserver
+            - --anonymous-auth=false
+        
+        The API Server will restart automatically.
+        
+        Verify the setting:
+        ps -ef | grep kube-apiserver | grep anonymous-auth
+        
+        Test anonymous access is denied:
+        kubectl get --raw / --server=https://<api-server>:6443
+      rollback_supported: true
+      reboot_required: false
+      service_impact: API Server restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: Anonymous authentication allows unauthenticated access to the Kubernetes API.
+      impact: High - Anonymous access can lead to full cluster compromise.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-242390r1137640_rule
+    tags:
+      - authentication
+      - api-server
+      - anonymous
+
+  - rule_id: K8S-STIG-242391
+    legacy_ids:
+      - SV-242391r1137638_rule
+    rule_name: Disable Kubelet Anonymous Authentication
+    rule_description: The Kubernetes Kubelet must have anonymous authentication disabled.
+    category: Authentication
+    subcategory: Kubelet Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify anonymous authentication is disabled on kubelet
+      check_command: "cat /var/lib/kubelet/config.yaml | grep -A5 authentication | grep anonymous || ps -ef | grep kubelet | grep anonymous-auth"
+      expected_value: "anonymous.enabled: false"
+    remediation:
+      remediation_step: |
+        Edit the Kubelet configuration on each node:
+        
+        Edit /var/lib/kubelet/config.yaml:
+        authentication:
+          anonymous:
+            enabled: false
+          webhook:
+            enabled: true
+        
+        Restart kubelet:
+        systemctl restart kubelet
+        
+        Verify on all nodes:
+        kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' | tr ' ' '\\n' | while read node; do
+          ssh $node 'cat /var/lib/kubelet/config.yaml | grep -A2 anonymous'
+        done
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Kubelet restart required on each node
+      estimated_time: 30 minutes
+    context:
+      rationale: Anonymous kubelet access allows unauthenticated node-level operations.
+      impact: High - Anonymous access to kubelet can lead to node compromise.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-242391r1137638_rule
+    tags:
+      - authentication
+      - kubelet
+      - anonymous
+
+  - rule_id: K8S-STIG-242392
+    legacy_ids:
+      - SV-242392r1137639_rule
+    rule_name: Enable Kubelet Authorization
+    rule_description: The Kubernetes kubelet must enable explicit authorization.
+    category: Authorization
+    subcategory: Kubelet Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify kubelet authorization is enabled
+      check_command: "cat /var/lib/kubelet/config.yaml | grep -A3 authorization || ps -ef | grep kubelet | grep authorization-mode"
+      expected_value: "authorization.mode: Webhook"
+    remediation:
+      remediation_step: |
+        Edit the Kubelet configuration on each node:
+        
+        Edit /var/lib/kubelet/config.yaml:
+        authorization:
+          mode: Webhook
+        
+        Ensure webhook authentication is also enabled:
+        authentication:
+          webhook:
+            enabled: true
+        
+        Restart kubelet:
+        systemctl restart kubelet
+        
+        Verify authorization is enforced by attempting unauthorized operations.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Kubelet restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Authorization ensures only permitted operations can be performed on the kubelet.
+      impact: High - Without authorization, any authenticated user can perform any kubelet operation.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-242392r1137639_rule
+    tags:
+      - authorization
+      - kubelet
+      - webhook
+
+  - rule_id: K8S-STIG-242397
+    legacy_ids:
+      - SV-242397r1137638_rule
+    rule_name: Disable Kubelet Static Pods
+    rule_description: The Kubernetes kubelet staticPodPath must not enable static pods.
+    category: Pod Security
+    subcategory: Kubelet Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify static pod path is not configured
+      check_command: "cat /var/lib/kubelet/config.yaml | grep staticPodPath || ps -ef | grep kubelet | grep static-pod-path"
+      expected_value: "staticPodPath not configured or empty"
+    remediation:
+      remediation_step: |
+        Edit the Kubelet configuration on each node:
+        
+        Remove or comment out staticPodPath in /var/lib/kubelet/config.yaml:
+        # staticPodPath: /etc/kubernetes/manifests
+        
+        Or set to empty:
+        staticPodPath: ""
+        
+        Note: This may affect static control plane pods in kubeadm clusters.
+        For kubeadm, ensure proper alternatives are in place before disabling.
+        
+        Restart kubelet:
+        systemctl restart kubelet
+        
+        Verify no static pods are running:
+        kubectl get pods -A -o jsonpath='{.items[?(@.metadata.annotations.kubernetes.io/config.source=="file")].metadata.name}'
+      rollback_supported: true
+      reboot_required: false
+      service_impact: May affect kubeadm static control plane pods
+      estimated_time: 30 minutes
+    context:
+      rationale: Static pods allow pods to be created from files without API server validation.
+      impact: High - Static pods bypass admission controllers and security policies.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-242397r1137638_rule
+    tags:
+      - kubelet
+      - static-pods
+      - pod-security
+
+  - rule_id: K8S-STIG-242415
+    legacy_ids:
+      - SV-242415r1069466_rule
+    rule_name: Secrets Not as Environment Variables
+    rule_description: Secrets in Kubernetes must not be stored as environment variables.
+    category: Data Protection
+    subcategory: Secrets Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify secrets are not exposed as environment variables
+      check_command: "kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}: {.spec.containers[*].env[*].valueFrom.secretKeyRef}{\"\\n\"}{end}' | grep -v '^$' | head -20"
+      expected_value: "No secrets mounted as environment variables"
+    remediation:
+      remediation_step: |
+        Audit existing pods for secret environment variables:
+        kubectl get pods -A -o json | jq '.items[] | select(.spec.containers[].env[].valueFrom.secretKeyRef != null) | {name: .metadata.name, namespace: .metadata.namespace}'
+        
+        Update pod specifications to use secret volumes instead:
+        
+        Instead of:
+        env:
+        - name: SECRET
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: password
+        
+        Use:
+        volumes:
+        - name: secret-volume
+          secret:
+            secretName: my-secret
+        volumeMounts:
+        - name: secret-volume
+          mountPath: /etc/secrets
+          readOnly: true
+        
+        Implement OPA/Gatekeeper policies to prevent secret env vars.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Pods need to be redeployed with updated specifications
+      estimated_time: 60 minutes
+    context:
+      rationale: Environment variables are visible in process listings and can be logged.
+      impact: High - Secrets in environment variables can be easily exposed.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-242415r1069466_rule
+    tags:
+      - secrets
+      - environment-variables
+      - data-protection
+
+  - rule_id: K8S-STIG-242434
+    legacy_ids:
+      - SV-242434r961131_rule
+    rule_name: Enable Kernel Protection
+    rule_description: Kubernetes Kubelet must enable kernel protection.
+    category: System Security
+    subcategory: Kernel Hardening
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify kernel protection is enabled in kubelet
+      check_command: "cat /var/lib/kubelet/config.yaml | grep protectKernelDefaults || ps -ef | grep kubelet | grep protect-kernel-defaults"
+      expected_value: "protectKernelDefaults: true"
+    remediation:
+      remediation_step: |
+        Edit the Kubelet configuration on each node:
+        
+        Edit /var/lib/kubelet/config.yaml:
+        protectKernelDefaults: true
+        
+        Ensure kernel parameters are properly configured before enabling:
+        sysctl -a | grep -E 'vm.overcommit_memory|kernel.panic|kernel.panic_on_oops'
+        
+        Required kernel settings:
+        vm.overcommit_memory=1
+        kernel.panic=10
+        kernel.panic_on_oops=1
+        
+        Configure in /etc/sysctl.d/99-kubernetes.conf:
+        vm.overcommit_memory=1
+        kernel.panic=10
+        kernel.panic_on_oops=1
+        
+        Apply: sysctl --system
+        Restart kubelet: systemctl restart kubelet
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Kubelet restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Kernel protection prevents containers from modifying kernel parameters.
+      impact: High - Unprotected kernel can be compromised by malicious containers.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-242434r961131_rule
+    tags:
+      - kernel
+      - kubelet
+      - hardening
+
+  - rule_id: K8S-STIG-242436
+    legacy_ids:
+      - SV-242436r961359_rule
+    rule_name: Enable ValidatingAdmissionWebhook
+    rule_description: The Kubernetes API server must have the ValidatingAdmissionWebhook enabled.
+    category: Admission Control
+    subcategory: API Server
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify ValidatingAdmissionWebhook is enabled
+      check_command: "ps -ef | grep kube-apiserver | grep -o 'enable-admission-plugins=[^ ]*' | grep ValidatingAdmissionWebhook"
+      expected_value: "ValidatingAdmissionWebhook in enabled plugins"
+    remediation:
+      remediation_step: |
+        Edit the API Server configuration:
+        
+        For kubeadm, edit /etc/kubernetes/manifests/kube-apiserver.yaml:
+        spec:
+          containers:
+          - command:
+            - kube-apiserver
+            - --enable-admission-plugins=NodeRestriction,ValidatingAdmissionWebhook,MutatingAdmissionWebhook
+        
+        Include other required admission plugins as needed.
+        
+        The API Server will restart automatically.
+        
+        Verify:
+        kubectl get pods -n kube-system -l component=kube-apiserver
+        ps -ef | grep kube-apiserver | grep enable-admission-plugins
+      rollback_supported: true
+      reboot_required: false
+      service_impact: API Server restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: ValidatingAdmissionWebhook enables custom admission control for security policies.
+      impact: High - Without webhooks, custom security policies cannot be enforced.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-242436r961359_rule
+    tags:
+      - admission-control
+      - api-server
+      - webhooks
+
+  - rule_id: K8S-STIG-245542
+    legacy_ids:
+      - SV-245542r1137641_rule
+    rule_name: Disable Basic Authentication
+    rule_description: Kubernetes API Server must disable basic authentication to protect information in transit.
+    category: Authentication
+    subcategory: API Server
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify basic authentication is disabled
+      check_command: "ps -ef | grep kube-apiserver | grep -o 'basic-auth-file\\|--basic-auth' || echo 'Basic auth not configured (good)'"
+      expected_value: "No basic-auth-file configured"
+    remediation:
+      remediation_step: |
+        Remove basic authentication from API Server configuration:
+        
+        Edit /etc/kubernetes/manifests/kube-apiserver.yaml
+        Remove any --basic-auth-file argument.
+        
+        Ensure OIDC or certificate-based authentication is configured instead:
+        - --oidc-issuer-url=https://issuer.example.com
+        - --oidc-client-id=kubernetes
+        - --oidc-username-claim=email
+        - --oidc-groups-claim=groups
+        
+        Or use client certificate authentication.
+        
+        The API Server will restart automatically.
+        
+        Verify basic auth is disabled:
+        ps -ef | grep kube-apiserver | grep basic-auth
+        (should return nothing)
+      rollback_supported: true
+      reboot_required: false
+      service_impact: API Server restart, users must use alternative auth
+      estimated_time: 30 minutes
+    context:
+      rationale: Basic authentication transmits credentials in plaintext.
+      impact: High - Basic auth credentials can be intercepted and decoded.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-245542r1137641_rule
+    tags:
+      - authentication
+      - api-server
+      - basic-auth
+
+  - rule_id: K8S-STIG-245543
+    legacy_ids:
+      - SV-245543r1137640_rule
+    rule_name: Disable Token Authentication
+    rule_description: Kubernetes API Server must disable token authentication to protect information in transit.
+    category: Authentication
+    subcategory: API Server
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify static token authentication is disabled
+      check_command: "ps -ef | grep kube-apiserver | grep -o 'token-auth-file\\|--token-auth' || echo 'Token auth file not configured (good)'"
+      expected_value: "No token-auth-file configured"
+    remediation:
+      remediation_step: |
+        Remove static token authentication from API Server:
+        
+        Edit /etc/kubernetes/manifests/kube-apiserver.yaml
+        Remove any --token-auth-file argument.
+        
+        Use ServiceAccount tokens or OIDC instead:
+        - Service accounts for workloads
+        - OIDC for users
+        - Bootstrap tokens for cluster joining
+        
+        The API Server will restart automatically.
+        
+        Verify:
+        ps -ef | grep kube-apiserver | grep token-auth-file
+        (should return nothing)
+      rollback_supported: true
+      reboot_required: false
+      service_impact: API Server restart, alternative auth required
+      estimated_time: 30 minutes
+    context:
+      rationale: Static token files contain sensitive credentials in plaintext.
+      impact: High - Token file exposure compromises all token-based access.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-245543r1137640_rule
+    tags:
+      - authentication
+      - api-server
+      - tokens
+
+  - rule_id: K8S-STIG-245544
+    legacy_ids:
+      - SV-245544r1137641_rule
+    rule_name: Use Approved TLS Certificates
+    rule_description: Kubernetes endpoints must use approved organizational certificate and key pair to protect information in transit.
+    category: Encryption
+    subcategory: TLS Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify approved TLS certificates are used
+      check_command: "openssl s_client -connect localhost:6443 -showcerts 2>/dev/null | openssl x509 -noout -issuer -subject -dates"
+      expected_value: "Certificates from approved organizational CA"
+    remediation:
+      remediation_step: |
+        Generate certificates from organizational CA:
+        
+        1. Create certificate signing request (CSR):
+        openssl req -new -newkey rsa:2048 -nodes \
+          -keyout kubernetes.key \
+          -out kubernetes.csr \
+          -subj "/CN=kubernetes/O=organization"
+        
+        2. Submit CSR to organizational CA for signing.
+        
+        3. Configure API Server with approved certificates:
+        Edit /etc/kubernetes/manifests/kube-apiserver.yaml:
+        - --tls-cert-file=/etc/kubernetes/pki/apiserver.crt
+        - --tls-private-key-file=/etc/kubernetes/pki/apiserver.key
+        
+        4. Configure kubelet, etcd, and other components similarly.
+        
+        5. Distribute CA certificate to clients:
+        cp ca.crt /etc/kubernetes/pki/
+        
+        Verify certificate chain:
+        openssl verify -CAfile ca.crt apiserver.crt
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restarts required
+      estimated_time: 60 minutes
+    context:
+      rationale: Approved certificates ensure proper identity verification and trust.
+      impact: High - Self-signed or unapproved certificates enable MITM attacks.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-245544r1137641_rule
+    tags:
+      - tls
+      - certificates
+      - encryption
+
+  - rule_id: K8S-STIG-274882
+    legacy_ids:
+      - SV-274882r1137640_rule
+    rule_name: Encrypt Secrets at Rest
+    rule_description: Kubernetes Secrets must be encrypted at rest.
+    category: Data Protection
+    subcategory: Encryption
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify encryption at rest is enabled for secrets
+      check_command: "ps -ef | grep kube-apiserver | grep encryption-provider-config || kubectl get encryptionconfiguration -o yaml"
+      expected_value: "Encryption provider configured"
+    remediation:
+      remediation_step: |
+        Enable encryption at rest for secrets:
+        
+        1. Create encryption configuration:
+        cat > /etc/kubernetes/encryption-config.yaml << EOF
+        apiVersion: apiserver.config.k8s.io/v1
+        kind: EncryptionConfiguration
+        resources:
+          - resources:
+            - secrets
+            providers:
+            - aescbc:
+                keys:
+                - name: key1
+                  secret: <BASE64_ENCODED_SECRET>
+            - identity: {}
+        EOF
+        
+        Generate encryption key:
+        head -c 32 /dev/urandom | base64
+        
+        2. Configure API Server:
+        Edit /etc/kubernetes/manifests/kube-apiserver.yaml:
+        - --encryption-provider-config=/etc/kubernetes/encryption-config.yaml
+        
+        3. Restart API Server and encrypt existing secrets:
+        kubectl get secrets --all-namespaces -o json | kubectl replace -f -
+        
+        Verify encryption:
+        kubectl get secret -n kube-system -o jsonpath='{.data}' | jq .
+      rollback_supported: true
+      reboot_required: false
+      service_impact: API Server restart required
+      estimated_time: 45 minutes
+    context:
+      rationale: Encrypted secrets protect sensitive data if etcd is compromised.
+      impact: High - Unencrypted secrets in etcd can be read if storage is accessed.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-274882r1137640_rule
+    tags:
+      - encryption
+      - secrets
+      - data-protection
+
+  - rule_id: K8S-STIG-274883
+    legacy_ids:
+      - SV-274883r1137641_rule
+    rule_name: Use Kubernetes Secrets or External Provider
+    rule_description: Sensitive information must be stored using Kubernetes Secrets or an external Secret store provider.
+    category: Data Protection
+    subcategory: Secrets Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: false
+      automation_level: Partial
+      audit_type: runtime
+      detection_step: Review application configurations for hardcoded secrets
+      check_command: "kubectl get configmaps -A -o json | jq '.items[].data' | grep -iE 'password|secret|key|token' | head -10"
+      expected_value: "No hardcoded sensitive data in ConfigMaps or code"
+    remediation:
+      remediation_step: |
+        Audit for hardcoded secrets:
+        
+        1. Check ConfigMaps:
+        kubectl get configmaps -A -o json | jq '.items[] | select(.data | tostring | test("password|secret|key|token"; "i")) | .metadata.name'
+        
+        2. Check container specifications:
+        kubectl get pods -A -o json | jq '.items[].spec.containers[].env[] | select(.value | test("password|secret|key"; "i"))'
+        
+        3. Migrate to Kubernetes Secrets:
+        kubectl create secret generic app-secret --from-literal=password=<value>
+        
+        Or use external secret providers:
+        - HashiCorp Vault
+        - AWS Secrets Manager
+        - Azure Key Vault
+        - External Secrets Operator
+        
+        4. Implement admission policies to prevent hardcoded secrets.
+        
+        5. Use static analysis in CI/CD to detect secrets.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Application updates required
+      estimated_time: 60 minutes
+    context:
+      rationale: Hardcoded secrets in code or ConfigMaps are easily exposed.
+      impact: High - Exposed secrets can lead to system compromise.
+      false_positive_risk: Medium
+      references:
+        - type: STIG
+          reference: SV-274883r1137641_rule
+    tags:
+      - secrets
+      - data-protection
+      - external-providers

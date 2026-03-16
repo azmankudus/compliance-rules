@@ -27,8 +27,47 @@ compliance-rules/
 │   │   ├── weblogic-14c/
 │   │   ├── weblogic-15c/
 │   │   └── http-server-12c/
-│   └── elastic/             # Elastic vendor (full name)
-│       └── elasticstack-8/  # Elastic Stack 8.x (ELK)
+│   ├── elastic/             # Elastic vendor (full name)
+│   │   └── elasticstack-8/  # Elastic Stack 8.x (ELK)
+│   ├── kubernetes/          # Kubernetes platform
+│   │   └── kubernetes-latest/
+│   ├── docker/               # Docker platform
+│   │   └── docker-latest/
+│   └── podman/               # Podman platform
+│       └── podman-latest/
+└── .agent/                   # Agent configuration
+```
+compliance-rules/
+├── docs/
+│   ├── schema.json          # JSON Schema (authoritative)
+│   └── schema.yaml          # YAML Schema
+├── rules/                    # All compliance rules
+│   ├── redhat/              # Red Hat vendor (full name)
+│   │   ├── rhel-7/          # RHEL 7
+│   │   ├── rhel-8/          # RHEL 8
+│   │   ├── rhel-9/          # RHEL 9
+│   │   └── rhel-10/         # RHEL 10
+│   ├── microsoft/           # Microsoft vendor (full name)
+│   │   ├── windowsserver-2016/
+│   │   ├── windowsserver-2019/
+│   │   ├── windowsserver-2022/
+│   │   └── windowsserver-2025/
+│   ├── oracle/              # Oracle vendor (full name)
+│   │   ├── solaris-11.4/
+│   │   ├── weblogic-12c/
+│   │   ├── weblogic-14c/
+│   │   ├── weblogic-15c/
+│   │   └── http-server-12c/
+│   ├── elastic/             # Elastic vendor (full name)
+│   │   └── elasticstack-8/  # Elastic Stack 8.x (ELK)
+│   ├── kubernetes/          # Kubernetes platform
+│   │   └── kubernetes-latest/
+│   ├── docker/              # Docker platform
+│   │   └── docker-latest/
+│   └── podman/              # Podman platform
+│       └── podman-latest/
+└── .agent/                   # Agent configuration
+```
 └── .agent/                   # Agent configuration
 ```
 
@@ -40,6 +79,9 @@ compliance-rules/
 | Microsoft | `microsoft` | `microsoft-` |
 | Oracle | `oracle` | `oracle-` |
 | Elastic | `elastic` | `elastic-` |
+| Kubernetes | `kubernetes` | `kubernetes-` |
+| Docker | `docker` | `docker-` |
+| Podman | `podman` | `podman-` |
 
 ## Product Names (No Spaces)
 
@@ -152,3 +194,6 @@ elastic-elasticstack-8-elastic-security-1.0.0.yaml
 | `redhat` | Red Hat Documentation | RHEL products |
 | `oracle` | Oracle Documentation | Oracle products |
 | `elastic` | Elastic Documentation | Elastic Stack |
+| `kubernetes` | Kubernetes Documentation | Kubernetes |
+| `docker` | Docker Documentation | Docker |
+| `podman` | Podman Documentation | Podman |

@@ -1,0 +1,514 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: DISA STIG for Container Platform - CAT I
+  version: 2.4.0
+  description: DISA Security Requirements Guide for Container Platform V2R4 - CAT I (High Severity) - Docker/Podman
+  platform: Docker/Podman
+  benchmark: DISA Container Platform SRG V2R4
+  author: Compliance Rules Team
+  source: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Container_Platform_V2R4_SRG.zip
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  compatible_platforms:
+    - Docker 24.x+
+    - Podman 4.x+
+
+system_info:
+  name: Docker/Podman
+  version: "24.0"
+  company: Docker Inc. / Red Hat
+  category: Container Runtime
+  compatible_platforms:
+    - Linux
+    - Windows
+    - macOS
+
+compliance_info:
+  framework: STIG
+  version: 2.4.0
+  profile: CAT I (High Severity)
+
+file_info:
+  name: docker-docker-latest-stig-cat1-v2r4.yaml
+  description: DISA STIG CAT I rules for Docker/Podman
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  rule_id_prefix: DOCKER-STIG
+
+profile:
+  name: STIG CAT I
+  description: Critical security requirements from DISA Container Platform SRG
+  level: 1
+
+rules:
+  - rule_id: DOCKER-STIG-233096
+    legacy_ids:
+      - SV-233096r961029_rule
+    rule_name: FIPS-Validated Password Protection
+    rule_description: For accounts using password authentication, the container platform must use FIPS-validated SHA-2 or later protocol to protect the integrity of the password authentication process.
+    category: Authentication
+    subcategory: Password Security
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify FIPS mode is enabled if password authentication is used
+      check_command: "cat /etc/docker/daemon.json 2>/dev/null | jq . || echo 'Check Docker daemon configuration'"
+      expected_value: "FIPS mode enabled or SHA-256+ authentication"
+    remediation:
+      remediation_step: |
+        Enable FIPS mode for Docker:
+        
+        For RHEL/CentOS with FIPS kernel:
+        1. Ensure FIPS kernel mode is enabled:
+        sysctl crypto.fips_enabled
+        (should return 1)
+        
+        2. Configure Docker daemon (/etc/docker/daemon.json):
+        {
+          "storage-driver": "overlay2",
+          "log-driver": "json-file",
+          "log-opts": {
+            "max-size": "10m",
+            "max-file": "3"
+          }
+        }
+        
+        3. Docker inherits FIPS from the host kernel.
+        
+        For Podman, ensure FIPS is enabled at OS level:
+        fips-mode-setup --enable
+        reboot
+        
+        Verify:
+        cat /proc/sys/crypto/fips_enabled
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Host reboot may be required for FIPS enablement
+      estimated_time: 30 minutes
+    context:
+      rationale: FIPS-validated cryptography ensures password protection meets federal standards.
+      impact: High - Non-compliant password hashing can be compromised.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-233096r961029_rule
+    tags:
+      - fips
+      - authentication
+      - passwords
+
+  - rule_id: DOCKER-STIG-233118
+    legacy_ids:
+      - SV-233118r1043178_rule
+    rule_name: FIPS-Validated TLS for Image Pull
+    rule_description: The container platform must protect authenticity of communications sessions with the use of FIPS-validated 140-2 or 140-3 security requirements for cryptographic modules.
+    category: Encryption
+    subcategory: TLS Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify TLS is used for registry communications
+      check_command: "cat /etc/docker/daemon.json | jq '.insecure-registries' 2>/dev/null || echo 'Check registry configuration'"
+      expected_value: "No insecure registries configured"
+    remediation:
+      remediation_step: |
+        Configure secure registry access:
+        
+        1. Remove insecure registry configurations:
+        Edit /etc/docker/daemon.json:
+        {
+          "insecure-registries": []
+        }
+        
+        2. Configure TLS for private registries:
+        {
+          "registry-mirrors": ["https://registry.example.com"],
+          "insecure-registries": []
+        }
+        
+        3. For Podman, edit /etc/containers/registries.conf:
+        [registries.insecure]
+        registries = []
+        
+        [registries.search]
+        registries = ['registry.access.redhat.com', 'docker.io']
+        
+        4. Ensure CA certificates are installed for private registries:
+        cp ca.crt /etc/pki/ca-trust/source/anchors/
+        update-ca-trust
+        
+        systemctl restart docker
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart required
+      estimated_time: 15 minutes
+    context:
+      rationale: TLS protects image pull operations from MITM attacks.
+      impact: High - Insecure registry connections expose images to tampering.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-233118r1043178_rule
+    tags:
+      - tls
+      - registry
+      - fips
+
+  - rule_id: DOCKER-STIG-233185
+    legacy_ids:
+      - SV-233185r981885_rule
+    rule_name: Restrict Privileged Containers
+    rule_description: The container platform runtime must prohibit the instantiation of container images without explicit privileged status.
+    category: Access Control
+    subcategory: Privilege Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify privileged containers are restricted
+      check_command: "docker ps -q | xargs -r docker inspect --format='{{.Name}} {{.HostConfig.Privileged}}' | grep true || echo 'No privileged containers found'"
+      expected_value: "No unauthorized privileged containers running"
+    remediation:
+      remediation_step: |
+        Restrict privileged container creation:
+        
+        1. Audit existing privileged containers:
+        docker ps -q | xargs docker inspect --format='{{.Name}} {{.HostConfig.Privileged}}' | grep true
+        
+        2. Stop unauthorized privileged containers:
+        docker stop <container_id>
+        
+        3. Use authorization plugins to restrict privileged mode:
+        Edit /etc/docker/daemon.json:
+        {
+          "authorization-plugins": ["authz-broker"]
+        }
+        
+        4. Implement OPA/Gatekeeper policies (Kubernetes):
+        - Deny privileged containers by default
+        - Require explicit approval for privileged containers
+        
+        5. For non-privileged needs, use capabilities instead:
+        docker run --cap-add=NET_ADMIN ...
+        
+        6. Document and approve privileged container requirements.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Unauthorized privileged containers stopped
+      estimated_time: 30 minutes
+    context:
+      rationale: Privileged containers have full host access and bypass security controls.
+      impact: High - Privileged containers can compromise the host system.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-233185r981885_rule
+    tags:
+      - privileged
+      - containers
+      - access-control
+
+  - rule_id: DOCKER-STIG-233220
+    legacy_ids:
+      - SV-233220r1050650_rule
+    rule_name: Encrypt Container Platform Keystore
+    rule_description: The container platform keystore must implement encryption to prevent unauthorized disclosure of information at rest within the container platform.
+    category: Data Protection
+    subcategory: Encryption at Rest
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Docker data directory encryption
+      check_command: "lsblk -f | grep $(df /var/lib/docker --output=source | tail -1) || echo 'Check filesystem encryption'"
+      expected_value: "Docker storage on encrypted filesystem"
+    remediation:
+      remediation_step: |
+        Encrypt Docker storage:
+        
+        1. Stop Docker:
+        systemctl stop docker
+        
+        2. Backup Docker data:
+        tar -czf /backup/docker-backup.tar.gz /var/lib/docker
+        
+        3. Create encrypted volume (using LUKS):
+        cryptsetup luksFormat /dev/sdX
+        cryptsetup luksOpen /dev/sdX docker-encrypted
+        mkfs.xfs /dev/mapper/docker-encrypted
+        
+        4. Mount encrypted volume:
+        mount /dev/mapper/docker-encrypted /var/lib/docker
+        
+        5. Add to /etc/crypttab and /etc/fstab for persistence
+        
+        6. Restore data and start Docker:
+        tar -xzf /backup/docker-backup.tar.gz -C /
+        systemctl start docker
+        
+        For Podman, similar approach for /var/lib/containers
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker downtime during migration
+      estimated_time: 60 minutes
+    context:
+      rationale: Encrypted storage protects container data from physical access.
+      impact: High - Unencrypted storage exposes sensitive container data.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-233220r1050650_rule
+    tags:
+      - encryption
+      - storage
+      - data-protection
+
+  - rule_id: DOCKER-STIG-233224
+    legacy_ids:
+      - SV-233224r961632_rule
+    rule_name: Protect Transmitted Information
+    rule_description: The application must protect the confidentiality and integrity of transmitted information.
+    category: Encryption
+    subcategory: Network Security
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify TLS is enabled for Docker daemon
+      check_command: "cat /etc/docker/daemon.json | jq '.tls' 2>/dev/null && ls -la /etc/docker/{ca,cert,key}.pem 2>/dev/null || echo 'TLS not configured'"
+      expected_value: "TLS enabled for Docker daemon"
+    remediation:
+      remediation_step: |
+        Enable TLS for Docker daemon:
+        
+        1. Generate CA and server certificates:
+        openssl genrsa -aes256 -out ca-key.pem 4096
+        openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem
+        openssl genrsa -out server-key.pem 4096
+        openssl req -new -key server-key.pem -out server.csr
+        openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem
+        
+        2. Configure Docker daemon (/etc/docker/daemon.json):
+        {
+          "tls": true,
+          "tlsverify": true,
+          "tlscacert": "/etc/docker/ca.pem",
+          "tlscert": "/etc/docker/server-cert.pem",
+          "tlskey": "/etc/docker/server-key.pem",
+          "hosts": ["tcp://0.0.0.0:2376", "unix:///var/run/docker.sock"]
+        }
+        
+        3. Restart Docker:
+        systemctl restart docker
+        
+        4. Configure clients to use TLS:
+        export DOCKER_TLS_VERIFY=1
+        export DOCKER_CERT_PATH=~/.docker
+        export DOCKER_HOST=tcp://server:2376
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart required
+      estimated_time: 45 minutes
+    context:
+      rationale: TLS protects Docker API communications from interception.
+      impact: High - Unencrypted Docker API can be intercepted and exploited.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-233224r961632_rule
+    tags:
+      - tls
+      - network
+      - encryption
+
+  - rule_id: DOCKER-STIG-233289
+    legacy_ids:
+      - SV-233289r1137648_rule
+    rule_name: FIPS-Validated Cryptographic Module
+    rule_description: The container platform must use a FIPS-validated cryptographic module to implement encryption services for unclassified information requiring confidentiality.
+    category: Cryptography
+    subcategory: FIPS Compliance
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify FIPS mode is enabled
+      check_command: "cat /proc/sys/crypto/fips_enabled 2>/dev/null || echo 'FIPS not enabled'"
+      expected_value: "1 (FIPS enabled)"
+    remediation:
+      remediation_step: |
+        Enable FIPS mode on the host:
+        
+        For RHEL/CentOS:
+        1. Install FIPS packages:
+        yum install dracut-fips
+        
+        2. Regenerate initramfs:
+        dracut -f
+        
+        3. Enable FIPS in kernel:
+        fips-mode-setup --enable
+        
+        4. Reboot:
+        reboot
+        
+        5. Verify:
+        cat /proc/sys/crypto/fips_enabled
+        sysctl crypto.fips_enabled
+        
+        For Ubuntu:
+        1. Install FIPS modules:
+        apt install ubuntu-fips
+        
+        2. Enable FIPS:
+        fips-mode-setup --enable
+        
+        3. Reboot
+        
+        Docker and Podman will inherit FIPS compliance from the host.
+      rollback_supported: true
+      reboot_required: true
+      service_impact: System reboot required
+      estimated_time: 60 minutes
+    context:
+      rationale: FIPS-validated cryptography ensures compliance with federal standards.
+      impact: High - Non-compliant cryptography may not protect sensitive data.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-233289r1137648_rule
+    tags:
+      - fips
+      - cryptography
+      - compliance
+
+  - rule_id: DOCKER-STIG-233290
+    legacy_ids:
+      - SV-233290r961911_rule
+    rule_name: Restrict Insecure Protocols
+    rule_description: The container platform must prohibit or restrict the use of protocols that transmit unencrypted authentication information or use flawed cryptographic algorithms for transmission.
+    category: Network Security
+    subcategory: Protocol Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify insecure protocols are disabled
+      check_command: "ss -tlnp | grep -E ':2375|:2377' || echo 'No insecure Docker ports listening'"
+      expected_value: "Only secure ports (2376) listening"
+    remediation:
+      remediation_step: |
+        Disable insecure protocols:
+        
+        1. Disable insecure Docker daemon port (2375):
+        Remove any "tcp://0.0.0.0:2375" from Docker configuration.
+        
+        2. Use only secure TLS port (2376):
+        /etc/docker/daemon.json:
+        {
+          "hosts": ["tcp://0.0.0.0:2376", "unix:///var/run/docker.sock"],
+          "tls": true,
+          "tlsverify": true
+        }
+        
+        3. Disable Docker swarm insecure mode:
+        docker swarm leave --force
+        docker swarm init --listen-addr 0.0.0.0:2377 --advertise-addr <IP>
+        (Swarm uses mTLS by default)
+        
+        4. Configure firewall:
+        iptables -A INPUT -p tcp --dport 2375 -j DROP
+        iptables -A INPUT -p tcp --dport 2376 -j ACCEPT
+        
+        5. Restart Docker:
+        systemctl restart docker
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Insecure protocols expose authentication credentials to interception.
+      impact: High - Cleartext protocols can be sniffed and exploited.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-233290r961911_rule
+    tags:
+      - protocols
+      - network
+      - encryption
+
+  - rule_id: DOCKER-STIG-278968
+    legacy_ids:
+      - SV-278968r1137653_rule
+    rule_name: Use Supported Container Platform Version
+    rule_description: The container platform must be a version supported by the vendor.
+    category: System Configuration
+    subcategory: Version Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify Docker version is supported
+      check_command: "docker version --format '{{.Server.Version}}' && echo 'Check https://docs.docker.com/engine/deprecation/'"
+      expected_value: "Current supported version"
+    remediation:
+      remediation_step: |
+        Ensure Docker is a supported version:
+        
+        1. Check current version:
+        docker version
+        
+        2. Review Docker support lifecycle:
+        https://docs.docker.com/engine/deprecation/
+        
+        3. Upgrade Docker to supported version:
+        
+        For RHEL/CentOS:
+        yum update docker-ce docker-ce-cli containerd.io
+        
+        For Ubuntu:
+        apt update && apt upgrade docker-ce docker-ce-cli containerd.io
+        
+        4. For Podman, ensure supported version:
+        yum update podman
+        
+        5. Plan regular updates to stay within support window.
+        
+        6. Test upgrades in non-production environment first.
+        
+        7. Review release notes for breaking changes.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Docker restart may be required
+      estimated_time: 30 minutes
+    context:
+      rationale: Unsupported versions no longer receive security patches.
+      impact: High - EOL versions have unpatched vulnerabilities.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-278968r1137653_rule
+    tags:
+      - version
+      - updates
+      - lifecycle
