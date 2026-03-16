@@ -1,0 +1,801 @@
+schema_version: 1.0.0
+metadata:
+  name: HAProxy Security Hardening Rules
+  version: '1.0.0'
+  description: Security hardening rules for HAProxy load balancer based on official
+    HAProxy documentation and best practices
+  platform: HAProxy
+  benchmark: HAProxy Official Documentation
+  author: Compliance Rules Team
+  source: https://docs.haproxy.org/2.8/configuration.html
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - HAProxy 2.6+
+  - HAProxy 2.8+
+  - HAProxy Enterprise
+  references:
+  - type: HAProxy Documentation
+    reference: https://docs.haproxy.org/2.8/configuration.html
+  - type: HAProxy Best Practices
+    reference: https://www.haproxy.com/blog/haproxy-best-practices-for-secure-web-applications
+compliance_info:
+  framework: NIST
+  version: '1.0.0'
+  profile: security-hardening
+  source:
+    framework: haproxy
+    benchmark: HAProxy Official Documentation
+    version: latest
+    profile: security-hardening
+    notes: Rules derived from official HAProxy documentation and best practices. No
+      dedicated CIS or STIG exists for HAProxy.
+rules:
+- rule_id: HAPROXY-TLS-001
+  legacy_ids: []
+  rule_name: Configure TLS 1.2 or higher minimum version
+  rule_description: |
+    Configure HAProxy to use TLS 1.2 or higher for all encrypted connections. TLS 1.0 and 1.1 contain known vulnerabilities and are deprecated.
+  category: Cryptography
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check HAProxy configuration for TLS minimum version:
+      
+      grep -E "ssl-min-ver|no-sslv3|no-tlsv10|no-tlsv11" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. ssl-default-bind-options includes ssl-min-ver TLSv1.2 or higher
+      2. SSLv3, TLSv1.0, and TLSv1.1 are explicitly disabled
+      
+      Expected: ssl-min-ver TLSv1.2 or TLSv1.3
+    check_command: 'grep -E "ssl-min-ver|no-sslv3|no-tlsv10|no-tlsv11" /etc/haproxy/haproxy.cfg
+      || echo "TLS version not explicitly configured"'
+    expected_value: ssl-min-ver TLSv1_2 or higher
+  remediation:
+    remediation_step: |
+      Configure TLS 1.2+ minimum in haproxy.cfg:
+      
+      global
+          ssl-default-bind-options ssl-min-ver TLSv1_2
+          no-sslv3
+          no-tlsv10
+          no-tlsv11
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires HAProxy restart
+    estimated_time: 30 seconds
+  context:
+    rationale: TLS 1.0 and 1.1 have known vulnerabilities (POODLE, BEAST) and are
+      deprecated by RFC 8996.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: HAPROXY-TLS-002
+  legacy_ids: []
+  rule_name: Configure strong cipher suites
+  rule_description: |
+    Configure HAProxy to use strong cipher suites with Perfect Forward Secrecy and disable weak ciphers.
+  category: Cryptography
+  subcategory: Cipher Suites
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check cipher suite configuration:
+      
+      grep -E "ssl-default-bind-ciphers|ssl-default-bind-ciphersuites|curves|dh-param"
+      /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Only AEAD ciphers (AES-GCM, CHACHA20-POLY1305) with ECDHE are configured
+      2. DH parameters are at least 2048 bits
+      
+      Expected: Strong cipher suites only
+    check_command: 'grep -E "ciphers|curves|dh-param" /etc/haproxy/haproxy.cfg || echo
+      "Ciphers not explicitly configured"'
+    expected_value: Strong cipher suites (AES-GCM, CHACHA20 with ECDHE)
+  remediation:
+    remediation_step: |
+      Configure strong ciphers in haproxy.cfg:
+      
+      global
+          ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+          ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305
+          ssl-default-bind-curves X25519:P-256:P-384
+          tune.ssl.default-dh-param 2048
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires HAProxy restart
+    estimated_time: 30 seconds
+  context:
+    rationale: Strong cipher suites with ECDHE provide Perfect Forward Secrecy and
+      protect against cryptographic attacks.
+    impact: Some older clients may not support modern ciphers
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - tls
+  - ciphers
+  - encryption
+
+- rule_id: HAPROXY-PROC-001
+  legacy_ids: []
+  rule_name: Run HAProxy as non-root user
+  rule_description: |
+    Configure HAProxy to run as an unprivileged user and group for security isolation.
+  category: Access Control
+  subcategory: Process Isolation
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check user and group configuration:
+      
+      grep -E "user|group|chroot" /etc/haproxy/haproxy.cfg | head -5
+      
+      Verify:
+      1. HAProxy runs as non-root user (e.g., haproxy)
+      2. HAProxy runs as non-root group
+      3. Chroot is enabled if possible
+      
+      If running as root, this is a finding.
+    check_command: 'grep -E "^  *user|^  *group|^  *chroot" /etc/haproxy/haproxy.cfg
+      || echo "User/group not configured"'
+    expected_value: Non-root user and group configured
+  remediation:
+    remediation_step: |
+      Configure user isolation in haproxy.cfg:
+      
+      global
+          user haproxy
+          group haproxy
+          chroot /var/lib/haproxy
+          daemon
+      
+      Ensure the haproxy user exists:
+      useradd -r -s /usr/sbin/nologin haproxy
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires HAProxy restart
+    estimated_time: 30 seconds
+  context:
+    rationale: Running as non-root limits the impact of potential security vulnerabilities
+      by restricting file system and system access.
+    impact: HAProxy cannot bind to privileged ports (<1024) without capabilities
+    false_positive_risk: None
+  tags:
+  - haproxy
+  - user
+  - isolation
+  - security
+
+- rule_id: HAPROXY-STATS-001
+  legacy_ids: []
+  rule_name: Secure statistics interface
+  rule_description: |
+    Secure the HAProxy statistics interface with authentication, IP restrictions, and version hiding.
+  category: Configuration
+  subcategory: Stats Interface
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check stats interface configuration:
+      
+      grep -A20 "stats enable" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Stats page requires authentication
+      2. IP-based access control is configured
+      3. HAProxy version is hidden (stats hide-version)
+      4. Stats interface is not publicly accessible
+      
+      If stats interface is exposed without authentication, this is a finding.
+    check_command: 'grep -E "stats auth|stats hide-version" /etc/haproxy/haproxy.cfg
+      || echo "Stats not secured"'
+    expected_value: Stats secured with auth and IP restrictions
+  remediation:
+    remediation_step: |
+      Configure secure stats in haproxy.cfg:
+      
+      frontend stats
+          bind *:8404
+          mode http
+          stats enable
+          stats auth admin:secure_password_here
+          stats realm HAProxy\ Statistics
+          stats uri /haproxy-stats
+          stats refresh 10s
+          stats hide-version
+          acl stats_allowed src 10.0.0.0/8 192.168.1.0/24
+          http-request deny unless stats_allowed
+          stats maxconn 10
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Stats access restricted
+    estimated_time: 30 seconds
+  context:
+    rationale: The stats interface exposes sensitive operational data and allows administrative
+      actions. It must be secured.
+    impact: Stats only accessible to authorized users from allowed IPs
+    false_positive_risk: None
+  tags:
+  - haproxy
+  - stats
+  - admin
+  - authentication
+
+- rule_id: HAPROXY-API-001
+  legacy_ids: []
+  rule_name: Secure runtime API socket
+  rule_description: |
+    Secure the HAProxy runtime API socket with appropriate file permissions and access controls.
+  category: Configuration
+  subcategory: Runtime API
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check runtime API configuration:
+      
+      grep -E "stats socket" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Unix socket is used instead of TCP (more secure)
+      2. File permissions restrict access (mode 600)
+      3. Appropriate access level is set
+      
+      Check socket permissions:
+      ls -la /var/run/haproxy.sock
+    check_command: 'grep -E "stats socket" /etc/haproxy/haproxy.cfg || echo "Runtime
+      API not configured"'
+    expected_value: Unix socket with restricted permissions
+  remediation:
+    remediation_step: |
+      Configure runtime API in haproxy.cfg:
+      
+      global
+          stats socket /var/run/haproxy.sock mode 600 level admin
+          stats timeout 30s
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Runtime API only accessible locally
+    estimated_time: 30 seconds
+  context:
+    rationale: The runtime API allows administrative operations. It must be secured
+      with file permissions.
+    impact: Only local root/admin can access runtime API
+    false_positive_risk: None
+  tags:
+  - haproxy
+  - api
+  - runtime
+  - admin
+
+- rule_id: HAPROXY-CONN-001
+  legacy_ids: []
+  rule_name: Configure connection limits
+  rule_description: |
+    Configure global and per-frontend connection limits to prevent resource exhaustion.
+  category: Network Security
+  subcategory: Connection Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check connection limit configuration:
+      
+      grep -E "maxconn" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Global maxconn is configured
+      2. Frontend maxconn is set
+      3. Backend server maxconn is configured
+      
+      If connection limits are not configured, this is a finding.
+    check_command: 'grep -E "maxconn" /etc/haproxy/haproxy.cfg || echo "Connection
+      limits not configured"'
+    expected_value: Connection limits configured
+  remediation:
+    remediation_step: |
+      Configure connection limits in haproxy.cfg:
+      
+      global
+          maxconn 65536
+      
+      frontend web_front
+          bind *:80 maxconn 2000
+          maxconn 1000
+      
+      backend app_backend
+          server s1 10.0.0.1:8080 maxconn 100
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive connections will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Connection limits prevent resource exhaustion from connection floods.
+    impact: Connections exceeding limits will be queued or rejected
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - connection-limits
+  - dos-protection
+
+- rule_id: HAPROXY-RATE-001
+  legacy_ids: []
+  rule_name: Configure rate limiting with stick tables
+  rule_description: |
+    Configure rate limiting using stick tables to protect backend services from abuse.
+  category: Network Security
+  subcategory: Rate Limiting
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check rate limiting configuration:
+      
+      grep -A10 "stick-table" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Stick table is configured for rate limiting
+      2. Request rate limits are set
+      3. Connection rate limits are set
+      
+      If rate limiting is not configured, this is a finding.
+    check_command: 'grep -E "stick-table|http_req_rate|conn_rate|conn_cur" /etc/haproxy/haproxy.cfg
+      || echo "Rate limiting not configured"'
+    expected_value: Rate limiting configured
+  remediation:
+    remediation_step: |
+      Configure rate limiting in haproxy.cfg:
+      
+      frontend web_front
+          stick-table type ip size 100k expire 30s store http_req_rate(10s),conn_cur,conn_rate(10s)
+          http-request track-sc0 src
+          http-request deny deny_status 429 if { sc_http_req_rate(0) gt 100 }
+          http-request deny deny_status 429 if { sc_conn_cur(0) gt 20 }
+          http-request deny deny_status 429 if { sc_conn_rate(0) gt 50 }
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive requests will be rate limited (HTTP 429)
+    estimated_time: 30 seconds
+  context:
+    rationale: Rate limiting protects backend services from abuse, brute force attacks,
+      and denial-of-service attacks.
+    impact: Legitimate high-frequency requests may be throttled
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - rate-limiting
+  - dos-protection
+  - throttling
+
+- rule_id: HAPROXY-LOG-001
+  legacy_ids: []
+  rule_name: Configure comprehensive logging
+  rule_description: |
+    Configure comprehensive access and error logging for security monitoring and incident response.
+  category: Logging and Auditing
+  subcategory: Access Logs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check logging configuration:
+      
+      grep -E "log |option httplog|log-format" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Logging is enabled globally
+      2. HTTP logging is enabled (option httplog)
+      3. Null requests are not logged (option dontlognull)
+      
+      If logging is not configured, this is a finding.
+    check_command: 'grep -E "^  *log |option httplog|log-format" /etc/haproxy/haproxy.cfg
+      || echo "Logging not configured"'
+    expected_value: Comprehensive logging configured
+  remediation:
+    remediation_step: |
+      Configure logging in haproxy.cfg:
+      
+      global
+          log /dev/log local0 info
+          log /dev/log local1 notice
+      
+      defaults
+          log global
+          option httplog
+          option dontlognull
+          option log-separate-errors
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Additional log storage required
+    estimated_time: 30 seconds
+  context:
+    rationale: Comprehensive logging enables security monitoring, incident response,
+      and troubleshooting.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - logging
+  - monitoring
+  - auditing
+
+- rule_id: HAPROXY-ACL-001
+  legacy_ids: []
+  rule_name: Configure ACL-based access control
+  rule_description: |
+    Configure Access Control Lists (ACLs) to block malicious requests and restrict access.
+  category: Access Control
+  subcategory: ACL
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check ACL configuration:
+      
+      grep -E "^acl |http-request deny|http-request allow" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. ACLs are configured to block known bad patterns
+      2. Sensitive paths are protected
+      3. Bad user agents are blocked
+      
+      If no access control ACLs are configured, consider adding them.
+    check_command: 'grep -E "^acl |http-request deny" /etc/haproxy/haproxy.cfg || echo
+      "ACLs not configured"'
+    expected_value: ACLs configured for access control
+  remediation:
+    remediation_step: |
+      Configure ACLs in haproxy.cfg:
+      
+      frontend web_front
+          acl blocked_ua hdr_sub(user-agent) -i nikto sqlmap nessus
+          http-request deny if blocked_ua
+          acl allowed_networks src 10.0.0.0/8 192.168.0.0/16
+          http-request deny unless allowed_networks
+          acl is_attack path_sub -i admin wp-login.php .env .git
+          http-request deny if is_attack
+          http-request normalize-uri percent-to-uppercase path-merge-slashes
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Blocked requests will be denied
+    estimated_time: 30 seconds
+  context:
+    rationale: ACLs provide first-line defense against common attacks and unauthorized
+      access.
+    impact: Some legitimate requests may be blocked if ACLs are too restrictive
+    false_positive_risk: Medium
+  tags:
+  - haproxy
+  - acl
+  - access-control
+  - security
+
+- rule_id: HAPROXY-BACKEND-001
+  legacy_ids: []
+  rule_name: Configure backend TLS verification
+  rule_description: |
+    Configure TLS certificate verification for backend connections to ensure encrypted and authenticated communication.
+  category: Cryptography
+  subcategory: Backend TLS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check backend TLS configuration:
+      
+      grep -A5 "server.*ssl" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. TLS is enabled for backend connections
+      2. Certificate verification is required (verify required)
+      3. CA file is specified
+      
+      If backend TLS is not verified, this is a finding.
+    check_command: 'grep -E "server.*ssl.*verify" /etc/haproxy/haproxy.cfg || echo
+      "Backend TLS verification not configured"'
+    expected_value: Backend TLS with certificate verification
+  remediation:
+    remediation_step: |
+      Configure backend TLS verification in haproxy.cfg:
+      
+      backend secure_backend
+          server s1 10.0.0.1:443 ssl verify required ca-file /etc/ssl/certs/ca-bundle.crt
+            check-sni hostname.example.com
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Backend connections will be encrypted and verified
+    estimated_time: 30 seconds
+  context:
+    rationale: TLS verification for backend connections prevents man-in-the-middle
+      attacks and ensures data integrity.
+    impact: Backends must have valid certificates
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - backend
+  - tls
+  - verification
+
+- rule_id: HAPROXY-TIMEOUT-001
+  legacy_ids: []
+  rule_name: Configure connection timeouts
+  rule_description: |
+    Configure appropriate connection and request timeouts to prevent resource exhaustion.
+  category: Network Security
+  subcategory: Timeouts
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check timeout configuration:
+      
+      grep -E "timeout " /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. timeout client is configured
+      2. timeout server is configured
+      3. timeout http-request is set
+      4. timeout connect is configured
+      
+      If timeouts are not configured, this is a finding.
+    check_command: 'grep -E "timeout " /etc/haproxy/haproxy.cfg || echo "Timeouts
+      not configured"'
+    expected_value: Timeouts configured for all connection types
+  remediation:
+    remediation_step: |
+      Configure timeouts in haproxy.cfg:
+      
+      defaults
+          timeout client 30s
+          timeout client-fin 1s
+          timeout server 30s
+          timeout server-fin 1s
+          timeout http-request 10s
+          timeout http-keep-alive 10s
+          timeout connect 10s
+          timeout queue 30s
+          timeout tunnel 1h
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Slow clients may experience timeouts
+    estimated_time: 30 seconds
+  context:
+    rationale: Connection timeouts prevent resource exhaustion from slowloris attacks
+      and ensure resources are released.
+    impact: Long-running connections may be terminated
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - timeouts
+  - dos-protection
+  - network
+
+- rule_id: HAPROXY-HEADER-001
+  legacy_ids: []
+  rule_name: Configure security headers
+  rule_description: |
+    Configure security-related HTTP headers to protect against common web vulnerabilities.
+  category: Application Security
+  subcategory: Security Headers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check security header configuration:
+      
+      grep -E "http-response set-header" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. HSTS header is set
+      2. X-Frame-Options is configured
+      3. X-Content-Type-Options is set
+      4. Server version is hidden
+      
+      If security headers are not configured, this is a finding.
+    check_command: 'grep -E "http-response set-header|Strict-Transport|X-Frame-Options|X-Content-Type"
+      /etc/haproxy/haproxy.cfg || echo "Security headers not configured"'
+    expected_value: Security headers configured
+  remediation:
+    remediation_step: |
+      Configure security headers in haproxy.cfg:
+      
+      frontend web_front
+          http-response set-header Server "SecureServer"
+          http-response set-header Strict-Transport-Security "max-age=31536000;
+            includeSubDomains; preload"
+          http-response set-header X-Content-Type-Options "nosniff"
+          http-response set-header X-Frame-Options "SAMEORIGIN"
+          http-response set-header X-XSS-Protection "1; mode=block"
+          http-response set-header Referrer-Policy "strict-origin-when-cross-origin"
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Response headers will include security policies
+    estimated_time: 30 seconds
+  context:
+    rationale: Security headers protect against common web vulnerabilities like XSS,
+      clickjacking, and MIME sniffing.
+    impact: May affect application behavior if headers conflict
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - headers
+  - security
+  - application-security
+
+- rule_id: HAPROXY-HTTP-001
+  legacy_ids: []
+  rule_name: Configure HTTP request validation
+  rule_description: |
+    Configure HTTP request validation to reject malformed or potentially malicious requests.
+  category: Application Security
+  subcategory: Request Validation
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check HTTP validation configuration:
+      
+      grep -E "option http-buffer-request|accept-invalid-http" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Invalid HTTP requests are rejected
+      2. Request buffering is configured
+      
+      If HTTP validation is not configured, this is a finding.
+    check_command: 'grep -E "option http-buffer-request|no option accept-invalid"
+      /etc/haproxy/haproxy.cfg || echo "HTTP validation not configured"'
+    expected_value: HTTP request validation enabled
+  remediation:
+    remediation_step: |
+      Configure HTTP validation in haproxy.cfg:
+      
+      defaults
+          no option accept-invalid-http-request
+          no option accept-invalid-http-response
+          option http-buffer-request
+      
+      frontend web_front
+          http-request deny if { req.body_size gt 10485760 }
+          http-request normalize-uri percent-to-uppercase path-merge-slashes
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Malformed requests will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: HTTP request validation prevents protocol-based attacks and ensures
+      only well-formed requests reach backends.
+    impact: Some edge-case HTTP requests may be rejected
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - http
+  - validation
+  - security
+
+- rule_id: HAPROXY-HARDEN-001
+  legacy_ids: []
+  rule_name: Enable security hardening options
+  rule_description: |
+    Enable HAProxy security hardening options to protect against various attacks.
+  category: Configuration
+  subcategory: Hardening
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check hardening configuration:
+      
+      grep -E "harden|strict-limits" /etc/haproxy/haproxy.cfg
+      
+      Verify:
+      1. Privileged port rejection is enabled
+      2. Strict limits are enforced
+      
+      If hardening options are not configured, this is a finding.
+    check_command: 'grep -E "harden|strict-limits" /etc/haproxy/haproxy.cfg || echo
+      "Hardening options not configured"'
+    expected_value: Security hardening options enabled
+  remediation:
+    remediation_step: |
+      Configure hardening options in haproxy.cfg:
+      
+      global
+          harden.reject-privileged-ports.tcp on
+          harden.reject-privileged-ports.quic on
+          strict-limits
+      
+      Restart HAProxy: systemctl restart haproxy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Stricter security enforcement
+    estimated_time: 30 seconds
+  context:
+    rationale: Hardening options provide additional protection against various protocol-level
+      attacks.
+    impact: Some legitimate use cases may be affected
+    false_positive_risk: Low
+  tags:
+  - haproxy
+  - hardening
+  - security
+  - configuration
