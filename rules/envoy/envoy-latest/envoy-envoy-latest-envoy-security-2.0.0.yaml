@@ -1,0 +1,2292 @@
+schema_version: 1.0.0
+metadata:
+  name: Envoy Proxy Security Hardening Rules
+  version: '2.0.0'
+  description: Comprehensive security hardening rules for Envoy proxy based on official
+    Envoy documentation, best practices, and CIS VMware vSphere 8.0 vCenter Appliance
+    Envoy STIG Benchmark guidance
+  platform: Envoy
+  benchmark: Envoy Official Documentation and Best Practices
+  author: Compliance Rules Team
+  source: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/security
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Envoy 1.28+
+  - Envoy Proxy
+  - Istio Envoy Sidecar
+  - Envoy Gateway
+  references:
+  - type: Envoy Security Documentation
+    reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/security
+  - type: Envoy Edge Proxy Best Practices
+    reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/best_practices/edge
+  - type: Envoy TLS Documentation
+    reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl
+  - type: Envoy Admin Interface
+    reference: https://www.envoyproxy.io/docs/envoy/latest/operations/admin
+  - type: CIS VMware vSphere 8.0 vCenter Appliance Envoy STIG
+    reference: https://www.cisecurity.org/benchmark/vmware_vsphere
+compliance_info:
+  framework: NIST
+  version: '2.0.0'
+  profile: security-hardening
+  source:
+    framework: envoy
+    benchmark: Envoy Official Documentation
+    version: latest
+    profile: security-hardening
+    notes: Rules derived from official Envoy documentation and best practices aligned
+      with NIST Cybersecurity Framework. CIS VMware vSphere 8.0 vCenter Appliance
+      Envoy STIG Benchmark v1.0.0 referenced for guidance. No dedicated STIG exists
+      for standalone Envoy proxy.
+rules:
+- rule_id: ENVOY-TLS-001
+  legacy_ids: []
+  rule_name: Configure TLS 1.2 or higher minimum version
+  rule_description: |
+    Configure Envoy to use TLS 1.2 or higher for all encrypted connections. TLS 1.0 and 1.1 contain known vulnerabilities and are deprecated.
+  category: Cryptography
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Envoy configuration for TLS minimum protocol version:
+      
+      1. Locate the Envoy configuration file (typically /etc/envoy/envoy.yaml)
+      2. Search for tls_context or common_tls_context sections
+      3. Verify tls_minimum_protocol_version is set to TLSv1_2 or TLSv1_3
+      
+      Command to check:
+      grep -A20 "tls_context\|common_tls_context" /etc/envoy/envoy.yaml | grep -E "tls_minimum_protocol_version|tls_protocol"
+      
+      Expected: tls_minimum_protocol_version: TLSv1_2 or TLSv1_3
+    check_command: 'grep -E "tls_minimum_protocol_version|tls_protocol" /etc/envoy/envoy.yaml
+      || echo "TLS version not explicitly configured"'
+    expected_value: TLSv1_2 or TLSv1_3 minimum
+  remediation:
+    remediation_step: |
+      Configure TLS 1.2+ minimum in envoy.yaml:
+      
+      static_resources:
+        listeners:
+        - name: https_listener
+          filter_chains:
+          - filter_chain_match:
+              server_names: ["example.com"]
+            tls_context:
+              common_tls_context:
+                tls_params:
+                  tls_minimum_protocol_version: TLSv1_2
+                  tls_maximum_protocol_version: TLSv1_3
+                alpn_protocols: ["h2", "http/1.1"]
+      
+      For upstream clusters:
+      
+      clusters:
+      - name: backend_service
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+            common_tls_context:
+              tls_params:
+                tls_minimum_protocol_version: TLSv1_2
+                tls_maximum_protocol_version: TLSv1_3
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Envoy restart, briefly interrupts connections
+    estimated_time: 30 seconds
+  context:
+    rationale: TLS 1.0 and 1.1 have known vulnerabilities (POODLE, BEAST, etc.) and
+      are deprecated by RFC 8996. TLS 1.2+ provides strong encryption and modern
+      security features.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+    references:
+    - type: Envoy TLS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl
+    - type: RFC 8996
+      reference: https://datatracker.ietf.org/doc/html/rfc8996
+  tags:
+  - envoy
+  - tls
+  - ssl
+  - encryption
+  - cryptography
+
+- rule_id: ENVOY-TLS-002
+  legacy_ids: []
+  rule_name: Configure strong cipher suites
+  rule_description: |
+    Configure Envoy to use strong cipher suites and disable weak ciphers (NULL, MD5, 3DES, RC4, DES, EXPORT).
+  category: Cryptography
+  subcategory: Cipher Suites
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check cipher suite configuration:
+      
+      grep -A20 "cipher" /etc/envoy/envoy.yaml
+      
+      Verify that weak ciphers are NOT configured:
+      - NULL ciphers
+      - MD5-based ciphers
+      - 3DES ciphers
+      - RC4 ciphers
+      - DES ciphers
+      - EXPORT-grade ciphers
+      
+      Expected: Only AEAD ciphers (AES-GCM, CHACHA20-POLY1305) with ECDHE key exchange
+    check_command: 'grep -E "cipher" /etc/envoy/envoy.yaml || echo "Ciphers not explicitly
+      configured"'
+    expected_value: Strong cipher suites only (AES-GCM, CHACHA20-POLY1305 with ECDHE)
+  remediation:
+    remediation_step: |
+      Configure strong cipher suites in envoy.yaml:
+      
+      tls_context:
+        common_tls_context:
+          tls_params:
+            cipher_suites:
+            - ECDHE-ECDSA-AES256-GCM-SHA384
+            - ECDHE-RSA-AES256-GCM-SHA384
+            - ECDHE-ECDSA-AES128-GCM-SHA256
+            - ECDHE-RSA-AES128-GCM-SHA256
+            - ECDHE-ECDSA-CHACHA20-POLY1305
+            - ECDHE-RSA-CHACHA20-POLY1305
+            ecdh_curves:
+            - X25519
+            - P-256
+            - P-384
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Envoy restart
+    estimated_time: 30 seconds
+  context:
+    rationale: Strong cipher suites protect against cryptographic attacks. Weak ciphers
+      can be exploited to decrypt traffic or perform man-in-the-middle attacks.
+    impact: Some older clients may not support modern ciphers
+    false_positive_risk: Low
+    references:
+    - type: Envoy TLS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl
+    - type: Mozilla SSL Guidelines
+      reference: https://wiki.mozilla.org/Security/Server_Side_TLS
+  tags:
+  - envoy
+  - tls
+  - ciphers
+  - encryption
+  - cryptography
+
+- rule_id: ENVOY-TLS-003
+  legacy_ids: []
+  rule_name: Enable certificate verification
+  rule_description: |
+    Enable certificate verification for both upstream and downstream connections by specifying trusted CA certificates.
+  category: Cryptography
+  subcategory: Certificate Verification
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check certificate verification configuration:
+      
+      grep -A30 "validation_context\|trusted_ca" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. trusted_ca is specified for upstream connections
+      2. Subject name verification is configured where appropriate
+      3. Certificate verification is not disabled
+      
+      If validation_context is missing or trusted_ca is not specified, this is a finding.
+    check_command: 'grep -E "validation_context|trusted_ca" /etc/envoy/envoy.yaml
+      || echo "Certificate verification not configured"'
+    expected_value: trusted_ca configured with appropriate verification
+  remediation:
+    remediation_step: |
+      Configure certificate verification in envoy.yaml:
+      
+      For downstream (listener) TLS:
+      
+      tls_context:
+        common_tls_context:
+          tls_certificates:
+          - certificate_chain: {filename: "certs/servercert.pem"}
+            private_key: {filename: "certs/serverkey.pem"}
+          validation_context:
+            trusted_ca:
+              filename: /etc/ssl/certs/ca-certificates.crt
+      
+      For upstream (cluster) TLS with subject name verification:
+      
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
+            validation_context:
+              match_typed_subject_alt_names:
+              - san_type: DNS
+                matcher:
+                  exact: "backend.example.com"
+              trusted_ca:
+                filename: /etc/ssl/certs/ca-certificates.crt
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Envoy restart
+    estimated_time: 30 seconds
+  context:
+    rationale: Certificate verification prevents man-in-the-middle attacks by validating
+      the identity of the peer. Without verification, any certificate would be accepted.
+    impact: Connections to servers with invalid or untrusted certificates will fail
+    false_positive_risk: Low
+    references:
+    - type: Envoy TLS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl#enabling-certificate-verification
+  tags:
+  - envoy
+  - tls
+  - certificates
+  - verification
+  - pki
+
+- rule_id: ENVOY-TLS-004
+  legacy_ids: []
+  rule_name: Configure OCSP stapling
+  rule_description: |
+    Configure OCSP stapling for TLS certificates to improve certificate revocation checking performance and privacy.
+  category: Cryptography
+  subcategory: OCSP Stapling
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check OCSP stapling configuration:
+      
+      grep -A10 "ocsp" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. ocsp_staple is configured for certificates (optional but recommended)
+      2. ocsp_staple_policy is set appropriately
+      
+      If certificates do not include OCSP staple configuration, consider enabling it.
+    check_command: 'grep -E "ocsp" /etc/envoy/envoy.yaml || echo "OCSP stapling
+      not configured"'
+    expected_value: OCSP stapling configured (optional)
+  remediation:
+    remediation_step: |
+      Configure OCSP stapling in envoy.yaml:
+      
+      tls_context:
+        common_tls_context:
+          tls_certificates:
+          - certificate_chain: {filename: "certs/servercert.pem"}
+            private_key: {filename: "certs/serverkey.pem"}
+            ocsp_staple: {filename: "certs/server_ocsp_resp.der"}
+          ocsp_staple_policy: MUST_STAPLE
+      
+      For must-staple certificates, use MUST_STAPLE policy. Otherwise, consider LENIENT_STAPLE
+      or STRICT_STAPLE based on your requirements.
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Envoy restart
+    estimated_time: 30 seconds
+  context:
+    rationale: OCSP stapling improves performance by allowing the server to provide
+      cached OCSP responses, reducing client OCSP lookups and improving privacy.
+    impact: Requires OCSP response files to be maintained and updated
+    false_positive_risk: Low
+    references:
+    - type: Envoy TLS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl#ocsp-stapling
+  tags:
+  - envoy
+  - tls
+  - ocsp
+  - certificates
+  - pki
+
+- rule_id: ENVOY-ADMIN-001
+  legacy_ids: []
+  rule_name: Restrict admin interface to localhost
+  rule_description: |
+    Secure the Envoy admin interface by binding it to localhost (127.0.0.1) only. The admin interface exposes sensitive information and control capabilities.
+  category: Configuration
+  subcategory: Admin Interface
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check admin interface configuration:
+      
+      grep -A10 "^admin:" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Admin interface is bound to 127.0.0.1 (not 0.0.0.0 or external IP)
+      2. Access is appropriately restricted
+      3. If admin interface is not needed, it should be disabled
+      
+      If admin interface is bound to 0.0.0.0 or an external IP, this is a finding.
+    check_command: 'grep -A5 "^admin:" /etc/envoy/envoy.yaml | grep -E "address|port_value"'
+    expected_value: Admin interface bound to 127.0.0.1 only
+  remediation:
+    remediation_step: |
+      Secure admin interface in envoy.yaml:
+      
+      admin:
+        access_log_path: /var/log/envoy/admin_access.log
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 9901
+      
+      To disable admin interface entirely (if not needed):
+      
+      admin:
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 0
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Admin interface only accessible from localhost
+    estimated_time: 30 seconds
+  context:
+    rationale: The admin interface exposes sensitive information (stats, config,
+      certificates) and allows destructive operations (shutdown, drain). It must
+      not be exposed on public interfaces.
+    impact: Admin interface only accessible from the local machine
+    false_positive_risk: None
+    references:
+    - type: Envoy Admin Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/operations/admin
+  tags:
+  - envoy
+  - admin
+  - access-control
+  - security
+  - critical
+
+- rule_id: ENVOY-ADMIN-002
+  legacy_ids: []
+  rule_name: Configure admin interface path restrictions
+  rule_description: |
+    Configure allow_paths to restrict which admin interface endpoints are accessible, limiting exposure of sensitive operations.
+  category: Configuration
+  subcategory: Admin Interface
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check admin interface path restrictions:
+      
+      grep -A20 "^admin:" /etc/envoy/envoy.yaml | grep -A10 "allow_paths"
+      
+      Verify:
+      1. allow_paths is configured to limit accessible endpoints
+      2. Destructive endpoints (quitquitquit, drain, etc.) are not accessible
+      3. Only necessary endpoints are allowed
+      
+      If allow_paths is not configured, this is a finding.
+    check_command: 'grep -A20 "^admin:" /etc/envoy/envoy.yaml | grep -E "allow_paths"'
+    expected_value: allow_paths configured with minimal necessary endpoints
+  remediation:
+    remediation_step: |
+      Configure admin path restrictions in envoy.yaml:
+      
+      admin:
+        access_log_path: /var/log/envoy/admin_access.log
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 9901
+        allow_paths:
+        - exact: /ready
+        - exact: /healthcheck/fail
+        - exact: /healthcheck/ok
+        - prefix: /stats
+        - exact: /server_info
+        - exact: /clusters
+        - exact: /listeners
+        profile_path: /tmp/envoy.prof
+      
+      Remove paths like /quitquitquit, /drain_listeners, /config_dump if not needed.
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Some admin endpoints will be inaccessible
+    estimated_time: 30 seconds
+  context:
+    rationale: Limiting accessible admin paths reduces the attack surface and prevents
+      unauthorized access to sensitive operations like server shutdown or configuration
+      dump.
+    impact: Only explicitly allowed admin endpoints are accessible
+    false_positive_risk: Low
+    references:
+    - type: Envoy Admin Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/operations/admin
+  tags:
+  - envoy
+  - admin
+  - access-control
+  - security
+
+- rule_id: ENVOY-LOG-001
+  legacy_ids: []
+  rule_name: Enable access logging
+  rule_description: |
+    Configure Envoy access logging for security monitoring, incident response, and troubleshooting.
+  category: Logging and Auditing
+  subcategory: Access Logs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check access logging configuration:
+      
+      grep -A30 "access_log" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Access logging is enabled for all listeners
+      2. Log format includes relevant security fields
+      3. Logs are written to a persistent location
+      4. Log rotation is configured
+      
+      If access logging is not configured, this is a finding.
+    check_command: 'grep -E "access_log" /etc/envoy/envoy.yaml || echo "Access logging
+      not configured"'
+    expected_value: Access logging enabled with comprehensive format
+  remediation:
+    remediation_step: |
+      Configure access logging in envoy.yaml:
+      
+      static_resources:
+        listeners:
+        - name: http_listener
+          per_connection_buffer_limit_bytes: 32768
+          access_log:
+          - name: envoy.access_loggers.file
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
+              path: /var/log/envoy/access.log
+              log_format:
+                text_format: |
+                  [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+                  %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+                  %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%
+                  "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%"
+                  "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%"
+                  "%UPSTREAM_HOST%" %UPSTREAM_CLUSTER%
+                  %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS%
+                  %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME%
+      
+      Ensure log rotation is configured (logrotate or similar).
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Additional disk I/O for logging
+    estimated_time: 30 seconds
+  context:
+    rationale: Access logging is essential for security monitoring, incident response,
+      compliance, and troubleshooting. Logs should capture relevant security information.
+    impact: Additional disk space required for log storage
+    false_positive_risk: Low
+    references:
+    - type: Envoy Access Logging
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log
+  tags:
+  - envoy
+  - logging
+  - access-log
+  - monitoring
+  - auditing
+
+- rule_id: ENVOY-LOG-002
+  legacy_ids: []
+  rule_name: Configure admin access logging
+  rule_description: |
+    Configure separate access logging for the admin interface to track administrative access.
+  category: Logging and Auditing
+  subcategory: Admin Logs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check admin access log configuration:
+      
+      grep -A10 "^admin:" /etc/envoy/envoy.yaml | grep "access_log_path"
+      
+      Verify:
+      1. access_log_path is configured for admin interface
+      2. Log file is in a secure location
+      3. Log rotation is configured
+      
+      If admin access_log_path is not configured, this is a finding.
+    check_command: 'grep -A10 "^admin:" /etc/envoy/envoy.yaml | grep "access_log_path"'
+    expected_value: Admin access_log_path configured
+  remediation:
+    remediation_step: |
+      Configure admin access logging in envoy.yaml:
+      
+      admin:
+        access_log_path: /var/log/envoy/admin_access.log
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 9901
+      
+      Ensure proper log rotation:
+      
+      cat > /etc/logrotate.d/envoy-admin << 'EOF'
+      /var/log/envoy/admin_access.log {
+          daily
+          rotate 30
+          compress
+          delaycompress
+          missingok
+          notifempty
+          create 0640 envoy envoy
+      }
+      EOF
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 30 seconds
+  context:
+    rationale: Admin access logging provides an audit trail for administrative operations
+      and helps detect unauthorized access attempts.
+    impact: Minimal - additional log file
+    false_positive_risk: None
+    references:
+    - type: Envoy Admin Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/operations/admin
+  tags:
+  - envoy
+  - logging
+  - admin
+  - auditing
+
+- rule_id: ENVOY-NET-001
+  legacy_ids: []
+  rule_name: Configure connection timeouts
+  rule_description: |
+    Configure appropriate connection and stream timeouts to prevent resource exhaustion from slow or idle connections.
+  category: Network Security
+  subcategory: Timeouts
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check timeout configuration:
+      
+      grep -E "timeout|idle_timeout|request_timeout|stream_idle_timeout|connect_timeout"
+      /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. request_timeout is configured
+      2. stream_idle_timeout is set
+      3. connect_timeout is appropriate for upstream clusters
+      4. idle_timeout is configured for HTTP connections
+      
+      If timeouts are not configured, this is a finding.
+    check_command: 'grep -E "timeout" /etc/envoy/envoy.yaml | head -30 || echo "Timeouts
+      not configured"'
+    expected_value: Timeouts configured for all connection types
+  remediation:
+    remediation_step: |
+      Configure timeouts in envoy.yaml:
+      
+      For HTTP connection manager:
+      
+      http_filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          common_http_protocol_options:
+            idle_timeout: 3600s
+            headers_with_underscores_action: REJECT_REQUEST
+          http2_protocol_options:
+            max_concurrent_streams: 100
+            initial_stream_window_size: 65536
+            initial_connection_window_size: 1048576
+          stream_idle_timeout: 300s
+          request_timeout: 300s
+      
+      For upstream clusters:
+      
+      clusters:
+      - name: backend_service
+        connect_timeout: 5s
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Slow clients may experience timeouts
+    estimated_time: 30 seconds
+  context:
+    rationale: Connection timeouts prevent resource exhaustion from slowloris attacks
+      and ensure resources are released when connections are idle.
+    impact: Long-running connections may be terminated; adjust timeouts based on use
+      case
+    false_positive_risk: Low
+    references:
+    - type: Envoy Best Practices
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/best_practices/edge
+  tags:
+  - envoy
+  - timeouts
+  - dos-protection
+  - network
+
+- rule_id: ENVOY-NET-002
+  legacy_ids: []
+  rule_name: Configure connection limits
+  rule_description: |
+    Configure connection limits at listener and global levels to prevent resource exhaustion from connection floods.
+  category: Network Security
+  subcategory: Connection Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check connection limit configuration:
+      
+      grep -E "connection_limit|max_connections|per_connection_buffer_limit|global_downstream_max_connections"
+      /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Listener connection limits are configured
+      2. Global downstream connection limits are set
+      3. Per-connection buffer limits are configured
+      
+      If connection limits are not configured, this is a finding.
+    check_command: 'grep -E "connection_limit|buffer_limit|max_connections" /etc/envoy/envoy.yaml
+      || echo "Connection limits not configured"'
+    expected_value: Connection limits configured
+  remediation:
+    remediation_step: |
+      Configure connection limits in envoy.yaml:
+      
+      static_resources:
+        listeners:
+        - name: http_listener
+          per_connection_buffer_limit_bytes: 32768
+          connection_balance_config:
+            exact_balance: {}
+      
+      For global limits using layered runtime:
+      
+      layered_runtime:
+        layers:
+        - name: static_layer_0
+          static_layer:
+            envoy:
+              resource_limits:
+                listener:
+                  http_listener:
+                    connection_limit: 10000
+            overload:
+              global_downstream_max_connections: 50000
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive connections will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Connection limits prevent resource exhaustion from connection floods
+      and ensure fair resource allocation.
+    impact: Connections exceeding limits will be rejected
+    false_positive_risk: Low
+    references:
+    - type: Envoy Best Practices
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/best_practices/edge
+  tags:
+  - envoy
+  - connection-limits
+  - dos-protection
+  - network
+
+- rule_id: ENVOY-NET-003
+  legacy_ids: []
+  rule_name: Configure buffer limits
+  rule_description: |
+    Configure per-connection buffer limits for listeners and clusters to prevent memory exhaustion attacks.
+  category: Network Security
+  subcategory: Buffer Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check buffer limit configuration:
+      
+      grep -E "per_connection_buffer_limit_bytes|buffer_limit" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Listener per_connection_buffer_limit_bytes is set (recommended: 32768)
+      2. Cluster per_connection_buffer_limit_bytes is configured
+      
+      If buffer limits are not configured, this is a finding.
+    check_command: 'grep -E "buffer_limit" /etc/envoy/envoy.yaml || echo "Buffer
+      limits not configured"'
+    expected_value: Buffer limits configured (recommended 32 KiB)
+  remediation:
+    remediation_step: |
+      Configure buffer limits in envoy.yaml:
+      
+      For listeners:
+      
+      static_resources:
+        listeners:
+        - name: http_listener
+          per_connection_buffer_limit_bytes: 32768
+      
+      For clusters:
+      
+      clusters:
+      - name: backend_service
+        per_connection_buffer_limit_bytes: 32768
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Large requests/responses may be affected
+    estimated_time: 30 seconds
+  context:
+    rationale: Buffer limits prevent memory exhaustion from large requests/responses
+      and help maintain predictable memory usage.
+    impact: Requests/responses exceeding buffer limits may be rejected
+    false_positive_risk: Low
+    references:
+    - type: Envoy Best Practices
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/best_practices/edge
+  tags:
+  - envoy
+  - buffer-limits
+  - dos-protection
+  - memory
+
+- rule_id: ENVOY-RATE-001
+  legacy_ids: []
+  rule_name: Configure rate limiting
+  rule_description: |
+    Configure rate limiting to protect backend services from abuse and denial-of-service attacks.
+  category: Network Security
+  subcategory: Rate Limiting
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check rate limiting configuration:
+      
+      grep -A20 "rate_limit\|local_rate_limit\|ratelimit" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Rate limiting is configured (local or external)
+      2. Appropriate limits are set for your environment
+      3. Rate limit responses are appropriate
+      
+      If rate limiting is not configured, this is a finding.
+    check_command: 'grep -E "rate_limit|ratelimit" /etc/envoy/envoy.yaml || echo
+      "Rate limiting not configured"'
+    expected_value: Rate limiting configured
+  remediation:
+    remediation_step: |
+      Configure local rate limiting in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.http.local_ratelimit
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          stat_prefix: http_local_rate_limiter
+          token_bucket:
+            max_tokens: 100
+            tokens_per_fill: 100
+            fill_interval: 1s
+          filter_enabled:
+            runtime_key: local_rate_limit_enabled
+            default_value:
+              numerator: 100
+              denominator: HUNDRED
+          filter_enforced:
+            runtime_key: local_rate_limit_enforced
+            default_value:
+              numerator: 100
+              denominator: HUNDRED
+          response_headers_to_add:
+          - header:
+              key: x-rate-limited
+              value: "true"
+          local_rate_limit_per_downstream_connection_quota_factor:
+            numerator: 100
+            denominator: HUNDRED
+      
+      For external rate limiting service:
+      
+      http_filters:
+      - name: envoy.filters.http.ratelimit
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+          domain: envoy
+          failure_mode_deny: true
+          rate_limit_service:
+            grpc_service:
+              envoy_grpc:
+                cluster_name: rate_limit_cluster
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive requests will be rate limited (HTTP 429)
+    estimated_time: 30 seconds
+  context:
+    rationale: Rate limiting protects backend services from abuse, brute force attacks,
+      and denial-of-service attacks by limiting request rates.
+    impact: Legitimate high-frequency requests may be throttled
+    false_positive_risk: Low
+    references:
+    - type: Envoy Rate Limiting
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting
+  tags:
+  - envoy
+  - rate-limiting
+  - dos-protection
+  - throttling
+
+- rule_id: ENVOY-RBAC-001
+  legacy_ids: []
+  rule_name: Configure RBAC for access control
+  rule_description: |
+    Configure Role-Based Access Control (RBAC) to restrict access to services based on user identity, permissions, or other attributes.
+  category: Access Control
+  subcategory: RBAC
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check RBAC configuration:
+      
+      grep -A30 "rbac\|role_based_access_control" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. RBAC filter is configured if access control is required
+      2. Policies are defined for allowed/denied access
+      3. Default action is appropriate (deny by default recommended)
+      
+      If RBAC is required but not configured, this is a finding.
+    check_command: 'grep -E "rbac" /etc/envoy/envoy.yaml || echo "RBAC not configured"'
+    expected_value: RBAC configured if access control is required
+  remediation:
+    remediation_step: |
+      Configure RBAC in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.http.rbac
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+          rules:
+            action: ALLOW
+            policies:
+              "public-access":
+                permissions:
+                - header: {name: ":path", prefix_match: "/api/public/"}
+                principals:
+                - any: true
+              "admin-access":
+                permissions:
+                - any: true
+                principals:
+                - authenticated:
+                    principal_name:
+                      safe_regex:
+                        google_re2: {}
+                        regex: "admin@.*\\.example\\.com"
+              "service-account":
+                permissions:
+                - any: true
+                principals:
+                - header:
+                    name: x-service-account
+                    string_match:
+                      exact: "trusted-service"
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Unauthorized requests will be denied (HTTP 403)
+    estimated_time: 30 seconds
+  context:
+    rationale: RBAC provides fine-grained access control, ensuring only authorized
+      users and services can access protected resources.
+    impact: Access will be restricted based on RBAC policies
+    false_positive_risk: Medium
+    references:
+    - type: Envoy RBAC Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/rbac_filter
+  tags:
+  - envoy
+  - rbac
+  - access-control
+  - authorization
+
+- rule_id: ENVOY-EXTAUTH-001
+  legacy_ids: []
+  rule_name: Configure external authorization
+  rule_description: |
+    Configure external authorization (ext_authz) for centralized policy enforcement and authentication.
+  category: Access Control
+  subcategory: External Auth
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check external authorization configuration:
+      
+      grep -A30 "ext_authz\|external_authorization" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. ext_authz filter is configured if centralized auth is required
+      2. Authorization service endpoint is specified
+      3. failure_mode_allow is set appropriately (false recommended)
+      4. Timeout is configured
+      
+      If external auth is required but not configured, this is a finding.
+    check_command: 'grep -E "ext_authz" /etc/envoy/envoy.yaml || echo "External auth
+      not configured"'
+    expected_value: External auth configured if centralized authorization is required
+  remediation:
+    remediation_step: |
+      Configure external authorization in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.http.ext_authz
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+          transport_api_version: V3
+          grpc_service:
+            envoy_grpc:
+              cluster_name: ext_authz_cluster
+            timeout: 0.5s
+          clear_route_cache: true
+          failure_mode_allow: false
+          include_peer_certificate: true
+          status_on_error:
+            code: "ServiceUnavailable"
+      
+      Define the authorization service cluster:
+      
+      clusters:
+      - name: ext_authz_cluster
+        type: STRICT_DNS
+        connect_timeout: 0.5s
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: ext_authz_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: authz-server
+                    port_value: 9000
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: All requests go through authorization service; auth service availability
+      affects all traffic
+    estimated_time: 30 seconds
+  context:
+    rationale: External authorization enables centralized policy enforcement, allowing
+      consistent authentication and authorization across all services.
+    impact: Auth service must be highly available; auth failures will block requests
+    false_positive_risk: Low
+    references:
+    - type: Envoy External Auth Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter
+  tags:
+  - envoy
+  - ext-authz
+  - authorization
+  - access-control
+  - authentication
+
+- rule_id: ENVOY-JWT-001
+  legacy_ids: []
+  rule_name: Configure JWT authentication
+  rule_description: |
+    Configure JWT authentication filter to validate JSON Web Tokens for API authentication.
+  category: Authentication
+  subcategory: JWT
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check JWT authentication configuration:
+      
+      grep -A30 "jwt_authn\|jwt_auth" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. JWT filter is configured if JWT authentication is required
+      2. JWT issuers and audiences are properly configured
+      3. Token validation is enabled (signature, expiration, etc.)
+      4. JWKS endpoint or public keys are configured
+      
+      If JWT authentication is required but not configured, this is a finding.
+    check_command: 'grep -E "jwt_authn" /etc/envoy/envoy.yaml || echo "JWT authentication
+      not configured"'
+    expected_value: JWT authentication configured if token-based auth is required
+  remediation:
+    remediation_step: |
+      Configure JWT authentication in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.http.jwt_authn
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+          providers:
+            provider1:
+              issuer: https://issuer.example.com
+              audiences:
+              - audience1
+              - audience2
+              remote_jwks:
+                http_uri:
+                  uri: https://issuer.example.com/.well-known/jwks.json
+                  cluster: jwks_cluster
+                  timeout: 5s
+                cache_duration: 300s
+              forward_payload_header: x-jwt-payload
+          rules:
+          - match:
+              prefix: /api/
+            requires:
+              provider_name: provider1
+      
+      Define JWKS cluster:
+      
+      clusters:
+      - name: jwks_cluster
+        type: STRICT_DNS
+        connect_timeout: 5s
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: jwks_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: issuer.example.com
+                    port_value: 443
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+            sni: issuer.example.com
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requests without valid JWTs will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: JWT authentication provides secure, stateless authentication for APIs
+      and microservices using industry-standard tokens.
+    impact: All protected endpoints require valid JWT tokens
+    false_positive_risk: Low
+    references:
+    - type: Envoy JWT Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/jwt_authn_filter
+  tags:
+  - envoy
+  - jwt
+  - authentication
+  - api-security
+  - tokens
+
+- rule_id: ENVOY-OVERLOAD-001
+  legacy_ids: []
+  rule_name: Configure overload manager
+  rule_description: |
+    Configure the overload manager to protect Envoy from resource exhaustion and maintain availability under load.
+  category: Resource Management
+  subcategory: Overload Protection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check overload manager configuration:
+      
+      grep -A30 "overload_manager" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. overload_manager is configured
+      2. Resource monitors are defined (heap, CPU, connections)
+      3. Actions are configured (shrink_heap, stop_accepting_requests)
+      4. Thresholds are appropriate for your system
+      
+      If overload manager is not configured, this is a finding.
+    check_command: 'grep -E "overload_manager" /etc/envoy/envoy.yaml || echo "Overload
+      manager not configured"'
+    expected_value: Overload manager configured with appropriate resource monitors
+  remediation:
+    remediation_step: |
+      Configure overload manager in envoy.yaml:
+      
+      overload_manager:
+        refresh_interval: 0.25s
+        resource_monitors:
+        - name: envoy.resource_monitors.fixed_heap
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.resource_monitors.fixed_heap.v3.FixedHeapConfig
+            max_heap_size_bytes: 2147483648
+        - name: envoy.resource_monitors.global_downstream_max_connections
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.resource_monitors.downstream_connections.v3.DownstreamConnectionsConfig
+            max_active_downstream_connections: 50000
+        actions:
+        - name: envoy.overload_actions.shrink_heap
+          triggers:
+          - name: envoy.resource_monitors.fixed_heap
+            threshold:
+              value: 0.95
+        - name: envoy.overload_actions.stop_accepting_requests
+          triggers:
+          - name: envoy.resource_monitors.fixed_heap
+            threshold:
+              value: 0.98
+      
+      Adjust max_heap_size_bytes based on your system memory.
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Under overload, new requests may be rejected to maintain stability
+    estimated_time: 30 seconds
+  context:
+    rationale: Overload manager protects Envoy from resource exhaustion by monitoring
+      system resources and taking corrective action before failure.
+    impact: Under heavy load, some requests may be rejected to maintain overall system
+      stability
+    false_positive_risk: Low
+    references:
+    - type: Envoy Overload Manager
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/operations/overload_manager/overload_manager
+  tags:
+  - envoy
+  - overload-manager
+  - resource-management
+  - dos-protection
+  - availability
+
+- rule_id: ENVOY-HEALTH-001
+  legacy_ids: []
+  rule_name: Configure health checks securely
+  rule_description: |
+    Configure health checks to prevent information disclosure and restrict access to health check endpoints.
+  category: Configuration
+  subcategory: Health Checks
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check health check configuration:
+      
+      grep -A20 "health_check" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Health check endpoints are not publicly exposed
+      2. Health checks use appropriate paths
+      3. Sensitive information is not exposed in health responses
+      4. Health check filter is configured with appropriate access controls
+      
+      If health checks expose sensitive information or are publicly accessible, this is a finding.
+    check_command: 'grep -E "health_check" /etc/envoy/envoy.yaml || echo "Health
+      checks not configured"'
+    expected_value: Health checks configured securely
+  remediation:
+    remediation_step: |
+      Configure secure health checks in envoy.yaml:
+      
+      For upstream cluster health checks:
+      
+      clusters:
+      - name: backend_service
+        health_checks:
+        - timeout: 5s
+          interval: 10s
+          unhealthy_threshold: 3
+          healthy_threshold: 1
+          http_health_check:
+            path: "/healthz"
+            expected_statuses:
+            - start: 200
+              end: 200
+      
+      For health check filter with access control:
+      
+      http_filters:
+      - name: envoy.filters.http.health_check
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
+          pass_through_mode: false
+          headers:
+          - name: ":path"
+            string_match:
+              exact: "/healthz"
+      
+      Restrict health check endpoint access using RBAC:
+      
+      http_filters:
+      - name: envoy.filters.http.rbac
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+          rules:
+            action: ALLOW
+            policies:
+              "health-check":
+                permissions:
+                - header: {name: ":path", exact_match: "/healthz"}
+                principals:
+                - source_ips:
+                    address_prefix: "127.0.0.1"
+                    prefix_len: 32
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Health checks restricted to authorized sources
+    estimated_time: 30 seconds
+  context:
+    rationale: Secure health checks prevent information disclosure and ensure only
+      authorized systems can query health status.
+    impact: Health check access may be restricted
+    false_positive_risk: Low
+    references:
+    - type: Envoy Health Check
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking
+  tags:
+  - envoy
+  - health-check
+  - security
+  - availability
+
+- rule_id: ENVOY-HTTP-001
+  legacy_ids: []
+  rule_name: Configure HTTP/2 security settings
+  rule_description: |
+    Configure HTTP/2 protocol options to prevent resource exhaustion attacks specific to HTTP/2.
+  category: Network Security
+  subcategory: HTTP/2 Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check HTTP/2 configuration:
+      
+      grep -A20 "http2_protocol_options" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. max_concurrent_streams is limited (recommended: 100)
+      2. initial_stream_window_size is limited (recommended: 64 KiB)
+      3. initial_connection_window_size is limited (recommended: 1 MiB)
+      
+      If HTTP/2 options are not configured, this is a finding.
+    check_command: 'grep -E "http2_protocol_options" /etc/envoy/envoy.yaml || echo
+      "HTTP/2 options not configured"'
+    expected_value: HTTP/2 options configured with appropriate limits
+  remediation:
+    remediation_step: |
+      Configure HTTP/2 options in envoy.yaml:
+      
+      For HTTP connection manager:
+      
+      http_filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          http2_protocol_options:
+            max_concurrent_streams: 100
+            initial_stream_window_size: 65536
+            initial_connection_window_size: 1048576
+      
+      For upstream clusters:
+      
+      clusters:
+      - name: backend_service
+        typed_extension_protocol_options:
+          envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+            "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+            explicit_http_config:
+              http2_protocol_options:
+                max_concurrent_streams: 100
+                initial_stream_window_size: 65536
+                initial_connection_window_size: 1048576
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Limits HTTP/2 stream concurrency
+    estimated_time: 30 seconds
+  context:
+    rationale: HTTP/2 has different attack vectors than HTTP/1.1. Limiting concurrent
+      streams and window sizes prevents resource exhaustion attacks.
+    impact: May limit performance for HTTP/2-heavy workloads
+    false_positive_risk: Low
+    references:
+    - type: Envoy Best Practices
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/best_practices/edge
+  tags:
+  - envoy
+  - http2
+  - security
+  - dos-protection
+
+- rule_id: ENVOY-HTTP-002
+  legacy_ids: []
+  rule_name: Enable path normalization
+  rule_description: |
+    Enable path normalization to prevent path confusion vulnerabilities and directory traversal attacks.
+  category: Application Security
+  subcategory: Path Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check path normalization configuration:
+      
+      grep -E "normalize_path|merge_slashes|path_with_escaped_slashes_action" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. normalize_path is set to true
+      2. merge_slashes is set to true
+      3. path_with_escaped_slashes_action is configured appropriately
+      
+      If path normalization is not configured, this is a finding.
+    check_command: 'grep -E "normalize_path|merge_slashes" /etc/envoy/envoy.yaml ||
+      echo "Path normalization not configured"'
+    expected_value: Path normalization enabled
+  remediation:
+    remediation_step: |
+      Configure path normalization in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          normalize_path: true
+          merge_slashes: true
+          path_with_escaped_slashes_action: UNESCAPE_AND_REDIRECT
+      
+      Options for path_with_escaped_slashes_action:
+      - REJECT_REQUEST: For RFC 3986 compliant clients (e.g., gRPC)
+      - UNESCAPE_AND_REDIRECT: For browsers that support redirects
+      - KEEP_UNCHANGED: For non-RFC compliant servers
+      - UNESCAPE_AND_FORWARD: For servers that treat escaped/unescaped slashes equivalently
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requests with unusual path encoding may be redirected or rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Path normalization prevents path confusion vulnerabilities where different
+      parties interpret paths differently, potentially bypassing access controls.
+    impact: May affect applications that rely on specific path encoding
+    false_positive_risk: Medium
+    references:
+    - type: Envoy Best Practices
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/best_practices/edge
+  tags:
+  - envoy
+  - path-normalization
+  - security
+  - application-security
+
+- rule_id: ENVOY-HTTP-003
+  legacy_ids: []
+  rule_name: Configure header security settings
+  rule_description: |
+    Configure header security settings to prevent header injection and handle malformed headers appropriately.
+  category: Application Security
+  subcategory: Header Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check header security configuration:
+      
+      grep -E "headers_with_underscores_action|use_remote_address" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. headers_with_underscores_action is set to REJECT_REQUEST
+      2. use_remote_address is set to true for edge proxies
+      
+      If header security settings are not configured, this is a finding.
+    check_command: 'grep -E "headers_with_underscores|use_remote_address" /etc/envoy/envoy.yaml
+      || echo "Header security not configured"'
+    expected_value: Header security settings configured
+  remediation:
+    remediation_step: |
+      Configure header security in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          use_remote_address: true
+          common_http_protocol_options:
+            headers_with_underscores_action: REJECT_REQUEST
+          xff_num_trusted_hops: 0
+      
+      The headers_with_underscores_action protects upstream services that treat '_'
+      and '-' as interchangeable.
+      
+      use_remote_address ensures external client headers are not trusted.
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requests with underscore headers will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Header security settings prevent header injection attacks and ensure
+      proper handling of client-provided headers.
+    impact: Some legacy applications may use underscore headers
+    false_positive_risk: Medium
+    references:
+    - type: Envoy Best Practices
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/best_practices/edge
+    - type: Envoy Header Sanitizing
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/header_sanitizing
+  tags:
+  - envoy
+  - headers
+  - security
+  - application-security
+
+- rule_id: ENVOY-CIRCUIT-001
+  legacy_ids: []
+  rule_name: Configure circuit breakers
+  rule_description: |
+    Configure circuit breakers to prevent cascade failures and protect upstream services from overload.
+  category: Resilience
+  subcategory: Circuit Breakers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check circuit breaker configuration:
+      
+      grep -A20 "circuit_breakers" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Circuit breakers are configured for each cluster
+      2. Max connections, pending requests, and requests limits are set
+      3. Retry limits are configured
+      
+      If circuit breakers are not configured, this is a finding.
+    check_command: 'grep -E "circuit_breakers" /etc/envoy/envoy.yaml || echo "Circuit
+      breakers not configured"'
+    expected_value: Circuit breakers configured
+  remediation:
+    remediation_step: |
+      Configure circuit breakers in envoy.yaml:
+      
+      clusters:
+      - name: backend_service
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        circuit_breakers:
+          thresholds:
+          - priority: DEFAULT
+            max_connections: 1000
+            max_pending_requests: 1000
+            max_requests: 1000
+            max_retries: 3
+          - priority: HIGH
+            max_connections: 500
+            max_pending_requests: 500
+            max_requests: 500
+            max_retries: 2
+      
+      Adjust values based on your upstream service capacity.
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requests exceeding limits will be rejected (HTTP 503)
+    estimated_time: 30 seconds
+  context:
+    rationale: Circuit breakers prevent cascade failures by limiting connections
+      and requests to upstream services, allowing them to recover from overload.
+    impact: Excess traffic will be rejected rather than queued
+    false_positive_risk: Low
+    references:
+    - type: Envoy Circuit Breakers
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking
+  tags:
+  - envoy
+  - circuit-breakers
+  - resilience
+  - fault-tolerance
+
+- rule_id: ENVOY-OUTLIER-001
+  legacy_ids: []
+  rule_name: Configure outlier detection
+  rule_description: |
+    Configure outlier detection to automatically remove unhealthy hosts from the load balancing pool.
+  category: Resilience
+  subcategory: Outlier Detection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check outlier detection configuration:
+      
+      grep -A20 "outlier_detection" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Outlier detection is configured for clusters
+      2. Ejection thresholds are appropriate
+      3. Ejection duration is configured
+      
+      If outlier detection is not configured, this is a finding.
+    check_command: 'grep -E "outlier_detection" /etc/envoy/envoy.yaml || echo "Outlier
+      detection not configured"'
+    expected_value: Outlier detection configured
+  remediation:
+    remediation_step: |
+      Configure outlier detection in envoy.yaml:
+      
+      clusters:
+      - name: backend_service
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        outlier_detection:
+          consecutive_5xx: 5
+          interval: 30s
+          base_ejection_time: 30s
+          max_ejection_percent: 50
+          success_rate_minimum_hosts: 3
+          success_rate_request_volume: 10
+          success_rate_stdev_factor: 1900
+          enforcing_consecutive_5xx: 100
+          enforcing_success_rate: 100
+          enforcing_failure_percentage:
+            value: 100
+          failure_percentage_threshold: 50
+          failure_percentage_request_volume: 10
+          enforcing_local_origin_success_rate:
+            value: 100
+          enforcing_local_origin_consecutive_5xx:
+            value: 100
+          enforcing_local_origin_failure_percentage:
+            value: 100
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Unhealthy hosts will be temporarily removed from load balancing
+    estimated_time: 30 seconds
+  context:
+    rationale: Outlier detection improves resilience by automatically detecting and
+      removing unhealthy hosts from the load balancing pool.
+    impact: Some hosts may be temporarily removed from rotation
+    false_positive_risk: Medium
+    references:
+    - type: Envoy Outlier Detection
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier
+  tags:
+  - envoy
+  - outlier-detection
+  - resilience
+  - fault-tolerance
+
+- rule_id: ENVOY-FIPS-001
+  legacy_ids: []
+  rule_name: Use FIPS-compliant build
+  rule_description: |
+    Use a FIPS 140-2 compliant Envoy build when cryptographic module compliance is required.
+  category: Cryptography
+  subcategory: FIPS Compliance
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Partial
+    audit_type: runtime
+    detection_step: |
+      Check if Envoy is built with FIPS support:
+      
+      envoy --version
+      
+      Look for "BoringSSL-FIPS" or "AWS-LC-FIPS" in the version output.
+      
+      If FIPS compliance is required but not using FIPS build, this is a finding.
+    check_command: envoy --version 2>/dev/null | grep -i fips || echo "FIPS not detected"
+    expected_value: FIPS-compliant build if required
+  remediation:
+    remediation_step: |
+      Use a FIPS-compliant Envoy build:
+      
+      For BoringSSL FIPS:
+      Build Envoy with --config=boringssl-fips Bazel option.
+      
+      For AWS-LC FIPS:
+      Build Envoy with --config=aws-lc-fips Bazel option.
+      
+      Verify FIPS build:
+      envoy --version
+      
+      Expected output should include "BoringSSL-FIPS" or "AWS-LC-FIPS".
+      
+      Note: FIPS compliance also requires:
+      1. Using only approved algorithms
+      2. Using keys generated by FIPS-approved module
+      3. Proper configuration of FIPS mode
+      
+      Consult the Security Policy for BoringCrypto module or AWS-LC for full requirements.
+    rollback_supported: false
+    reboot_required: true
+    service_impact: Requires rebuild and redeployment of Envoy
+    estimated_time: Variable
+  context:
+    rationale: FIPS 140-2 compliance is required for certain regulated environments
+      and ensures cryptographic operations meet government standards.
+    impact: Must rebuild Envoy with FIPS support; may limit some features
+    false_positive_risk: None
+    references:
+    - type: Envoy FIPS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl#fips-140-2
+    - type: BoringSSL FIPS
+      reference: https://boringssl.googlesource.com/boringssl/+/main/crypto/fipsmodule/FIPS.md
+  tags:
+  - envoy
+  - fips
+  - cryptography
+  - compliance
+
+- rule_id: ENVOY-CLUSTER-001
+  legacy_ids: []
+  rule_name: Configure cluster TLS for upstream connections
+  rule_description: |
+    Configure TLS for upstream cluster connections to ensure encrypted communication with backend services.
+  category: Cryptography
+  subcategory: Upstream TLS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check upstream TLS configuration:
+      
+      grep -A30 "clusters:" /etc/envoy/envoy.yaml | grep -A20 "transport_socket"
+      
+      Verify:
+      1. TLS is configured for upstream clusters handling sensitive data
+      2. Certificate verification is enabled
+      3. SNI is configured where appropriate
+      
+      If upstream TLS is not configured for sensitive services, this is a finding.
+    check_command: 'grep -A30 "clusters:" /etc/envoy/envoy.yaml | grep -E "transport_socket|tls"'
+    expected_value: TLS configured for upstream clusters
+  remediation:
+    remediation_step: |
+      Configure upstream TLS in envoy.yaml:
+      
+      clusters:
+      - name: backend_service
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+            common_tls_context:
+              tls_params:
+                tls_minimum_protocol_version: TLSv1_2
+              validation_context:
+                match_typed_subject_alt_names:
+                - san_type: DNS
+                  matcher:
+                    exact: "backend.example.com"
+                trusted_ca:
+                  filename: /etc/ssl/certs/ca-certificates.crt
+            sni: backend.example.com
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Connections to backends will use TLS
+    estimated_time: 30 seconds
+  context:
+    rationale: TLS for upstream connections ensures data in transit to backend services
+      is encrypted and protected from interception.
+    impact: Backend services must support TLS
+    false_positive_risk: Low
+    references:
+    - type: Envoy TLS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl
+  tags:
+  - envoy
+  - tls
+  - upstream
+  - encryption
+
+- rule_id: ENVOY-MTLS-001
+  legacy_ids: []
+  rule_name: Configure mutual TLS (mTLS) for service-to-service communication
+  rule_description: |
+    Configure mutual TLS authentication to verify both client and server identities in service-to-service communication.
+  category: Authentication
+  subcategory: Mutual TLS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check mTLS configuration:
+      
+      grep -A30 "tls_context\|DownstreamTlsContext\|UpstreamTlsContext" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Client certificate authentication is required
+      2. Client certificates are validated against trusted CA
+      3. Both sides present and verify certificates
+      
+      If mTLS is required but not configured, this is a finding.
+    check_command: 'grep -E "require_client_certificate|tls_certificates" /etc/envoy/envoy.yaml
+      || echo "mTLS not configured"'
+    expected_value: mTLS configured for service mesh or sensitive services
+  remediation:
+    remediation_step: |
+      Configure mTLS in envoy.yaml:
+      
+      For downstream (server-side):
+      
+      tls_context:
+        common_tls_context:
+          tls_certificates:
+          - certificate_chain: {filename: "certs/servercert.pem"}
+            private_key: {filename: "certs/serverkey.pem"}
+          validation_context:
+            trusted_ca:
+              filename: certs/client-ca.pem
+        require_client_certificate: true
+      
+      For upstream (client-side):
+      
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
+            tls_certificates:
+            - certificate_chain: {filename: "certs/clientcert.pem"}
+              private_key: {filename: "certs/clientkey.pem"}
+            validation_context:
+              match_typed_subject_alt_names:
+              - san_type: DNS
+                matcher:
+                  exact: "backend.example.com"
+              trusted_ca:
+                filename: certs/server-ca.pem
+          sni: backend.example.com
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Services without valid certificates cannot communicate
+    estimated_time: 30 seconds
+  context:
+    rationale: mTLS provides strong authentication for service-to-service communication,
+      ensuring both parties are verified before exchanging data.
+    impact: All services must have valid certificates; certificate management required
+    false_positive_risk: Low
+    references:
+    - type: Envoy TLS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl
+  tags:
+  - envoy
+  - mtls
+  - authentication
+  - service-mesh
+  - certificates
+
+- rule_id: ENVOY-STATS-001
+  legacy_ids: []
+  rule_name: Secure statistics export
+  rule_description: |
+    Configure secure statistics export to prevent exposure of sensitive operational data.
+  category: Observability
+  subcategory: Statistics
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check statistics configuration:
+      
+      grep -A20 "stats_sinks\|statsd\|prometheus" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Stats endpoints are not publicly exposed
+      2. Stats sinks are configured securely
+      3. Sensitive stats are filtered if necessary
+      
+      If stats are exposed publicly without access control, this is a finding.
+    check_command: 'grep -E "stats_sinks|stats|prometheus" /etc/envoy/envoy.yaml ||
+      echo "Stats configuration not found"'
+    expected_value: Statistics secured and not publicly exposed
+  remediation:
+    remediation_step: |
+      Configure secure statistics export in envoy.yaml:
+      
+      stats_sinks:
+      - name: envoy.stat_sinks.statsd
+        typed_config:
+          "@type": type.googleapis.com/envoy.config.metrics.v3.StatsdSink
+          address:
+            socket_address:
+              address: statsd-server.internal
+              port_value: 8125
+          prefix: envoy
+      
+      Or for Prometheus via admin interface (ensure admin is secured):
+      
+      Access stats at: http://127.0.0.1:9901/stats/prometheus
+      
+      Ensure:
+      1. Admin interface is bound to localhost
+      2. Stats collection network is isolated
+      3. Stats do not contain sensitive data (use stats_prefix filter)
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Stats available only to authorized systems
+    estimated_time: 30 seconds
+  context:
+    rationale: Statistics can reveal operational details about your infrastructure.
+      Exposing them publicly aids attackers in understanding your system.
+    impact: Stats collection must be done securely
+    false_positive_risk: Low
+    references:
+    - type: Envoy Stats Overview
+      reference: https://www.envoyproxy.io/docs/envoy/latest/operations/stats_overview
+  tags:
+  - envoy
+  - statistics
+  - observability
+  - security
+
+- rule_id: ENVOY-SDS-001
+  legacy_ids: []
+  rule_name: Use Secret Discovery Service (SDS) for certificate management
+  rule_description: |
+    Configure Secret Discovery Service (SDS) for dynamic certificate rotation without Envoy restart.
+  category: Configuration
+  subcategory: Certificate Management
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SDS configuration:
+      
+      grep -A20 "sds\|secret_discovery" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. SDS is configured for dynamic certificate management
+      2. SDS server is properly secured
+      3. Certificate rotation is tested
+      
+      If static certificates are used and rotation is required, consider SDS.
+    check_command: 'grep -E "sds|secret" /etc/envoy/envoy.yaml || echo "SDS not configured"'
+    expected_value: SDS configured for dynamic certificate management (optional)
+  remediation:
+    remediation_step: |
+      Configure SDS in envoy.yaml:
+      
+      dynamic_resources:
+        cds_config:
+          api_config_source:
+            api_type: GRPC
+            grpc_services:
+            - envoy_grpc:
+                cluster_name: xds_cluster
+        lds_config:
+          api_config_source:
+            api_type: GRPC
+            grpc_services:
+            - envoy_grpc:
+                cluster_name: xds_cluster
+        ads_config:
+          api_type: GRPC
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: xds_cluster
+      
+      clusters:
+      - name: xds_cluster
+        connect_timeout: 5s
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+            common_tls_context:
+              tls_certificates:
+              - certificate_chain: {filename: "certs/envoy.pem"}
+                private_key: {filename: "certs/envoy-key.pem"}
+              validation_context:
+                trusted_ca:
+                  filename: certs/root-ca.pem
+        load_assignment:
+          cluster_name: xds_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: xds-server
+                    port_value: 18000
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Enables dynamic certificate rotation
+    estimated_time: 30 seconds
+  context:
+    rationale: SDS enables dynamic certificate rotation without Envoy restart, improving
+      security posture and operational efficiency.
+    impact: Requires SDS server deployment and management
+    false_positive_risk: Low
+    references:
+    - type: Envoy SDS Documentation
+      reference: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl#secret-discovery-service-sds
+  tags:
+  - envoy
+  - sds
+  - certificates
+  - xds
+  - dynamic-configuration
+
+- rule_id: ENVOY-CSRF-001
+  legacy_ids: []
+  rule_name: Configure CSRF protection
+  rule_description: |
+    Configure Cross-Site Request Forgery (CSRF) protection for web applications.
+  category: Application Security
+  subcategory: CSRF Protection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check CSRF filter configuration:
+      
+      grep -A20 "csrf" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. CSRF filter is configured for web applications
+      2. Shadow mode is disabled (filter is enforced)
+      3. Appropriate origins are allowed
+      
+      If CSRF protection is needed but not configured, this is a finding.
+    check_command: 'grep -E "csrf" /etc/envoy/envoy.yaml || echo "CSRF protection
+      not configured"'
+    expected_value: CSRF protection configured for web applications
+  remediation:
+    remediation_step: |
+      Configure CSRF filter in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.http.csrf
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.csrf.v3.CsrfPolicy
+          filter_enabled:
+            runtime_key: csrf_filter_enabled
+            default_value:
+              numerator: 100
+              denominator: HUNDRED
+          shadow_enabled:
+            runtime_key: csrf_shadow_enabled
+            default_value:
+              numerator: 0
+              denominator: HUNDRED
+      
+      Ensure your application:
+      1. Sets CSRF tokens in responses
+      2. Validates tokens in requests
+      3. Uses SameSite cookie attribute
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requests without valid CSRF tokens will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: CSRF protection prevents unauthorized actions from being performed
+      on behalf of authenticated users by malicious websites.
+    impact: Requires application to support CSRF tokens
+    false_positive_risk: Medium
+    references:
+    - type: Envoy CSRF Filter
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/csrf_filter
+  tags:
+  - envoy
+  - csrf
+  - application-security
+  - web-security
+
+- rule_id: ENVOY-CORS-001
+  legacy_ids: []
+  rule_name: Configure CORS policy
+  rule_description: |
+    Configure Cross-Origin Resource Sharing (CORS) policy to restrict cross-origin requests appropriately.
+  category: Application Security
+  subcategory: CORS
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check CORS configuration:
+      
+      grep -A20 "cors" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. CORS is configured if cross-origin access is needed
+      2. Allowed origins are explicitly specified (not "*")
+      3. Allowed methods and headers are restricted
+      
+      If CORS is overly permissive, this is a finding.
+    check_command: 'grep -E "cors" /etc/envoy/envoy.yaml || echo "CORS not configured"'
+    expected_value: CORS configured with appropriate restrictions
+  remediation:
+    remediation_step: |
+      Configure CORS in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.http.cors
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+      
+      route_config:
+        virtual_hosts:
+        - name: backend
+          domains: ["*"]
+          routes:
+          - match: {prefix: "/api"}
+            route: {cluster: backend_service}
+          cors:
+            allow_origin_string_match:
+            - exact: "https://app.example.com"
+            - exact: "https://admin.example.com"
+            allow_methods: "GET, POST, PUT, DELETE, OPTIONS"
+            allow_headers: "content-type, authorization, x-request-id"
+            expose_headers: "x-custom-header"
+            max_age: "86400"
+            allow_credentials: true
+      
+      Avoid using "*" for allow_origin_string_match in production.
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Cross-origin requests restricted to allowed origins
+    estimated_time: 30 seconds
+  context:
+    rationale: Properly configured CORS prevents unauthorized cross-origin access
+      while allowing legitimate cross-origin requests.
+    impact: Cross-origin requests from unauthorized origins will be blocked
+    false_positive_risk: Low
+    references:
+    - type: Envoy CORS Filter
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/cors_filter
+  tags:
+  - envoy
+  - cors
+  - application-security
+  - web-security
+
+- rule_id: ENVOY-COMPRESSION-001
+  legacy_ids: []
+  rule_name: Configure compression securely
+  rule_description: |
+    Configure compression filters securely to prevent compression-based attacks (BREACH, CRIME).
+  category: Performance
+  subcategory: Compression
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check compression configuration:
+      
+      grep -A20 "compressor\|gzip" /etc/envoy/envoy.yaml
+      
+      Verify:
+      1. Compression is not applied to responses containing sensitive data
+      2. Compression level is appropriate
+      3. Minimum content length threshold is set
+      
+      If compression is applied to sensitive content without consideration, this may
+      be a finding.
+    check_command: 'grep -E "compressor|gzip" /etc/envoy/envoy.yaml || echo "Compression
+      not configured"'
+    expected_value: Compression configured securely
+  remediation:
+    remediation_step: |
+      Configure compression securely in envoy.yaml:
+      
+      http_filters:
+      - name: envoy.filters.http.compressor
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.compressor.v3.Compressor
+          response_direction_config:
+            common_config:
+              min_content_length: 1024
+              content_type:
+              - text/html
+              - application/json
+              - text/css
+              - application/javascript
+            compressor:
+              compressor_library:
+                name: zlib
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.compression.gzip.compressor.v3.Gzip
+                  compression_level: BEST_SPEED
+                  compression_strategy: DEFAULT_STRATEGY
+            disable_on_etag_header: true
+      
+      Note: Avoid compressing responses with:
+      1. CSRF tokens
+      2. Session IDs
+      3. Authentication tokens
+      4. Other sensitive data that could be leaked via compression attacks
+      
+      Restart Envoy: systemctl restart envoy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Responses below threshold not compressed
+    estimated_time: 30 seconds
+  context:
+    rationale: Compression attacks (BREACH, CRIME) can extract secrets from compressed
+      responses. Proper configuration minimizes risk.
+    impact: Smaller responses may not be compressed
+    false_positive_risk: Low
+    references:
+    - type: Envoy Compressor Filter
+      reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/compressor_filter
+  tags:
+  - envoy
+  - compression
+  - performance
+  - security
