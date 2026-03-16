@@ -1,0 +1,996 @@
+schema_version: 1.0.0
+metadata:
+  name: Traefik Security Hardening Rules
+  version: '1.0.0'
+  description: Security hardening rules for Traefik reverse proxy and load balancer
+    based on official Traefik documentation and best practices
+  platform: Traefik
+  benchmark: Traefik Official Documentation
+  author: Compliance Rules Team
+  source: https://doc.traefik.io/traefik/
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Traefik 2.x
+  - Traefik 3.x
+  references:
+  - type: Traefik Documentation
+    reference: https://doc.traefik.io/traefik/
+  - type: Traefik TLS
+    reference: https://doc.traefik.io/traefik/https/tls
+  - type: Traefik Middlewares
+    reference: https://doc.traefik.io/traefik/middlewares/overview/
+compliance_info:
+  framework: NIST
+  version: '1.0.0'
+  profile: security-hardening
+  source:
+    framework: traefik
+    benchmark: Traefik Official Documentation
+    version: latest
+    profile: security-hardening
+    notes: Rules derived from official Traefik documentation and best practices. No
+      dedicated CIS or STIG exists for Traefik.
+rules:
+- rule_id: TRAEFIK-TLS-001
+  legacy_ids: []
+  rule_name: Configure TLS 1.2 or higher minimum version
+  rule_description: |
+    Configure Traefik to use TLS 1.2 or higher for all encrypted connections. TLS 1.0 and 1.1 contain known vulnerabilities and are deprecated.
+  category: Cryptography
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Traefik TLS configuration:
+      
+      For static configuration (traefik.yml):
+      grep -A10 "tls:" /etc/traefik/traefik.yml
+      grep -A10 "minVersion" /etc/traefik/traefik.yml
+      
+      For dynamic configuration:
+      grep -A10 "tls:" /etc/traefik/dynamic/*.yml
+      
+      Verify:
+      1. minVersion is set to VersionTLS12 or VersionTLS13
+      2. No deprecated TLS versions are enabled
+      
+      Expected: minVersion: VersionTLS12 or higher
+    check_command: 'grep -E "minVersion" /etc/traefik/traefik.yml /etc/traefik/dynamic/*.yml
+      2>/dev/null || echo "TLS version not explicitly configured"'
+    expected_value: 'minVersion: VersionTLS12 or higher'
+  remediation:
+    remediation_step: |
+      Configure TLS 1.2+ minimum in traefik dynamic configuration:
+      
+      tls:
+        options:
+          default:
+            minVersion: VersionTLS12
+          modern:
+            minVersion: VersionTLS13
+      
+      Restart Traefik: docker restart traefik (or systemctl restart traefik)
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Traefik restart
+    estimated_time: 30 seconds
+  context:
+    rationale: TLS 1.0 and 1.1 have known vulnerabilities and are deprecated by RFC
+      8996.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: TRAEFIK-TLS-002
+  legacy_ids: []
+  rule_name: Configure strong cipher suites
+  rule_description: |
+    Configure Traefik to use strong cipher suites for TLS 1.2 connections.
+  category: Cryptography
+  subcategory: Cipher Suites
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check cipher suite configuration:
+      
+      grep -A20 "cipherSuites" /etc/traefik/dynamic/*.yml /etc/traefik/traefik.yml 2>/dev/null
+      
+      Verify:
+      1. Only AEAD ciphers (AES-GCM, CHACHA20-POLY1305) with ECDHE are configured
+      2. Weak ciphers are not present
+      
+      Expected: Strong cipher suites only
+    check_command: 'grep -E "cipherSuites|curvePreferences" /etc/traefik/traefik.yml
+      /etc/traefik/dynamic/*.yml 2>/dev/null || echo "Ciphers not explicitly configured"'
+    expected_value: Strong cipher suites configured
+  remediation:
+    remediation_step: |
+      Configure strong ciphers in Traefik dynamic configuration:
+      
+      tls:
+        options:
+          default:
+            minVersion: VersionTLS12
+            cipherSuites:
+              - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+              - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+              - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+              - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+            curvePreferences:
+              - CurveP521
+              - CurveP384
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Traefik restart
+    estimated_time: 30 seconds
+  context:
+    rationale: Strong cipher suites with ECDHE provide Perfect Forward Secrecy and
+      protect against cryptographic attacks.
+    impact: Some older clients may not support modern ciphers
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - tls
+  - ciphers
+  - encryption
+
+- rule_id: TRAEFIK-TLS-003
+  legacy_ids: []
+  rule_name: Enable strict SNI checking
+  rule_description: |
+    Enable strict SNI checking to prevent domain fronting attacks.
+  category: Cryptography
+  subcategory: SNI
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SNI configuration:
+      
+      grep -E "sniStrict" /etc/traefik/dynamic/*.yml /etc/traefik/traefik.yml 2>/dev/null
+      
+      Verify:
+      1. sniStrict is set to true
+      
+      If sniStrict is not enabled, this is a finding.
+    check_command: 'grep -E "sniStrict" /etc/traefik/traefik.yml /etc/traefik/dynamic/*.yml
+      2>/dev/null || echo "SNI strict not configured"'
+    expected_value: 'sniStrict: true'
+  remediation:
+    remediation_step: |
+      Enable strict SNI in Traefik dynamic configuration:
+      
+      tls:
+        options:
+          default:
+            sniStrict: true
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Connections without matching SNI will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Strict SNI prevents domain fronting attacks where clients use one domain
+      in SNI but connect to a different domain.
+    impact: May affect some legacy clients
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - tls
+  - sni
+  - security
+
+- rule_id: TRAEFIK-API-001
+  legacy_ids: []
+  rule_name: Secure API and dashboard
+  rule_description: |
+    Secure the Traefik API and dashboard by disabling insecure mode and adding authentication.
+  category: Configuration
+  subcategory: API Security
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check API configuration:
+      
+      grep -A10 "^api:" /etc/traefik/traefik.yml
+      
+      Verify:
+      1. insecure: false or not present
+      2. Dashboard is protected with authentication
+      3. API is not publicly accessible
+      
+      If insecure: true is set, this is a critical finding.
+    check_command: 'grep -E "insecure|dashboard" /etc/traefik/traefik.yml || echo
+      "API config not found"'
+    expected_value: 'insecure: false, dashboard secured'
+  remediation:
+    remediation_step: |
+      Secure the API in traefik.yml:
+      
+      api:
+        dashboard: true
+        insecure: false
+      
+      Add authentication middleware in dynamic configuration:
+      
+      http:
+        routers:
+          dashboard:
+            rule: "Host(`traefik.example.com`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+            service: api@internal
+            middlewares:
+              - auth
+              - ipwhitelist
+            tls:
+              certResolver: myresolver
+        
+        middlewares:
+          auth:
+            basicAuth:
+              users:
+                - "admin:$apr1$encrypted$password"
+          ipwhitelist:
+            ipAllowList:
+              sourceRange:
+                - "10.0.0.0/8"
+                - "192.168.1.0/24"
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Dashboard requires authentication
+    estimated_time: 30 seconds
+  context:
+    rationale: The Traefik API and dashboard expose sensitive configuration and operational
+      data. They must be secured.
+    impact: Dashboard only accessible to authenticated users from allowed IPs
+    false_positive_risk: None
+  tags:
+  - traefik
+  - api
+  - dashboard
+  - authentication
+  - critical
+
+- rule_id: TRAEFIK-ENTRYPOINT-001
+  legacy_ids: []
+  rule_name: Configure HTTP to HTTPS redirect
+  rule_description: |
+    Configure automatic HTTP to HTTPS redirect to ensure encrypted connections.
+  category: Network Security
+  subcategory: Redirects
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check entrypoint configuration:
+      
+      grep -A20 "entryPoints:" /etc/traefik/traefik.yml
+      
+      Verify:
+      1. HTTP entrypoint redirects to HTTPS
+      2. Permanent redirect is configured
+      
+      If HTTP to HTTPS redirect is not configured, this is a finding.
+    check_command: 'grep -A20 "entryPoints:" /etc/traefik/traefik.yml | grep -E "redirections|scheme"
+      || echo "HTTP redirect not configured"'
+    expected_value: HTTP to HTTPS redirect configured
+  remediation:
+    remediation_step: |
+      Configure HTTP to HTTPS redirect in traefik.yml:
+      
+      entryPoints:
+        web:
+          address: ":80"
+          http:
+            redirections:
+              entryPoint:
+                to: websecure
+                scheme: https
+                permanent: true
+        websecure:
+          address: ":443"
+          http:
+            tls: {}
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: All HTTP traffic redirected to HTTPS
+    estimated_time: 30 seconds
+  context:
+    rationale: Redirecting HTTP to HTTPS ensures all traffic is encrypted and protects
+      against downgrade attacks.
+    impact: HTTP requests will be redirected
+    false_positive_risk: None
+  tags:
+  - traefik
+  - https
+  - redirect
+  - encryption
+
+- rule_id: TRAEFIK-ENTRYPOINT-002
+  legacy_ids: []
+  rule_name: Configure trusted proxies for forwarded headers
+  rule_description: |
+    Configure trusted proxies to properly handle X-Forwarded-* headers from trusted sources.
+  category: Network Security
+  subcategory: Proxy Headers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check forwarded headers configuration:
+      
+      grep -A10 "forwardedHeaders:" /etc/traefik/traefik.yml
+      
+      Verify:
+      1. trustedIPs is configured with known proxy IPs
+      2. Only trusted proxies can set forwarded headers
+      
+      If forwarded headers trust is not configured, this is a finding.
+    check_command: 'grep -E "forwardedHeaders|trustedIPs" /etc/traefik/traefik.yml
+      || echo "Forwarded headers not configured"'
+    expected_value: Trusted IPs configured for forwarded headers
+  remediation:
+    remediation_step: |
+      Configure trusted proxies in traefik.yml:
+      
+      entryPoints:
+        websecure:
+          address: ":443"
+          forwardedHeaders:
+            trustedIPs:
+              - "10.0.0.0/8"
+              - "172.16.0.0/12"
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Only trusted proxies can set forwarded headers
+    estimated_time: 30 seconds
+  context:
+    rationale: Trusting forwarded headers from untrusted sources allows IP spoofing
+      and access control bypass.
+    impact: Must include all legitimate proxy IPs
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - proxy
+  - headers
+  - security
+
+- rule_id: TRAEFIK-MW-001
+  legacy_ids: []
+  rule_name: Configure rate limiting middleware
+  rule_description: |
+    Configure rate limiting middleware to protect backend services from abuse.
+  category: Network Security
+  subcategory: Rate Limiting
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check rate limiting configuration:
+      
+      grep -A15 "rateLimit:" /etc/traefik/dynamic/*.yml
+      
+      Verify:
+      1. Rate limiting middleware is configured
+      2. Appropriate limits are set for your environment
+      
+      If rate limiting is not configured, this is a finding.
+    check_command: 'grep -E "rateLimit|ratelimit" /etc/traefik/dynamic/*.yml 2>/dev/null
+      || echo "Rate limiting not configured"'
+    expected_value: Rate limiting middleware configured
+  remediation:
+    remediation_step: |
+      Configure rate limiting in dynamic configuration:
+      
+      http:
+        middlewares:
+          ratelimit:
+            rateLimit:
+              average: 100
+              period: 1s
+              burst: 200
+              sourceCriterion:
+                ipStrategy:
+                  depth: 2
+        
+        routers:
+          myrouter:
+            rule: "Host(`example.com`)"
+            middlewares:
+              - ratelimit
+            service: myservice
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive requests will be rate limited (HTTP 429)
+    estimated_time: 30 seconds
+  context:
+    rationale: Rate limiting protects backend services from abuse, brute force attacks,
+      and denial-of-service attacks.
+    impact: Legitimate high-frequency requests may be throttled
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - rate-limiting
+  - middleware
+  - dos-protection
+
+- rule_id: TRAEFIK-MW-002
+  legacy_ids: []
+  rule_name: Configure IP allowlisting middleware
+  rule_description: |
+    Configure IP allowlisting middleware to restrict access to sensitive endpoints.
+  category: Access Control
+  subcategory: IP Filtering
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check IP allowlisting configuration:
+      
+      grep -A10 "ipAllowList:" /etc/traefik/dynamic/*.yml
+      
+      Verify:
+      1. IP allowlisting is configured for sensitive routes
+      2. Allowed IP ranges are explicitly specified
+      
+      If IP allowlisting is needed but not configured, this is a finding.
+    check_command: 'grep -E "ipAllowList|ipwhitelist|sourceRange" /etc/traefik/dynamic/*.yml
+      2>/dev/null || echo "IP allowlisting not configured"'
+    expected_value: IP allowlisting configured for sensitive routes
+  remediation:
+    remediation_step: |
+      Configure IP allowlisting in dynamic configuration:
+      
+      http:
+        middlewares:
+          ipwhitelist:
+            ipAllowList:
+              sourceRange:
+                - "10.0.0.0/8"
+                - "192.168.1.0/24"
+              ipStrategy:
+                depth: 1
+        
+        routers:
+          admin:
+            rule: "Host(`admin.example.com`)"
+            middlewares:
+              - ipwhitelist
+            service: adminservice
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Access restricted to allowed IPs
+    estimated_time: 30 seconds
+  context:
+    rationale: IP allowlisting restricts access to sensitive endpoints to known, trusted
+      sources.
+    impact: Access denied from non-whitelisted IPs
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - ip-filtering
+  - middleware
+  - access-control
+
+- rule_id: TRAEFIK-MW-003
+  legacy_ids: []
+  rule_name: Configure security headers middleware
+  rule_description: |
+    Configure security headers middleware to protect against common web vulnerabilities.
+  category: Application Security
+  subcategory: Security Headers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check security headers configuration:
+      
+      grep -A20 "headers:" /etc/traefik/dynamic/*.yml | grep -E "frameDeny|browserXssFilter|contentTypeNosniff|forceSTSHeader"
+      
+      Verify:
+      1. HSTS header is enabled
+      2. X-Frame-Options is configured
+      3. X-Content-Type-Options is set
+      
+      If security headers are not configured, this is a finding.
+    check_command: 'grep -E "frameDeny|browserXssFilter|contentTypeNosniff|forceSTSHeader|stsSeconds"
+      /etc/traefik/dynamic/*.yml 2>/dev/null || echo "Security headers not configured"'
+    expected_value: Security headers middleware configured
+  remediation:
+    remediation_step: |
+      Configure security headers in dynamic configuration:
+      
+      http:
+        middlewares:
+          security-headers:
+            headers:
+              frameDeny: true
+              browserXssFilter: true
+              contentTypeNosniff: true
+              forceSTSHeader: true
+              stsIncludeSubdomains: true
+              stsPreload: true
+              stsSeconds: 315360000
+              referrerPolicy: "strict-origin-when-cross-origin"
+              permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+        
+        routers:
+          myrouter:
+            middlewares:
+              - security-headers
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Response headers will include security policies
+    estimated_time: 30 seconds
+  context:
+    rationale: Security headers protect against XSS, clickjacking, and other common
+      web vulnerabilities.
+    impact: May affect application behavior if headers conflict
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - headers
+  - middleware
+  - security
+
+- rule_id: TRAEFIK-LOG-001
+  legacy_ids: []
+  rule_name: Configure access logging
+  rule_description: |
+    Configure comprehensive access logging for security monitoring and incident response.
+  category: Logging and Auditing
+  subcategory: Access Logs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check access logging configuration:
+      
+      grep -A20 "accessLog:" /etc/traefik/traefik.yml
+      
+      Verify:
+      1. Access logging is enabled
+      2. Log format includes relevant fields
+      3. Sensitive data is filtered/redacted
+      
+      If access logging is not configured, this is a finding.
+    check_command: 'grep -E "accessLog|filePath|format" /etc/traefik/traefik.yml ||
+      echo "Access logging not configured"'
+    expected_value: Access logging enabled
+  remediation:
+    remediation_step: |
+      Configure access logging in traefik.yml:
+      
+      accessLog:
+        filePath: "/var/log/traefik/access.log"
+        format: json
+        filters:
+          statusCodes:
+            - "400-499"
+            - "500-599"
+          retryAttempts: true
+          minDuration: "10ms"
+        fields:
+          defaultMode: keep
+          headers:
+            defaultMode: drop
+            names:
+              Authorization: drop
+              Cookie: redact
+      
+      log:
+        filePath: "/var/log/traefik/traefik.log"
+        level: INFO
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Additional log storage required
+    estimated_time: 30 seconds
+  context:
+    rationale: Access logging enables security monitoring, incident response, and troubleshooting.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - logging
+  - monitoring
+  - auditing
+
+- rule_id: TRAEFIK-TIMEOUT-001
+  legacy_ids: []
+  rule_name: Configure entrypoint timeouts
+  rule_description: |
+    Configure connection timeouts at entrypoints to prevent resource exhaustion.
+  category: Network Security
+  subcategory: Timeouts
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check timeout configuration:
+      
+      grep -A10 "respondingTimeouts:" /etc/traefik/traefik.yml
+      
+      Verify:
+      1. readTimeout is configured
+      2. writeTimeout is set
+      3. idleTimeout is configured
+      
+      If timeouts are not configured, this is a finding.
+    check_command: 'grep -E "readTimeout|writeTimeout|idleTimeout|respondingTimeouts"
+      /etc/traefik/traefik.yml || echo "Timeouts not configured"'
+    expected_value: Timeouts configured
+  remediation:
+    remediation_step: |
+      Configure timeouts in traefik.yml:
+      
+      entryPoints:
+        websecure:
+          address: ":443"
+          transport:
+            respondingTimeouts:
+              readTimeout: 60s
+              writeTimeout: 60s
+              idleTimeout: 180s
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Slow clients may experience timeouts
+    estimated_time: 30 seconds
+  context:
+    rationale: Connection timeouts prevent resource exhaustion from slow connections.
+    impact: Long-running connections may be terminated
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - timeouts
+  - dos-protection
+  - network
+
+- rule_id: TRAEFIK-MW-004
+  legacy_ids: []
+  rule_name: Configure request buffering limits
+  rule_description: |
+    Configure request buffering middleware to limit request and response sizes.
+  category: Network Security
+  subcategory: Request Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check buffering configuration:
+      
+      grep -A15 "buffering:" /etc/traefik/dynamic/*.yml
+      
+      Verify:
+      1. maxRequestBodyBytes is configured
+      2. maxResponseBodyBytes is set
+      
+      If buffering limits are not configured, this is a finding.
+    check_command: 'grep -E "buffering|maxRequestBodyBytes|maxResponseBodyBytes"
+      /etc/traefik/dynamic/*.yml 2>/dev/null || echo "Buffering limits not configured"'
+    expected_value: Request buffering limits configured
+  remediation:
+    remediation_step: |
+      Configure buffering limits in dynamic configuration:
+      
+      http:
+        middlewares:
+          buffering:
+            buffering:
+              maxRequestBodyBytes: 10485760
+              memRequestBodyBytes: 2097152
+              maxResponseBodyBytes: 10485760
+              memResponseBodyBytes: 2097152
+        
+        routers:
+          myrouter:
+            middlewares:
+              - buffering
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Large requests/responses may be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Request size limits prevent memory exhaustion from large payloads.
+    impact: File uploads may be affected
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - buffering
+  - middleware
+  - dos-protection
+
+- rule_id: TRAEFIK-MW-005
+  legacy_ids: []
+  rule_name: Configure in-flight request limiting
+  rule_description: |
+    Configure in-flight request limiting middleware to control concurrent requests.
+  category: Network Security
+  subcategory: Concurrency Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check in-flight request configuration:
+      
+      grep -A10 "inFlightReq:" /etc/traefik/dynamic/*.yml
+      
+      Verify:
+      1. Amount limit is configured
+      2. Source criterion is specified
+      
+      If in-flight limiting is not configured, this is a finding.
+    check_command: 'grep -E "inFlightReq|inflight" /etc/traefik/dynamic/*.yml 2>/dev/null
+      || echo "In-flight limiting not configured"'
+    expected_value: In-flight request limiting configured
+  remediation:
+    remediation_step: |
+      Configure in-flight limiting in dynamic configuration:
+      
+      http:
+        middlewares:
+          inflight-limit:
+            inFlightReq:
+              amount: 100
+              sourceCriterion:
+                ipStrategy:
+                  depth: 1
+        
+        routers:
+          myrouter:
+            middlewares:
+              - inflight-limit
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive concurrent requests will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: In-flight request limiting protects backends from being overwhelmed
+      by concurrent requests.
+    impact: May affect high-traffic applications
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - concurrency
+  - middleware
+  - dos-protection
+
+- rule_id: TRAEFIK-MW-006
+  legacy_ids: []
+  rule_name: Configure circuit breaker middleware
+  rule_description: |
+    Configure circuit breaker middleware to prevent cascade failures.
+  category: Resilience
+  subcategory: Circuit Breaker
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check circuit breaker configuration:
+      
+      grep -A10 "circuitBreaker:" /etc/traefik/dynamic/*.yml
+      
+      Verify:
+      1. Expression is configured to trigger on errors
+      2. Appropriate thresholds are set
+      
+      If circuit breaker is not configured, this is a finding.
+    check_command: 'grep -E "circuitBreaker|circuitbreaker" /etc/traefik/dynamic/*.yml
+      2>/dev/null || echo "Circuit breaker not configured"'
+    expected_value: Circuit breaker middleware configured
+  remediation:
+    remediation_step: |
+      Configure circuit breaker in dynamic configuration:
+      
+      http:
+        middlewares:
+          circuitbreaker:
+            circuitBreaker:
+              expression: "NetworkErrorRatio() > 0.30"
+        
+        routers:
+          myrouter:
+            middlewares:
+              - circuitbreaker
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requests to failing backends will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Circuit breakers prevent cascade failures by stopping requests to failing
+      backends.
+    impact: May temporarily block traffic to unhealthy services
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - circuit-breaker
+  - middleware
+  - resilience
+
+- rule_id: TRAEFIK-MTLS-001
+  legacy_ids: []
+  rule_name: Configure mutual TLS (mTLS)
+  rule_description: |
+    Configure mutual TLS authentication to verify client certificates.
+  category: Authentication
+  subcategory: Mutual TLS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check mTLS configuration:
+      
+      grep -A15 "clientAuth:" /etc/traefik/dynamic/*.yml
+      
+      Verify:
+      1. clientAuth is configured
+      2. Client certificates are required and verified
+      3. CA files are specified
+      
+      If mTLS is required but not configured, this is a finding.
+    check_command: 'grep -E "clientAuth|caFiles|clientAuthType" /etc/traefik/dynamic/*.yml
+      2>/dev/null || echo "mTLS not configured"'
+    expected_value: mTLS configured if required
+  remediation:
+    remediation_step: |
+      Configure mTLS in dynamic configuration:
+      
+      tls:
+        options:
+          mtls:
+            clientAuth:
+              caFiles:
+                - /path/to/ca1.crt
+                - /path/to/ca2.crt
+              clientAuthType: RequireAndVerifyClientCert
+      
+      Apply to router:
+      
+      http:
+        routers:
+          secure:
+            rule: "Host(`secure.example.com`)"
+            tls:
+              options: mtls
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Clients without valid certificates cannot connect
+    estimated_time: 30 seconds
+  context:
+    rationale: mTLS provides strong authentication by requiring both server and client
+      certificates.
+    impact: All clients must have valid certificates
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - mtls
+  - authentication
+  - certificates
+
+- rule_id: TRAEFIK-ENTRYPOINT-003
+  legacy_ids: []
+  rule_name: Enable path sanitization
+  rule_description: |
+    Enable path sanitization to prevent path traversal attacks.
+  category: Application Security
+  subcategory: Path Security
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check path sanitization configuration:
+      
+      grep -E "sanitizePath" /etc/traefik/traefik.yml
+      
+      Verify:
+      1. sanitizePath is enabled
+      
+      If path sanitization is not enabled, this is a finding.
+    check_command: 'grep -E "sanitizePath" /etc/traefik/traefik.yml || echo "Path
+      sanitization not configured"'
+    expected_value: 'sanitizePath: true'
+  remediation:
+    remediation_step: |
+      Enable path sanitization in traefik.yml:
+      
+      entryPoints:
+        websecure:
+          address: ":443"
+          http:
+            sanitizePath: true
+      
+      Restart Traefik.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Path traversal attempts will be blocked
+    estimated_time: 30 seconds
+  context:
+    rationale: Path sanitization prevents path traversal and directory access attacks.
+    impact: May affect applications with unusual URL patterns
+    false_positive_risk: Low
+  tags:
+  - traefik
+  - path-security
+  - sanitization
+  - application-security
