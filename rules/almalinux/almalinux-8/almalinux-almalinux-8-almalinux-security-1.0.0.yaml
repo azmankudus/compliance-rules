@@ -1,0 +1,1453 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: AlmaLinux 8 Security Hardening
+  version: 1.0.0
+  description: Security hardening rules from official Red Hat AlmaLinux 8 Security
+    Hardening Guide
+  platform: AlmaLinux 8
+  benchmark: Red Hat AlmaLinux 8 Security Hardening Guide
+  author: Red Hat
+  created: '2026-03-13T00:00:00Z'
+  modified: '2026-03-13T00:00:00Z'
+  compatible_platforms:
+  - AlmaLinux 8.x
+  references:
+  - type: Official Documentation
+    reference: https://access.almalinux.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening
+compliance_info:
+  framework: NIST
+  version: 1.0.0
+  profile: Production
+rules:
+- rule_id: ALMSEC-1
+  rule_name: Separate Disk Partition for /boot
+  rule_description: Create a separate partition for /boot directory. This partition
+    is the first partition read during boot up and contains the boot loader and kernel
+    images. This partition should not be encrypted. If included in / and that partition
+    is encrypted or becomes unavailable, the system cannot boot.
+  category: Installation Security - Disk Partitioning
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if /boot is a separate partition: lsblk -f | grep boot
+      || df -h | grep /boot'
+  remediation:
+    remediation_step: During installation, create a separate partition for /boot.
+      For existing systems, this requires re-partitioning and reinstallation.
+  tags:
+  - rhel8
+  - security
+  - installation-security---disk-partitioning
+  id: ALMSEC-1
+  title: Separate Disk Partition for /boot
+  description: Create a separate partition for /boot directory. This partition is
+    the first partition read during boot up and contains the boot loader and kernel
+    images. This partition should not be encrypted. If included in / and that partition
+    is encrypted or becomes unavailable, the system cannot boot.
+  severity: High
+- rule_id: ALMSEC-2
+  rule_name: Separate Disk Partition for /home
+  rule_description: Create a separate partition for /home directory. When user data
+    is stored in / instead of a separate partition, the partition can fill up causing
+    the operating system to become unstable. A separate partition also makes system
+    upgrades easier and provides protection against data loss if the root partition
+    becomes corrupt.
+  category: Installation Security - Disk Partitioning
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if /home is a separate partition: lsblk -f | grep home
+      || df -h | grep /home'
+  remediation:
+    remediation_step: During installation, create a separate partition for /home.
+      For existing systems, backup data, create new partition, migrate data, and update
+      /etc/fstab.
+  tags:
+  - rhel8
+  - security
+  - installation-security---disk-partitioning
+  id: ALMSEC-2
+  title: Separate Disk Partition for /home
+  description: Create a separate partition for /home directory. When user data is
+    stored in / instead of a separate partition, the partition can fill up causing
+    the operating system to become unstable. A separate partition also makes system
+    upgrades easier and provides protection against data loss if the root partition
+    becomes corrupt.
+  severity: Medium
+- rule_id: ALMSEC-3
+  rule_name: Separate Disk Partitions for /tmp and /var/tmp
+  rule_description: Create separate partitions for /tmp and /var/tmp directories.
+    These directories store temporary data that does not need long-term storage. If
+    flooded with data while stored within /, the system could become unstable and
+    crash. Separate partitions prevent this from affecting the root filesystem.
+  category: Installation Security - Disk Partitioning
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if /tmp and /var/tmp are separate partitions: lsblk -f
+      | grep -E ''tmp|var'' || df -h | grep -E ''/tmp|/var/tmp'''
+  remediation:
+    remediation_step: During installation, create separate partitions for /tmp and
+      /var/tmp. For existing systems, use systemd tmp.mount or create separate logical
+      volumes.
+  tags:
+  - rhel8
+  - security
+  - installation-security---disk-partitioning
+  id: ALMSEC-3
+  title: Separate Disk Partitions for /tmp and /var/tmp
+  description: Create separate partitions for /tmp and /var/tmp directories. These
+    directories store temporary data that does not need long-term storage. If flooded
+    with data while stored within /, the system could become unstable and crash. Separate
+    partitions prevent this from affecting the root filesystem.
+  severity: Medium
+- rule_id: ALMSEC-4
+  rule_name: Restrict Network Connectivity During Installation
+  rule_description: Limit network exposure during installation to only the closest
+    necessary network zone. The installation medium may not have the latest security
+    fixes and could be vulnerable. The safest choice is no network connection, followed
+    by LAN/intranet, with Internet connection being the riskiest.
+  category: Installation Security - Network
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review installation logs to verify minimal network connectivity
+      was used during installation: cat /var/log/anaconda/journal.log | grep -i network'
+  remediation:
+    remediation_step: During installation, disconnect from network or use the closest
+      network zone (LAN/intranet instead of Internet) when installing from network
+      repositories.
+  tags:
+  - rhel8
+  - security
+  - installation-security---network
+  id: ALMSEC-4
+  title: Restrict Network Connectivity During Installation
+  description: Limit network exposure during installation to only the closest necessary
+    network zone. The installation medium may not have the latest security fixes and
+    could be vulnerable. The safest choice is no network connection, followed by LAN/intranet,
+    with Internet connection being the riskiest.
+  severity: Medium
+- rule_id: ALMSEC-5
+  rule_name: Install Minimum Required Packages
+  rule_description: Install only the packages that will be used. Each piece of software
+    could contain vulnerabilities. Installing minimal packages reduces the attack
+    surface and potential vulnerability exposure.
+  category: Installation Security - Package Management
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List installed packages to review: rpm -qa | wc -l && rpm -qa'
+  remediation:
+    remediation_step: 'During installation, select minimal install or custom package
+      selection. After installation, remove unused packages: yum remove <package-name>'
+  tags:
+  - rhel8
+  - security
+  - installation-security---package-management
+  id: ALMSEC-5
+  title: Install Minimum Required Packages
+  description: Install only the packages that will be used. Each piece of software
+    could contain vulnerabilities. Installing minimal packages reduces the attack
+    surface and potential vulnerability exposure.
+  severity: Medium
+- rule_id: ALMSEC-6
+  rule_name: Update System After Installation
+  rule_description: Update the system immediately after installation to ensure all
+    packages have the latest security fixes. The installation medium may be outdated
+    and contain known vulnerabilities.
+  category: Installation Security - Post-Installation
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check for available updates: yum check-update'
+  remediation:
+    remediation_step: 'Run system update: yum update'
+  tags:
+  - rhel8
+  - security
+  - installation-security---post-installation
+  id: ALMSEC-6
+  title: Update System After Installation
+  description: Update the system immediately after installation to ensure all packages
+    have the latest security fixes. The installation medium may be outdated and contain
+    known vulnerabilities.
+  severity: Critical
+- rule_id: ALMSEC-7
+  rule_name: Enable Firewall Service
+  rule_description: Ensure the firewall service (firewalld) is enabled and running.
+    Although firewalld is automatically enabled with AlmaLinux installation, it might
+    be explicitly disabled in some configurations like Kickstart.
+  category: Installation Security - Post-Installation
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check firewall status: systemctl status firewalld'
+  remediation:
+    remediation_step: 'Enable and start firewall: systemctl enable firewalld && systemctl
+      start firewalld'
+  tags:
+  - rhel8
+  - security
+  - installation-security---post-installation
+  id: ALMSEC-7
+  title: Enable Firewall Service
+  description: Ensure the firewall service (firewalld) is enabled and running. Although
+    firewalld is automatically enabled with AlmaLinux installation, it might be explicitly
+    disabled in some configurations like Kickstart.
+  severity: Critical
+- rule_id: ALMSEC-8
+  rule_name: Disable Unnecessary Services
+  rule_description: Disable services that are not needed to reduce attack surface.
+    For example, if no printers are installed, disable the cups service.
+  category: Installation Security - Post-Installation
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Review active services: systemctl list-units --type=service --state=running'
+  remediation:
+    remediation_step: 'Disable unnecessary services: systemctl disable <service-name>
+      && systemctl stop <service-name>'
+  tags:
+  - rhel8
+  - security
+  - installation-security---post-installation
+  id: ALMSEC-8
+  title: Disable Unnecessary Services
+  description: Disable services that are not needed to reduce attack surface. For
+    example, if no printers are installed, disable the cups service.
+  severity: Medium
+- rule_id: ALMSEC-9
+  rule_name: Disable SMT for CPU Security Mitigation
+  rule_description: 'Disable Simultaneous Multi Threading (SMT) to mitigate security
+    vulnerabilities such as L1TF or MDS that can misuse CPU SMT. Note: This may lower
+    system performance.'
+  category: Installation Security - CPU Security
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check SMT status: lscpu | grep -i thread'
+  remediation:
+    remediation_step: 'Add nosmt kernel parameter: grubby --update-kernel=ALL --args=''nosmt''
+      && reboot'
+  tags:
+  - rhel8
+  - security
+  - installation-security---cpu-security
+  id: ALMSEC-9
+  title: Disable SMT for CPU Security Mitigation
+  description: 'Disable Simultaneous Multi Threading (SMT) to mitigate security vulnerabilities
+    such as L1TF or MDS that can misuse CPU SMT. Note: This may lower system performance.'
+  severity: High
+- rule_id: ALMSEC-10
+  rule_name: Enable FIPS Mode During Installation
+  rule_description: Enable FIPS mode during system installation to ensure the system
+    generates all keys with FIPS-approved algorithms and continuous monitoring tests
+    in place. This is the recommended method for FIPS compliance.
+  category: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check FIPS mode status: fips-mode-setup --check'
+  remediation:
+    remediation_step: During installation, add fips=1 to kernel command line. Do not
+      install third-party software during software selection stage.
+  tags:
+  - rhel8
+  - security
+  - fips-mode
+  id: ALMSEC-10
+  title: Enable FIPS Mode During Installation
+  description: Enable FIPS mode during system installation to ensure the system generates
+    all keys with FIPS-approved algorithms and continuous monitoring tests in place.
+    This is the recommended method for FIPS compliance.
+  severity: Critical
+- rule_id: ALMSEC-11
+  rule_name: Switch System to FIPS Mode Post-Installation
+  rule_description: 'Enable FIPS mode after installation using fips-mode-setup tool.
+    This enables cryptographic module self-checks mandated by FIPS 140-2. Note: Enabling
+    FIPS during installation is preferred for full compliance.'
+  category: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check FIPS mode status: fips-mode-setup --check'
+  remediation:
+    remediation_step: 'Enable FIPS mode: fips-mode-setup --enable && reboot'
+  tags:
+  - rhel8
+  - security
+  - fips-mode
+  id: ALMSEC-11
+  title: Switch System to FIPS Mode Post-Installation
+  description: 'Enable FIPS mode after installation using fips-mode-setup tool. This
+    enables cryptographic module self-checks mandated by FIPS 140-2. Note: Enabling
+    FIPS during installation is preferred for full compliance.'
+  severity: High
+- rule_id: ALMSEC-12
+  rule_name: Enable FIPS Mode in Containers
+  rule_description: Enable FIPS mode in containers by ensuring the host kernel is
+    running in FIPS mode. On AlmaLinux 8.1/8.2, set FIPS policy in container. On AlmaLinux
+    8.4+, podman automatically enables FIPS mode.
+  category: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if host is in FIPS mode: cat /proc/sys/crypto/fips_enabled'
+  remediation:
+    remediation_step: 'On AlmaLinux 8.1/8.2 containers: update-crypto-policies --set
+      FIPS. Ensure host is in FIPS mode.'
+  tags:
+  - rhel8
+  - security
+  - fips-mode
+  id: ALMSEC-12
+  title: Enable FIPS Mode in Containers
+  description: Enable FIPS mode in containers by ensuring the host kernel is running
+    in FIPS mode. On AlmaLinux 8.1/8.2, set FIPS policy in container. On AlmaLinux
+    8.4+, podman automatically enables FIPS mode.
+  severity: High
+- rule_id: ALMSEC-13
+  rule_name: Configure System-Wide Cryptographic Policy
+  rule_description: Set appropriate system-wide cryptographic policy (DEFAULT, LEGACY,
+    FUTURE, or FIPS) to ensure applications use secure cryptographic algorithms. DEFAULT
+    is recommended for current security standards.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current policy: update-crypto-policies --show'
+  remediation:
+    remediation_step: 'Set cryptographic policy: update-crypto-policies --set <POLICY>
+      && reboot (e.g., DEFAULT, FUTURE, FIPS)'
+  tags:
+  - rhel8
+  - security
+  - cryptographic-policies
+  id: ALMSEC-13
+  title: Configure System-Wide Cryptographic Policy
+  description: Set appropriate system-wide cryptographic policy (DEFAULT, LEGACY,
+    FUTURE, or FIPS) to ensure applications use secure cryptographic algorithms. DEFAULT
+    is recommended for current security standards.
+  severity: High
+- rule_id: ALMSEC-14
+  rule_name: Use FUTURE Cryptographic Policy for Enhanced Security
+  rule_description: Use FUTURE policy for stricter forward-looking security. This
+    policy does not allow SHA-1 in signatures, requires RSA/DH keys of at least 3072
+    bits, and disables CBC mode ciphers. May cause interoperability issues.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current policy: update-crypto-policies --show'
+  remediation:
+    remediation_step: 'Set FUTURE policy: update-crypto-policies --set FUTURE && reboot'
+  tags:
+  - rhel8
+  - security
+  - cryptographic-policies
+  id: ALMSEC-14
+  title: Use FUTURE Cryptographic Policy for Enhanced Security
+  description: Use FUTURE policy for stricter forward-looking security. This policy
+    does not allow SHA-1 in signatures, requires RSA/DH keys of at least 3072 bits,
+    and disables CBC mode ciphers. May cause interoperability issues.
+  severity: Medium
+- rule_id: ALMSEC-15
+  rule_name: Disable SHA-1 in Cryptographic Policy
+  rule_description: Disable SHA-1 in digital signatures by using FUTURE or FIPS policy,
+    or by customizing policy. SHA-1 is considered weak and should be avoided in security-sensitive
+    contexts.
+  category: Cryptographic Policies
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if SHA-1 is enabled: update-crypto-policies --show | grep
+      -i sha1 || cat /etc/crypto-policies/state/CURRENT.pol | grep -i sha1'
+  remediation:
+    remediation_step: 'Use FUTURE or FIPS policy, or create custom subpolicy: update-crypto-policies
+      --set FUTURE:SHA1 or create NO-SHA1.pmod subpolicy'
+  tags:
+  - rhel8
+  - security
+  - cryptographic-policies
+  id: ALMSEC-15
+  title: Disable SHA-1 in Cryptographic Policy
+  description: Disable SHA-1 in digital signatures by using FUTURE or FIPS policy,
+    or by customizing policy. SHA-1 is considered weak and should be avoided in security-sensitive
+    contexts.
+  severity: High
+- rule_id: ALMSEC-16
+  rule_name: Configure SSH Keys on Smart Card
+  rule_description: Configure SSH authentication using ECDSA or RSA keys stored on
+    a smart card. This replaces password authentication with hardware-backed authentication
+    for improved security.
+  category: 'PKCS #11 - Smart Card Authentication'
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify opensc package is installed and pcscd service is running:
+      rpm -q opensc && systemctl status pcscd'
+  remediation:
+    remediation_step: '1. Install opensc: yum install opensc
+
+      2. List keys: ssh-keygen -D pkcs11: > keys.pub
+
+      3. Transfer public key to server: ssh-copy-id -f -i keys.pub user@server
+
+      4. Connect using smart card: ssh -i pkcs11: user@server'
+  tags:
+  - rhel8
+  - security
+  - pkcs-#11---smart-card-authentication
+  id: ALMSEC-16
+  title: Configure SSH Keys on Smart Card
+  description: Configure SSH authentication using ECDSA or RSA keys stored on a smart
+    card. This replaces password authentication with hardware-backed authentication
+    for improved security.
+  severity: Medium
+- rule_id: ALMSEC-17
+  rule_name: Configure Apache with HSM for Private Keys
+  rule_description: Configure Apache HTTP server to work with private keys stored
+    on Hardware Security Modules (HSMs). This prevents key disclosure and man-in-the-middle
+    attacks. Requires high-performance HSMs for busy servers.
+  category: 'PKCS #11 - HSM Configuration'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if openssl-pkcs11 is installed: rpm -q openssl-pkcs11'
+  remediation:
+    remediation_step: "1. Install openssl-pkcs11: yum install openssl-pkcs11\n2. Configure\
+      \ /etc/httpd/conf.d/ssl.conf:\n   SSLCertificateFile \"pkcs11:id=%01;token=softhsm;type=cert\"\
+      \n   SSLCertificateKeyFile \"pkcs11:id=%01;token=softhsm;type=private?pin-value=XXXX\"\
+      \n3. Restart httpd: systemctl restart httpd"
+  tags:
+  - rhel8
+  - security
+  - pkcs-#11---hsm-configuration
+  id: ALMSEC-17
+  title: Configure Apache with HSM for Private Keys
+  description: Configure Apache HTTP server to work with private keys stored on Hardware
+    Security Modules (HSMs). This prevents key disclosure and man-in-the-middle attacks.
+    Requires high-performance HSMs for busy servers.
+  severity: High
+- rule_id: ALMSEC-18
+  rule_name: Configure Nginx with HSM for Private Keys
+  rule_description: Configure Nginx HTTP server to work with private keys stored on
+    Hardware Security Modules (HSMs). Nginx supports loading private keys from HSM
+    while certificates are provided as regular files.
+  category: 'PKCS #11 - HSM Configuration'
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if openssl-pkcs11 is installed: rpm -q openssl-pkcs11'
+  remediation:
+    remediation_step: "1. Install openssl-pkcs11: yum install openssl-pkcs11\n2. Configure\
+      \ /etc/nginx/nginx.conf:\n   ssl_certificate /path/to/cert.pem\n   ssl_certificate_key\
+      \ \"engine:pkcs11:pkcs11:token=softhsm;id=%01;type=private?pin-value=XXXX\"\n\
+      3. Restart nginx: systemctl restart nginx"
+  tags:
+  - rhel8
+  - security
+  - pkcs-#11---hsm-configuration
+  id: ALMSEC-18
+  title: Configure Nginx with HSM for Private Keys
+  description: Configure Nginx HTTP server to work with private keys stored on Hardware
+    Security Modules (HSMs). Nginx supports loading private keys from HSM while certificates
+    are provided as regular files.
+  severity: High
+- rule_id: ALMSEC-19
+  rule_name: Install and Configure SCAP Security Guide
+  rule_description: Install the SCAP Security Guide (SSG) package which provides collections
+    of security policies for Linux systems. The guidance includes practical hardening
+    advice linked to government requirements.
+  category: Compliance Scanning - Tools
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if scap-security-guide is installed: rpm -q scap-security-guide'
+  remediation:
+    remediation_step: 'Install SCAP Security Guide: yum install scap-security-guide'
+  tags:
+  - rhel8
+  - security
+  - compliance-scanning---tools
+  id: ALMSEC-19
+  title: Install and Configure SCAP Security Guide
+  description: Install the SCAP Security Guide (SSG) package which provides collections
+    of security policies for Linux systems. The guidance includes practical hardening
+    advice linked to government requirements.
+  severity: Medium
+- rule_id: ALMSEC-20
+  rule_name: Scan System for Vulnerabilities Using OpenSCAP
+  rule_description: Scan the local system for vulnerabilities using the oscap command-line
+    utility and Red Hat Security Advisories OVAL feed. This identifies packages with
+    known security issues.
+  category: Compliance Scanning - Vulnerability Scanning
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify openscap-scanner is installed: rpm -q openscap-scanner'
+  remediation:
+    remediation_step: '1. Install scanner: yum install openscap-scanner bzip2
+
+      2. Download OVAL definitions: wget -O - https://www.almalinux.com/security/data/oval/v2/AlmaLinux8/rhel-8.oval.xml.bz2
+      | bzip2 --decompress > rhel-8.oval.xml
+
+      3. Scan system: oscap oval eval --report vulnerability.html rhel-8.oval.xml'
+  tags:
+  - rhel8
+  - security
+  - compliance-scanning---vulnerability-scanning
+  id: ALMSEC-20
+  title: Scan System for Vulnerabilities Using OpenSCAP
+  description: Scan the local system for vulnerabilities using the oscap command-line
+    utility and Red Hat Security Advisories OVAL feed. This identifies packages with
+    known security issues.
+  severity: High
+- rule_id: ALMSEC-21
+  rule_name: Scan Remote Systems for Vulnerabilities
+  rule_description: Scan remote systems for vulnerabilities using oscap-ssh tool over
+    SSH protocol. This enables centralized vulnerability assessment of multiple systems.
+  category: Compliance Scanning - Vulnerability Scanning
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Verify openscap-utils is installed: rpm -q openscap-utils'
+  remediation:
+    remediation_step: 'Scan remote system: oscap-ssh <username>@<hostname> <port>
+      oval eval --report <scan-report.html> rhel-8.oval.xml'
+  tags:
+  - rhel8
+  - security
+  - compliance-scanning---vulnerability-scanning
+  id: ALMSEC-21
+  title: Scan Remote Systems for Vulnerabilities
+  description: Scan remote systems for vulnerabilities using oscap-ssh tool over SSH
+    protocol. This enables centralized vulnerability assessment of multiple systems.
+  severity: Medium
+- rule_id: ALMSEC-22
+  rule_name: Assess Configuration Compliance with Security Baseline
+  rule_description: Assess system compliance with specific security baselines (HIPAA,
+    PCI-DSS, OSPP, etc.) using OpenSCAP. This determines whether the system conforms
+    to a defined security policy.
+  category: Compliance Scanning - Configuration Compliance
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'View available profiles: oscap info /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml'
+  remediation:
+    remediation_step: 'Scan with specific profile: oscap xccdf eval --report <scan-report.html>
+      --profile <profileID> /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml'
+  tags:
+  - rhel8
+  - security
+  - compliance-scanning---configuration-compliance
+  id: ALMSEC-22
+  title: Assess Configuration Compliance with Security Baseline
+  description: Assess system compliance with specific security baselines (HIPAA, PCI-DSS,
+    OSPP, etc.) using OpenSCAP. This determines whether the system conforms to a defined
+    security policy.
+  severity: High
+- rule_id: ALMSEC-23
+  rule_name: Remediate System to Align with Security Baseline
+  rule_description: Automatically remediate the system to align with a specific security
+    baseline using OpenSCAP. This fixes configuration issues identified during compliance
+    scans.
+  category: Compliance Scanning - Remediation
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Perform compliance scan first: oscap xccdf eval --profile <profileID>
+      --results <results.xml> /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml'
+  remediation:
+    remediation_step: 'Run remediation: oscap xccdf eval --profile <profileID> --remediate
+      /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml && reboot'
+  tags:
+  - rhel8
+  - security
+  - compliance-scanning---remediation
+  id: ALMSEC-23
+  title: Remediate System to Align with Security Baseline
+  description: Automatically remediate the system to align with a specific security
+    baseline using OpenSCAP. This fixes configuration issues identified during compliance
+    scans.
+  severity: High
+- rule_id: ALMSEC-24
+  rule_name: Create Remediation Ansible Playbook
+  rule_description: Generate an Ansible Playbook containing only the remediations
+    required to align the system with a specific baseline. This allows for controlled,
+    reviewable remediation.
+  category: Compliance Scanning - Remediation
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Perform scan with results: oscap xccdf eval --profile <profileID>
+      --results <results.xml> /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml'
+  remediation:
+    remediation_step: 'Generate playbook: oscap xccdf generate fix --fix-type ansible
+      --result-id <result-id> --output <remediations.yml> <results.xml>'
+  tags:
+  - rhel8
+  - security
+  - compliance-scanning---remediation
+  id: ALMSEC-24
+  title: Create Remediation Ansible Playbook
+  description: Generate an Ansible Playbook containing only the remediations required
+    to align the system with a specific baseline. This allows for controlled, reviewable
+    remediation.
+  severity: Medium
+- rule_id: ALMSEC-25
+  rule_name: Install and Initialize AIDE Database
+  rule_description: Install Advanced Intrusion Detection Environment (AIDE) and create
+    an initial database of file checksums. AIDE detects file modifications and potential
+    system intrusions.
+  category: File Integrity - AIDE
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if AIDE is installed: rpm -q aide'
+  remediation:
+    remediation_step: '1. Install AIDE: yum install aide
+
+      2. Initialize database: aide --init
+
+      3. Activate database: mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz'
+  tags:
+  - rhel8
+  - security
+  - file-integrity---aide
+  id: ALMSEC-25
+  title: Install and Initialize AIDE Database
+  description: Install Advanced Intrusion Detection Environment (AIDE) and create
+    an initial database of file checksums. AIDE detects file modifications and potential
+    system intrusions.
+  severity: High
+- rule_id: ALMSEC-26
+  rule_name: Schedule Regular AIDE Integrity Checks
+  rule_description: Configure cron to run regular AIDE integrity checks. At minimum,
+    run AIDE weekly; optimally, run daily to detect unauthorized file modifications.
+  category: File Integrity - AIDE
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check cron configuration: crontab -l | grep aide || cat /etc/crontab
+      | grep aide'
+  remediation:
+    remediation_step: 'Add cron job for daily AIDE check at 4:05 AM:
+
+      echo ''05 4 * * * root /usr/sbin/aide --check'' >> /etc/crontab'
+  tags:
+  - rhel8
+  - security
+  - file-integrity---aide
+  id: ALMSEC-26
+  title: Schedule Regular AIDE Integrity Checks
+  description: Configure cron to run regular AIDE integrity checks. At minimum, run
+    AIDE weekly; optimally, run daily to detect unauthorized file modifications.
+  severity: High
+- rule_id: ALMSEC-27
+  rule_name: Update AIDE Database After System Changes
+  rule_description: Update the AIDE database baseline after verifying legitimate system
+    changes such as package updates or configuration file adjustments.
+  category: File Integrity - AIDE
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run AIDE check to identify changes: aide --check'
+  remediation:
+    remediation_step: 'Update database: aide --update && mv /var/lib/aide/aide.db.new.gz
+      /var/lib/aide/aide.db.gz'
+  tags:
+  - rhel8
+  - security
+  - file-integrity---aide
+  id: ALMSEC-27
+  title: Update AIDE Database After System Changes
+  description: Update the AIDE database baseline after verifying legitimate system
+    changes such as package updates or configuration file adjustments.
+  severity: Medium
+- rule_id: ALMSEC-28
+  rule_name: Enable IMA and EVM Kernel Integrity Subsystem
+  rule_description: Enable Integrity Measurement Architecture (IMA) and Extended Verification
+    Module (EVM) to detect file tampering and restrict access based on policy. IMA
+    maintains file content integrity; EVM protects file metadata.
+  category: Kernel Integrity - IMA/EVM
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if IMA/EVM is enabled: dmesg | grep -i -e EVM -e IMA'
+  remediation:
+    remediation_step: '1. Add kernel parameters: grubby --update-kernel=/boot/vmlinuz-$(uname
+      -r) --args="ima_policy=appraise_tcb ima_appraise=fix evm=fix"
+
+      2. Reboot
+
+      3. Create kernel master key: keyctl add user kmk "$(dd if=/dev/urandom bs=1
+      count=32 2>/dev/null)" @u
+
+      4. Create EVM key: keyctl add encrypted evm-key "new user:kmk 64" @u
+
+      5. Activate EVM: echo 1 > /sys/kernel/security/evm'
+  tags:
+  - rhel8
+  - security
+  - kernel-integrity---ima/evm
+  id: ALMSEC-28
+  title: Enable IMA and EVM Kernel Integrity Subsystem
+  description: Enable Integrity Measurement Architecture (IMA) and Extended Verification
+    Module (EVM) to detect file tampering and restrict access based on policy. IMA
+    maintains file content integrity; EVM protects file metadata.
+  severity: High
+- rule_id: ALMSEC-29
+  rule_name: Configure Trusted Keys with TPM
+  rule_description: Configure trusted keys using Trusted Platform Module (TPM) chip.
+    Trusted keys are sealed to specific TPM PCR values and can only be decrypted by
+    the TPM on the system where they were encrypted.
+  category: Kernel Integrity - Trusted Keys
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check TPM version: cat /sys/class/tpm/tpm0/tpm_version_major
+      2>/dev/null'
+  remediation:
+    remediation_step: '1. For TPM 2.0, create persistent handle: tpm2_createprimary
+      --key-algorithm=rsa2048 --key-context=key.ctxt && tpm2_evictcontrol -c key.ctxt
+      0x81000001
+
+      2. Create trusted key: keyctl add trusted kmk "new 32 keyhandle=0x81000001"
+      @u
+
+      3. Export key: keyctl pipe <key-serial> > kmk.blob'
+  tags:
+  - rhel8
+  - security
+  - kernel-integrity---trusted-keys
+  id: ALMSEC-29
+  title: Configure Trusted Keys with TPM
+  description: Configure trusted keys using Trusted Platform Module (TPM) chip. Trusted
+    keys are sealed to specific TPM PCR values and can only be decrypted by the TPM
+    on the system where they were encrypted.
+  severity: High
+- rule_id: ALMSEC-30
+  rule_name: Configure Encrypted Keys
+  rule_description: Configure encrypted keys on systems without TPM. Encrypted keys
+    use kernel AES encryption and are created using kernel-generated random numbers
+    encrypted by a master key.
+  category: Kernel Integrity - Encrypted Keys
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Load encrypted-keys module if needed: modprobe encrypted-keys'
+  remediation:
+    remediation_step: '1. Generate user key: keyctl add user kmk-user "$(dd if=/dev/urandom
+      bs=1 count=32 2>/dev/null)" @u
+
+      2. Generate encrypted key: keyctl add encrypted encr-key "new user:kmk-user
+      32" @u'
+  tags:
+  - rhel8
+  - security
+  - kernel-integrity---encrypted-keys
+  id: ALMSEC-30
+  title: Configure Encrypted Keys
+  description: Configure encrypted keys on systems without TPM. Encrypted keys use
+    kernel AES encryption and are created using kernel-generated random numbers encrypted
+    by a master key.
+  severity: Medium
+- rule_id: ALMSEC-31
+  rule_name: Encrypt Block Devices Using LUKS2
+  rule_description: Encrypt block devices using LUKS2 format, which is the default
+    in AlmaLinux 8. LUKS provides disk encryption with passphrase strengthening and
+    multiple key slots.
+  category: Disk Encryption - LUKS
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if device is LUKS encrypted: cryptsetup isLuks /dev/<device>
+      && cryptsetup luksDump /dev/<device>'
+  remediation:
+    remediation_step: 'Encrypt blank device: cryptsetup luksFormat /dev/<device>
+
+      Open encrypted device: cryptsetup open /dev/<device> <mapped_name>
+
+      Create filesystem: mkfs -t xfs /dev/mapper/<mapped_name>'
+  tags:
+  - rhel8
+  - security
+  - disk-encryption---luks
+  id: ALMSEC-31
+  title: Encrypt Block Devices Using LUKS2
+  description: Encrypt block devices using LUKS2 format, which is the default in AlmaLinux
+    8. LUKS provides disk encryption with passphrase strengthening and multiple key
+    slots.
+  severity: Critical
+- rule_id: ALMSEC-32
+  rule_name: Encrypt Existing Data on Block Device with LUKS2
+  rule_description: Encrypt existing data on a block device using LUKS2 online re-encryption.
+    This allows encrypting data without losing existing content.
+  category: Disk Encryption - LUKS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if device is already encrypted: cryptsetup isLuks /dev/<device>'
+  remediation:
+    remediation_step: '1. Unmount device: umount /dev/<device>
+
+      2. Initialize encryption: cryptsetup reencrypt --encrypt --init-only --reduce-device-size
+      32M /dev/<device> <mapped_name>
+
+      3. Mount and add to /etc/crypttab and /etc/fstab
+
+      4. Resume encryption: cryptsetup reencrypt --resume-only /dev/<device>'
+  tags:
+  - rhel8
+  - security
+  - disk-encryption---luks
+  id: ALMSEC-32
+  title: Encrypt Existing Data on Block Device with LUKS2
+  description: Encrypt existing data on a block device using LUKS2 online re-encryption.
+    This allows encrypting data without losing existing content.
+  severity: High
+- rule_id: ALMSEC-33
+  rule_name: Use LUKS2 Detached Header for Enhanced Security
+  rule_description: Encrypt block devices with LUKS2 using a detached header stored
+    in a separate location. This provides an additional layer of security as the header
+    is not stored on the device itself.
+  category: Disk Encryption - LUKS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if device uses detached header: cryptsetup luksDump <header_file>'
+  remediation:
+    remediation_step: 'Initialize with detached header: cryptsetup reencrypt --encrypt
+      --init-only --header <header_path> /dev/<device> <mapped_name>
+
+      Add to /etc/crypttab: <name> /dev/disk/by-id/<id> none header=<header_path>'
+  tags:
+  - rhel8
+  - security
+  - disk-encryption---luks
+  id: ALMSEC-33
+  title: Use LUKS2 Detached Header for Enhanced Security
+  description: Encrypt block devices with LUKS2 using a detached header stored in
+    a separate location. This provides an additional layer of security as the header
+    is not stored on the device itself.
+  severity: High
+- rule_id: ALMSEC-34
+  rule_name: Configure LUKS2 Re-encryption Data Protection
+  rule_description: Configure appropriate resilience mode for LUKS2 re-encryption
+    to balance data protection and performance. Use 'checksum' (default), 'journal'
+    (safest), or 'none' (fastest).
+  category: Disk Encryption - LUKS
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check current LUKS2 configuration: cryptsetup luksDump /dev/<device>'
+  remediation:
+    remediation_step: 'Set resilience mode during re-encryption: cryptsetup reencrypt
+      --resilience <checksum|journal|none> /dev/<device>'
+  tags:
+  - rhel8
+  - security
+  - disk-encryption---luks
+  id: ALMSEC-34
+  title: Configure LUKS2 Re-encryption Data Protection
+  description: Configure appropriate resilience mode for LUKS2 re-encryption to balance
+    data protection and performance. Use 'checksum' (default), 'journal' (safest),
+    or 'none' (fastest).
+  severity: Medium
+- rule_id: ALMSEC-35
+  rule_name: Change LUKS Passphrase Regularly
+  rule_description: Change LUKS passphrases periodically to maintain security. LUKS2
+    supports up to 32 key slots, allowing for multiple passphrases.
+  category: Disk Encryption - LUKS
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List key slots: cryptsetup luksDump /dev/<device> | grep ''Key
+      Slot'''
+  remediation:
+    remediation_step: 'Change passphrase: cryptsetup luksChangeKey /dev/<device>
+
+      For specific slot: cryptsetup luksChangeKey /dev/<device> --key-slot <slot_number>'
+  tags:
+  - rhel8
+  - security
+  - disk-encryption---luks
+  id: ALMSEC-35
+  title: Change LUKS Passphrase Regularly
+  description: Change LUKS passphrases periodically to maintain security. LUKS2 supports
+    up to 32 key slots, allowing for multiple passphrases.
+  severity: Medium
+- rule_id: ALMSEC-36
+  rule_name: Configure auditd for Secure Environment
+  rule_description: Configure the audit daemon (auditd) with secure settings for compliance
+    requirements. Key settings include log file location, max file size, space thresholds,
+    and actions for disk full/error conditions.
+  category: System Auditing - Configuration
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check auditd configuration: cat /etc/audit/auditd.conf'
+  remediation:
+    remediation_step: 'Edit /etc/audit/auditd.conf with secure settings:
+
+      - max_log_file = <size_in_MB>
+
+      - max_log_file_action = keep_logs
+
+      - space_left = <MB_or_percentage>
+
+      - space_left_action = email
+
+      - admin_space_left_action = single
+
+      - disk_full_action = halt
+
+      - disk_error_action = syslog
+
+      - flush = incremental_async
+
+      - freq = 100'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---configuration
+  id: ALMSEC-36
+  title: Configure auditd for Secure Environment
+  description: Configure the audit daemon (auditd) with secure settings for compliance
+    requirements. Key settings include log file location, max file size, space thresholds,
+    and actions for disk full/error conditions.
+  severity: Critical
+- rule_id: ALMSEC-37
+  rule_name: Enable and Start auditd Service
+  rule_description: Ensure the auditd service is enabled and running to collect Audit
+    information and store it in log files for security monitoring and compliance.
+  category: System Auditing - Service
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check auditd status: systemctl status auditd'
+  remediation:
+    remediation_step: 'Enable and start auditd: systemctl enable auditd && service
+      auditd start'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---service
+  id: ALMSEC-37
+  title: Enable and Start auditd Service
+  description: Ensure the auditd service is enabled and running to collect Audit information
+    and store it in log files for security monitoring and compliance.
+  severity: Critical
+- rule_id: ALMSEC-38
+  rule_name: Configure Persistent Audit Rules
+  rule_description: Define persistent Audit rules that survive reboots by placing
+    them in /etc/audit/rules.d/ directory. Rules can monitor file access, system calls,
+    and command execution.
+  category: System Auditing - Rules
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List current rules: auditctl -l'
+  remediation:
+    remediation_step: 'Create rules in /etc/audit/rules.d/:
+
+      - Monitor file access: -w /etc/passwd -p wa -k passwd_changes
+
+      - Monitor system calls: -a always,exit -F arch=b64 -S adjtimex -S settimeofday
+      -k time_change
+
+      - Load rules: augenrules --load'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---rules
+  id: ALMSEC-38
+  title: Configure Persistent Audit Rules
+  description: Define persistent Audit rules that survive reboots by placing them
+    in /etc/audit/rules.d/ directory. Rules can monitor file access, system calls,
+    and command execution.
+  severity: High
+- rule_id: ALMSEC-39
+  rule_name: Monitor File Access with Audit
+  rule_description: Configure Audit rules to track whether files or directories have
+    been accessed, modified, or executed. Useful for detecting access to important
+    files.
+  category: System Auditing - Rules
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check file watch rules: auditctl -l | grep -E ''^-w'''
+  remediation:
+    remediation_step: 'Add file watch rules:
+
+      - Monitor /etc/passwd: auditctl -w /etc/passwd -p wa -k passwd_changes
+
+      - Monitor /etc/selinux: auditctl -w /etc/selinux/ -p wa -k selinux_changes
+
+      - Monitor /etc/ssh/sshd_config: auditctl -w /etc/ssh/sshd_config -p warx -k
+      sshd_config'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---rules
+  id: ALMSEC-39
+  title: Monitor File Access with Audit
+  description: Configure Audit rules to track whether files or directories have been
+    accessed, modified, or executed. Useful for detecting access to important files.
+  severity: High
+- rule_id: ALMSEC-40
+  rule_name: Monitor System Calls with Audit
+  rule_description: Configure Audit to log specific system calls such as time-related
+    changes, file deletions, and program executions for security monitoring.
+  category: System Auditing - Rules
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check syscall rules: auditctl -l | grep -E ''^-a'''
+  remediation:
+    remediation_step: 'Add system call rules:
+
+      - Time changes: auditctl -a always,exit -F arch=b64 -S adjtimex -S settimeofday
+      -k time_change
+
+      - File deletions: auditctl -a always,exit -S unlink -S unlinkat -S rename -S
+      renameat -F auid>=1000 -F auid!=4294967295 -k delete
+
+      - Program execution: auditctl -a always,exit -F exe=/bin/id -F arch=b64 -S execve
+      -k execution_bin_id'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---rules
+  id: ALMSEC-40
+  title: Monitor System Calls with Audit
+  description: Configure Audit to log specific system calls such as time-related changes,
+    file deletions, and program executions for security monitoring.
+  severity: High
+- rule_id: ALMSEC-41
+  rule_name: Use Pre-configured Audit Rules for Compliance
+  rule_description: Use pre-configured Audit rules files for compliance with standards
+    such as NISPOM, OSPP, PCI-DSS, and STIG. These are located in /usr/share/audit/sample-rules/.
+  category: System Auditing - Compliance
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check sample rules directory: ls /usr/share/audit/sample-rules/'
+  remediation:
+    remediation_step: 'Copy and load appropriate rules:
+
+      cd /usr/share/audit/sample-rules/
+
+      cp 10-base-config.rules 30-stig.rules 31-privileged.rules 99-finalize.rules
+      /etc/audit/rules.d/
+
+      augenrules --load'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---compliance
+  id: ALMSEC-41
+  title: Use Pre-configured Audit Rules for Compliance
+  description: Use pre-configured Audit rules files for compliance with standards
+    such as NISPOM, OSPP, PCI-DSS, and STIG. These are located in /usr/share/audit/sample-rules/.
+  severity: High
+- rule_id: ALMSEC-42
+  rule_name: Monitor Software Updates with Audit
+  rule_description: Configure Audit to monitor software installation utilities (dnf,
+    yum, pip, npm, cpan, gem, luarocks) to track software changes on the system.
+  category: System Auditing - Monitoring
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check installer rules: auditctl -l | grep software-installer'
+  remediation:
+    remediation_step: 'Copy pre-configured installer rules (AlmaLinux 8.6+):
+
+      cp /usr/share/audit/sample-rules/44-installers.rules /etc/audit/rules.d/
+
+      augenrules --load
+
+
+      For earlier versions, create /etc/audit/rules.d/44-installers.rules with:
+
+      -a always,exit -F perm=x -F path=/usr/bin/dnf-3 -F key=software-installer
+
+      -a always,exit -F perm=x -F path=/usr/bin/yum -F key=software-installer'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---monitoring
+  id: ALMSEC-42
+  title: Monitor Software Updates with Audit
+  description: Configure Audit to monitor software installation utilities (dnf, yum,
+    pip, npm, cpan, gem, luarocks) to track software changes on the system.
+  severity: Medium
+- rule_id: ALMSEC-43
+  rule_name: Monitor User Login Times with Audit
+  rule_description: Use Audit to monitor and report on user login times. This helps
+    identify unauthorized access patterns and supports security investigations.
+  category: System Auditing - Monitoring
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Search for login events: ausearch -m USER_LOGIN | aureport --user'
+  remediation:
+    remediation_step: 'Use aureport to generate login reports:
+
+      aureport -l (summary report)
+
+      aureport -l -i (detailed with interpreted data)
+
+      Use ausearch to search:
+
+      ausearch -m USER_LOGIN -ts <timestamp>'
+  tags:
+  - rhel8
+  - security
+  - system-auditing---monitoring
+  id: ALMSEC-43
+  title: Monitor User Login Times with Audit
+  description: Use Audit to monitor and report on user login times. This helps identify
+    unauthorized access patterns and supports security investigations.
+  severity: Medium
+- rule_id: ALMSEC-44
+  rule_name: Install and Configure USBGuard
+  rule_description: Install USBGuard framework to protect systems against intrusive
+    USB devices. USBGuard uses authorization policies based on device attributes to
+    allow or block USB devices.
+  category: USB Device Protection - USBGuard
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check if USBGuard is installed and running: rpm -q usbguard &&
+      systemctl status usbguard'
+  remediation:
+    remediation_step: '1. Install USBGuard: yum install usbguard
+
+      2. Generate initial policy: usbguard generate-policy > /etc/usbguard/rules.conf
+
+      3. Enable and start: systemctl enable --now usbguard'
+  tags:
+  - rhel8
+  - security
+  - usb-device-protection---usbguard
+  id: ALMSEC-44
+  title: Install and Configure USBGuard
+  description: Install USBGuard framework to protect systems against intrusive USB
+    devices. USBGuard uses authorization policies based on device attributes to allow
+    or block USB devices.
+  severity: Critical
+- rule_id: ALMSEC-45
+  rule_name: Configure USBGuard Device Authorization Policy
+  rule_description: Configure USBGuard policy to control which USB devices are allowed
+    to interact with the system. Create custom rules based on device ID, serial number,
+    or interface type.
+  category: USB Device Protection - USBGuard
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List current USBGuard rules: usbguard list-rules'
+  remediation:
+    remediation_step: '1. Generate policy without hashes: usbguard generate-policy
+      --no-hashes > ./rules.conf
+
+      2. Edit rules.conf to customize policy
+
+      3. Install policy: install -m 0600 -o root -g root rules.conf /etc/usbguard/rules.conf
+
+      4. Restart: systemctl restart usbguard'
+  tags:
+  - rhel8
+  - security
+  - usb-device-protection---usbguard
+  id: ALMSEC-45
+  title: Configure USBGuard Device Authorization Policy
+  description: Configure USBGuard policy to control which USB devices are allowed
+    to interact with the system. Create custom rules based on device ID, serial number,
+    or interface type.
+  severity: High
+- rule_id: ALMSEC-46
+  rule_name: Permanently Block or Authorize USB Devices
+  rule_description: Permanently authorize or block specific USB devices using USBGuard.
+    Use -p option to add device-specific rules to the current policy.
+  category: USB Device Protection - USBGuard
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'List USB devices: usbguard list-devices'
+  remediation:
+    remediation_step: 'Authorize device permanently: usbguard allow-device <ID> -p
+
+      Block device permanently: usbguard block-device <ID> -p
+
+      Reject device permanently: usbguard reject-device <ID> -p'
+  tags:
+  - rhel8
+  - security
+  - usb-device-protection---usbguard
+  id: ALMSEC-46
+  title: Permanently Block or Authorize USB Devices
+  description: Permanently authorize or block specific USB devices using USBGuard.
+    Use -p option to add device-specific rules to the current policy.
+  severity: High
+- rule_id: ALMSEC-47
+  rule_name: Configure USBGuard IPC Access Control
+  rule_description: Configure USBGuard to authorize specific users or groups to use
+    the IPC interface. By default, only root can use this interface. Limit access
+    to prevent unauthorized USB device manipulation.
+  category: USB Device Protection - USBGuard
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check IPC configuration: grep -E ''IPCAllowed|IPCAccessControlFiles''
+      /etc/usbguard/usbguard-daemon.conf'
+  remediation:
+    remediation_step: 'Edit /etc/usbguard/usbguard-daemon.conf:
+
+      IPCAllowGroups=wheel
+
+      Or use command: usbguard add-user <username> --devices ALL --policy modify,list
+      --exceptions ALL
+
+      Restart: systemctl restart usbguard'
+  tags:
+  - rhel8
+  - security
+  - usb-device-protection---usbguard
+  id: ALMSEC-47
+  title: Configure USBGuard IPC Access Control
+  description: Configure USBGuard to authorize specific users or groups to use the
+    IPC interface. By default, only root can use this interface. Limit access to prevent
+    unauthorized USB device manipulation.
+  severity: High
+- rule_id: ALMSEC-48
+  rule_name: Log USBGuard Events to Linux Audit
+  rule_description: Configure USBGuard to log authorization events to the standard
+    Linux Audit log instead of the default usbguard-audit.log file.
+  category: USB Device Protection - USBGuard
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check AuditBackend setting: grep AuditBackend /etc/usbguard/usbguard-daemon.conf'
+  remediation:
+    remediation_step: '1. Edit /etc/usbguard/usbguard-daemon.conf
+
+      2. Change: AuditBackend=LinuxAudit
+
+      3. Restart: systemctl restart usbguard
+
+      4. Verify: ausearch -ts recent -m USER_DEVICE'
+  tags:
+  - rhel8
+  - security
+  - usb-device-protection---usbguard
+  id: ALMSEC-48
+  title: Log USBGuard Events to Linux Audit
+  description: Configure USBGuard to log authorization events to the standard Linux
+    Audit log instead of the default usbguard-audit.log file.
+  severity: Medium
+- rule_id: ALMSEC-49
+  rule_name: Create Structured USBGuard Policy
+  rule_description: Organize USBGuard policy in multiple .conf files within /etc/usbguard/rules.d/
+    directory. The daemon combines files in alphabetical order, allowing modular policy
+    management.
+  category: USB Device Protection - USBGuard
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Check rules.d directory: ls /etc/usbguard/rules.d/'
+  remediation:
+    remediation_step: '1. Create policy file: usbguard generate-policy --no-hashes
+      > ./policy.conf
+
+      2. Extract rules to separate files (e.g., 10keyboards.conf)
+
+      3. Install: install -m 0600 -o root -g root <file>.conf /etc/usbguard/rules.d/
+
+      4. Restart: systemctl restart usbguard'
+  tags:
+  - rhel8
+  - security
+  - usb-device-protection---usbguard
+  id: ALMSEC-49
+  title: Create Structured USBGuard Policy
+  description: Organize USBGuard policy in multiple .conf files within /etc/usbguard/rules.d/
+    directory. The daemon combines files in alphabetical order, allowing modular policy
+    management.
+  severity: Medium
+- rule_id: ALMSEC-50
+  rule_name: Verify AIDE Database Integrity
+  rule_description: Perform manual AIDE integrity check to verify that system files
+    have not been modified. AIDE compares current file state against the baseline
+    database.
+  category: File Integrity - AIDE
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: 'Run AIDE check: aide --check'
+  remediation:
+    remediation_step: 'Review AIDE check output for any discrepancies. If changes
+      are legitimate, update the database: aide --update && mv /var/lib/aide/aide.db.new.gz
+      /var/lib/aide/aide.db.gz'
+  tags:
+  - rhel8
+  - security
+  - file-integrity---aide
+  id: ALMSEC-50
+  title: Verify AIDE Database Integrity
+  description: Perform manual AIDE integrity check to verify that system files have
+    not been modified. AIDE compares current file state against the baseline database.
+  severity: High
