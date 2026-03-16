@@ -1,0 +1,714 @@
+schema_version: 1.0.0
+metadata:
+  name: Caddy Security Hardening Rules
+  version: '1.0.0'
+  description: Security hardening rules for Caddy web server based on official Caddy
+    documentation and best practices
+  platform: Caddy
+  benchmark: Caddy Official Documentation
+  author: Compliance Rules Team
+  source: https://caddyserver.com/docs/
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Caddy 2.x
+  references:
+  - type: Caddy Documentation
+    reference: https://caddyserver.com/docs/
+  - type: Caddy Automatic HTTPS
+    reference: https://caddyserver.com/docs/automatic-https
+compliance_info:
+  framework: NIST
+  version: '1.0.0'
+  profile: security-hardening
+  source:
+    framework: caddy
+    benchmark: Caddy Official Documentation
+    version: latest
+    profile: security-hardening
+    notes: Rules derived from official Caddy documentation and best practices. No
+      dedicated CIS or STIG exists for Caddy.
+rules:
+- rule_id: CADDY-TLS-001
+  legacy_ids: []
+  rule_name: Configure TLS 1.2 or higher
+  rule_description: |
+    Configure Caddy to use TLS 1.2 or higher. Caddy defaults to modern TLS settings, but explicit configuration ensures compliance.
+  category: Cryptography
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Caddy TLS configuration:
+      
+      grep -E "protocols" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Minimum TLS version is 1.2 or 1.3
+      2. Deprecated protocols are not enabled
+      
+      Expected: protocols tls1.2 tls1.3 or higher
+    check_command: 'grep -E "protocols" /etc/caddy/Caddyfile || echo "TLS protocols
+      using defaults"'
+    expected_value: 'protocols tls1.2 tls1.3 or higher'
+  remediation:
+    remediation_step: |
+      Configure TLS protocols in Caddyfile:
+      
+      example.com {
+          tls {
+              protocols tls1.2 tls1.3
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Caddy restart
+    estimated_time: 30 seconds
+  context:
+    rationale: TLS 1.0 and 1.1 have known vulnerabilities and are deprecated by RFC
+      8996.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: CADDY-ADMIN-001
+  legacy_ids: []
+  rule_name: Secure admin API
+  rule_description: |
+    Secure the Caddy admin API by either disabling it or binding to a restricted interface.
+  category: Configuration
+  subcategory: Admin API
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check admin API configuration:
+      
+      grep -A5 "^{" /etc/caddy/Caddyfile | grep -E "admin|off"
+      
+      Or check global options:
+      head -20 /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Admin API is disabled or bound to localhost only
+      2. Admin API is not exposed on public interfaces
+      
+      If admin API is exposed publicly, this is a critical finding.
+    check_command: 'grep -E "admin off|admin localhost|admin unix" /etc/caddy/Caddyfile
+      || echo "Admin API using defaults (localhost:2019)"'
+    expected_value: Admin API disabled or localhost only
+  remediation:
+    remediation_step: |
+      Disable admin API (production recommended):
+      
+      {
+          admin off
+      }
+      
+      Or bind to localhost with origin restriction:
+      
+      {
+          admin localhost:2019 {
+              origins localhost 127.0.0.1
+              enforce_origin
+          }
+      }
+      
+      Or use Unix socket:
+      
+      {
+          admin unix//run/caddy-admin.sock
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Admin API access restricted
+    estimated_time: 30 seconds
+  context:
+    rationale: The admin API allows full server control and must not be exposed publicly.
+    impact: Admin API only accessible locally or disabled
+    false_positive_risk: None
+  tags:
+  - caddy
+  - admin
+  - api
+  - critical
+
+- rule_id: CADDY-AUTH-001
+  legacy_ids: []
+  rule_name: Configure HTTP basic authentication
+  rule_description: |
+    Configure HTTP basic authentication for sensitive paths or entire sites.
+  category: Authentication
+  subcategory: Basic Auth
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check authentication configuration:
+      
+      grep -E "basic_auth|basicauth" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Authentication is configured for sensitive paths
+      2. Strong passwords are used (bcrypt hashed)
+      
+      If sensitive paths lack authentication, this is a finding.
+    check_command: 'grep -E "basic_auth|basicauth" /etc/caddy/Caddyfile || echo "Basic
+      auth not configured"'
+    expected_value: Basic auth configured for sensitive paths
+  remediation:
+    remediation_step: |
+      Configure basic authentication in Caddyfile:
+      
+      example.com {
+          basic_auth {
+              # Generate: caddy hash-password --plaintext 'password'
+              Bob $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+          }
+          respond "Welcome, {http.auth.user.id}"
+      }
+      
+      Or for specific paths:
+      
+      example.com {
+          basic_auth /admin/* {
+              Bob $2a$14$hashedpassword
+          }
+          file_server
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Protected paths require authentication
+    estimated_time: 30 seconds
+  context:
+    rationale: Authentication protects sensitive areas from unauthorized access.
+    impact: Users must authenticate for protected resources
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - authentication
+  - basic-auth
+
+- rule_id: CADDY-HEADER-001
+  legacy_ids: []
+  rule_name: Configure security headers
+  rule_description: |
+    Configure security-related HTTP headers to protect against common web vulnerabilities.
+  category: Application Security
+  subcategory: Security Headers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check security headers configuration:
+      
+      grep -E "Strict-Transport-Security|X-Frame-Options|X-Content-Type|header" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. HSTS header is set
+      2. X-Frame-Options is configured
+      3. Server identification is removed
+      
+      If security headers are not configured, this is a finding.
+    check_command: 'grep -E "header|Strict-Transport|X-Frame-Options|X-Content-Type"
+      /etc/caddy/Caddyfile || echo "Security headers not configured"'
+    expected_value: Security headers configured
+  remediation:
+    remediation_step: |
+      Configure security headers in Caddyfile:
+      
+      example.com {
+          header {
+              Permissions-Policy "interest-cohort=()"
+              Strict-Transport-Security "max-age=31536000; include-subdomains; preload"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "DENY"
+              X-XSS-Protection "1; mode=block"
+              Referrer-Policy "strict-origin-when-cross-origin"
+              Content-Security-Policy "default-src 'self'"
+              -Server
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Response headers will include security policies
+    estimated_time: 30 seconds
+  context:
+    rationale: Security headers protect against XSS, clickjacking, and other common
+      web vulnerabilities.
+    impact: May affect application behavior if headers conflict
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - headers
+  - security
+  - application-security
+
+- rule_id: CADDY-LOG-001
+  legacy_ids: []
+  rule_name: Configure access logging
+  rule_description: |
+    Configure comprehensive access logging for security monitoring and incident response.
+  category: Logging and Auditing
+  subcategory: Access Logs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check logging configuration:
+      
+      grep -E "log {|output file|format" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Access logging is enabled
+      2. Log files are configured with rotation
+      3. Sensitive data is filtered if necessary
+      
+      If logging is not configured, this is a finding.
+    check_command: 'grep -E "log {|output file|format" /etc/caddy/Caddyfile || echo
+      "Logging not configured"'
+    expected_value: Access logging configured
+  remediation:
+    remediation_step: |
+      Configure logging in Caddyfile:
+      
+      example.com {
+          log {
+              output file /var/log/access.log {
+                  roll_size 100mb
+                  roll_keep 10
+                  roll_keep_for 720h
+              }
+              format json
+              level INFO
+          }
+      }
+      
+      For privacy filtering:
+      
+      example.com {
+          log {
+              format filter {
+                  request>remote_ip ip_mask 16 32
+              }
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Additional log storage required
+    estimated_time: 30 seconds
+  context:
+    rationale: Access logging enables security monitoring, incident response, and
+      troubleshooting.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - logging
+  - monitoring
+  - auditing
+
+- rule_id: CADDY-TIMEOUT-001
+  legacy_ids: []
+  rule_name: Configure server timeouts
+  rule_description: |
+    Configure server timeouts to prevent resource exhaustion from slow connections.
+  category: Network Security
+  subcategory: Timeouts
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check timeout configuration:
+      
+      grep -E "timeouts|read_body|read_header|write|idle" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Read timeout is configured
+      2. Write timeout is set
+      3. Idle timeout is configured
+      
+      If timeouts are not configured, this is a finding.
+    check_command: 'grep -E "timeouts|read_body|read_header|write|idle" /etc/caddy/Caddyfile
+      || echo "Timeouts not configured"'
+    expected_value: Timeouts configured
+  remediation:
+    remediation_step: |
+      Configure timeouts in Caddyfile global options:
+      
+      {
+          servers {
+              timeouts {
+                  read_body   10s
+                  read_header 5s
+                  write       30s
+                  idle        5m
+              }
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Slow connections may be terminated
+    estimated_time: 30 seconds
+  context:
+    rationale: Timeouts prevent resource exhaustion from slowloris attacks.
+    impact: Long-running connections may be terminated
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - timeouts
+  - dos-protection
+  - network
+
+- rule_id: CADDY-MTLS-001
+  legacy_ids: []
+  rule_name: Configure mutual TLS (mTLS)
+  rule_description: |
+    Configure mutual TLS authentication to verify client certificates.
+  category: Authentication
+  subcategory: Mutual TLS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check mTLS configuration:
+      
+      grep -E "client_auth|mode require" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Client certificate verification is configured
+      2. CA certificate is specified
+      3. Require and verify mode is set
+      
+      If mTLS is required but not configured, this is a finding.
+    check_command: 'grep -E "client_auth|mode require" /etc/caddy/Caddyfile || echo
+      "mTLS not configured"'
+    expected_value: mTLS configured if required
+  remediation:
+    remediation_step: |
+      Configure mTLS in Caddyfile:
+      
+      example.com {
+          tls {
+              client_auth {
+                  mode require_and_verify
+                  trust_pool file /path/to/ca.crt
+              }
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Clients without valid certificates cannot connect
+    estimated_time: 30 seconds
+  context:
+    rationale: mTLS provides strong authentication by requiring both server and client
+      certificates.
+    impact: All clients must have valid certificates
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - mtls
+  - authentication
+  - certificates
+
+- rule_id: CADDY-PROXY-001
+  legacy_ids: []
+  rule_name: Configure trusted proxies for real IP detection
+  rule_description: |
+    Configure trusted proxies to properly detect client IP addresses behind load balancers.
+  category: Network Security
+  subcategory: Proxy Configuration
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check trusted proxy configuration:
+      
+      grep -E "trusted_proxies|client_ip_headers" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Trusted proxy IPs/CIDRs are configured if behind load balancer
+      2. Strict mode is enabled
+      
+      If behind load balancer without trusted proxy config, this is a finding.
+    check_command: 'grep -E "trusted_proxies|client_ip_headers" /etc/caddy/Caddyfile
+      || echo "Trusted proxies not configured"'
+    expected_value: Trusted proxies configured if behind load balancer
+  remediation:
+    remediation_step: |
+      Configure trusted proxies in Caddyfile global options:
+      
+      {
+          servers {
+              trusted_proxies static 10.0.0.0/8 172.16.0.0/12
+              trusted_proxies_strict
+              client_ip_headers X-Forwarded-For X-Real-IP
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Real IP detection enabled for trusted proxies only
+    estimated_time: 30 seconds
+  context:
+    rationale: Proper trusted proxy configuration ensures accurate client IP detection
+      for access control and logging.
+    impact: Must include all legitimate proxy/CDN IPs
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - proxy
+  - ip-detection
+  - network
+
+- rule_id: CADDY-HEADER-002
+  legacy_ids: []
+  rule_name: Configure strict SNI host checking
+  rule_description: |
+    Enable strict SNI host checking to prevent domain fronting attacks.
+  category: Network Security
+  subcategory: SNI
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check SNI configuration:
+      
+      grep -E "strict_sni_host" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. strict_sni_host is enabled (on)
+      
+      If strict SNI is not enabled, this is a finding.
+    check_command: 'grep -E "strict_sni_host" /etc/caddy/Caddyfile || echo "Strict
+      SNI not configured"'
+    expected_value: 'strict_sni_host on'
+  remediation:
+    remediation_step: |
+      Enable strict SNI in Caddyfile global options:
+      
+      {
+          servers {
+              strict_sni_host on
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Connections without matching SNI will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Strict SNI prevents domain fronting attacks where clients use one domain
+      in SNI but connect to a different domain.
+    impact: May affect some legacy clients
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - sni
+  - tls
+  - security
+
+- rule_id: CADDY-SIZE-001
+  legacy_ids: []
+  rule_name: Configure maximum header size
+  rule_description: |
+    Configure maximum header size to prevent header-based attacks.
+  category: Network Security
+  subcategory: Request Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check header size configuration:
+      
+      grep -E "max_header_size" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. Maximum header size is configured
+      2. Value is reasonable (default 1MB is typically sufficient)
+      
+      If custom limit is needed but not configured, this is a finding.
+    check_command: 'grep -E "max_header_size" /etc/caddy/Caddyfile || echo "Max header
+      size using defaults (1MB)"'
+    expected_value: Max header size configured appropriately
+  remediation:
+    remediation_step: |
+      Configure max header size in Caddyfile global options:
+      
+      {
+          servers {
+              max_header_size 1MB
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Large headers will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Limiting header size prevents memory exhaustion from header-based attacks.
+    impact: Requests with very large headers will be rejected
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - headers
+  - dos-protection
+  - limits
+
+- rule_id: CADDY-REDIRECT-001
+  legacy_ids: []
+  rule_name: Configure HTTP to HTTPS redirect
+  rule_description: |
+    Ensure HTTP to HTTPS redirect is configured for all sites.
+  category: Network Security
+  subcategory: Redirects
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Caddyfile for HTTP listener:
+      
+      grep -E ":80|http://" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. HTTP listener redirects to HTTPS
+      2. Or no HTTP listener is configured
+      
+      Note: Caddy automatic HTTPS handles this by default when using domain names.
+    check_command: 'grep -E ":80" /etc/caddy/Caddyfile || echo "HTTP listener not
+      found (HTTPS only)"'
+    expected_value: HTTP redirects to HTTPS or HTTPS only
+  remediation:
+    remediation_step: |
+      Caddy automatically redirects HTTP to HTTPS for domain names.
+      
+      For explicit configuration:
+      
+      http://example.com {
+          redir https://example.com{uri}
+      }
+      
+      example.com {
+          respond "Hello, HTTPS!"
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: All HTTP traffic redirected to HTTPS
+    estimated_time: 30 seconds
+  context:
+    rationale: HTTPS redirect ensures all traffic is encrypted and protects against
+      downgrade attacks.
+    impact: HTTP requests will be redirected
+    false_positive_risk: None
+  tags:
+  - caddy
+  - https
+  - redirect
+  - encryption
+
+- rule_id: CADDY-0RTT-001
+  legacy_ids: []
+  rule_name: Disable TLS 0-RTT for replay-sensitive applications
+  rule_description: |
+    Disable TLS 0-RTT (early data) when using remote IP matchers to prevent replay attacks.
+  category: Cryptography
+  subcategory: TLS Options
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check 0-RTT configuration:
+      
+      grep -E "0rtt|servers {" /etc/caddy/Caddyfile
+      
+      Verify:
+      1. 0-RTT is disabled if using remote_ip matchers
+      2. Or 0-RTT is explicitly configured as needed
+      
+      If using remote_ip matchers with 0-RTT enabled, this is a finding.
+    check_command: 'grep -E "0rtt" /etc/caddy/Caddyfile || echo "0-RTT using defaults"'
+    expected_value: '0rtt off if using remote_ip matchers'
+  remediation:
+    remediation_step: |
+      Disable 0-RTT in Caddyfile global options:
+      
+      {
+          servers {
+              0rtt off
+          }
+      }
+      
+      Restart Caddy: systemctl restart caddy
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Slight performance reduction for TLS handshakes
+    estimated_time: 30 seconds
+  context:
+    rationale: 0-RTT allows replay attacks which can bypass IP-based access controls.
+    impact: Slightly slower connection establishment
+    false_positive_risk: Low
+  tags:
+  - caddy
+  - tls
+  - 0rtt
+  - replay-attacks
