@@ -21,12 +21,14 @@ compliance-rules/
 │   │   ├── windowsserver-2019/
 │   │   ├── windowsserver-2022/
 │   │   └── windowsserver-2025/
-│   └── oracle/              # Oracle vendor (full name)
-│       ├── solaris-11.4/
-│       ├── weblogic-12c/
-│       ├── weblogic-14c/
-│       ├── weblogic-15c/
-│       └── http-server-12c/
+│   ├── oracle/              # Oracle vendor (full name)
+│   │   ├── solaris-11.4/
+│   │   ├── weblogic-12c/
+│   │   ├── weblogic-14c/
+│   │   ├── weblogic-15c/
+│   │   └── http-server-12c/
+│   └── elastic/             # Elastic vendor (full name)
+│       └── elasticstack-8/  # Elastic Stack 8.x (ELK)
 └── .agent/                   # Agent configuration
 ```
 
@@ -37,6 +39,7 @@ compliance-rules/
 | Red Hat | `redhat` | `redhat-` |
 | Microsoft | `microsoft` | `microsoft-` |
 | Oracle | `oracle` | `oracle-` |
+| Elastic | `elastic` | `elastic-` |
 
 ## Product Names (No Spaces)
 
@@ -47,6 +50,7 @@ compliance-rules/
 | Solaris | `solaris-<version>` | `solaris-<version>` |
 | WebLogic Server | `weblogic-<version>` | `weblogic-<version>` |
 | HTTP Server | `http-server-<version>` | `httpserver-<version>` |
+| Elastic Stack | `elasticstack-<version>` | `elasticstack-<version>` |
 
 ## File Naming Convention
 
@@ -86,6 +90,7 @@ oracle-weblogic-12c-stig-cat1-v2r2.yaml
 redhat-rhel-10-redhat-security-1.0.0.yaml
 oracle-weblogic-12c-oracle-security-1.0.0.yaml
 oracle-httpserver-12c-oracle-security-1.0.0.yaml
+elastic-elasticstack-8-elastic-security-1.0.0.yaml
 ```
 
 ## Compliance Levels
@@ -146,3 +151,4 @@ oracle-httpserver-12c-oracle-security-1.0.0.yaml
 | `stig` | DISA STIGs | All products |
 | `redhat` | Red Hat Documentation | RHEL products |
 | `oracle` | Oracle Documentation | Oracle products |
+| `elastic` | Elastic Documentation | Elastic Stack |

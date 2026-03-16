@@ -1,0 +1,737 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: DISA STIG for Elastic Stack - CAT I
+  version: 3.3.0
+  description: DISA Security Requirements Guide for Central Log Server applied to Elastic Stack 8.x
+  platform: Elastic Stack
+  benchmark: DISA Central Log Server Security Requirements Guide V3R3
+  author: Compliance Rules Team
+  source: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Central_Log_Server_V3R3_SRG.zip
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  compatible_platforms:
+    - Elasticsearch 8.x
+    - Kibana 8.x
+    - Logstash 8.x
+    - Beats 8.x
+
+system_info:
+  name: Elastic Stack
+  version: "8.0"
+  company: Elastic
+  category: Central Log Server
+  compatible_platforms:
+    - Linux
+    - Windows
+    - Docker
+    - Kubernetes
+
+compliance_info:
+  framework: STIG
+  version: 3.3.0
+  profile: CAT I (High Severity)
+
+file_info:
+  name: elastic-elasticstack-8-stig-cat1-v3r3.yaml
+  description: DISA STIG CAT I rules for Elastic Stack 8.x
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  rule_id_prefix: STIG
+
+profile:
+  name: STIG CAT I
+  description: Critical security requirements from DISA Central Log Server SRG
+  level: 1
+
+rules:
+  - rule_id: STIG-206447
+    legacy_ids:
+      - SV-206447r1137787_rule
+    rule_name: Enforce Access Control Policies
+    rule_description: The Central Log Server must be configured to enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies.
+    category: Access Control
+    subcategory: Authorization
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Elasticsearch security features are enabled and role-based access control is configured
+      check_command: "grep 'xpack.security.enabled' /etc/elasticsearch/elasticsearch.yml && curl -s -u elastic:password localhost:9200/_security/role 2>/dev/null | jq -r 'keys[]' || echo 'Check RBAC roles'"
+      expected_value: "Security enabled and RBAC roles configured"
+    remediation:
+      remediation_step: |
+        Enable Elasticsearch security features in elasticsearch.yml:
+        xpack.security.enabled: true
+        
+        Configure role-based access control using Kibana or the Security API:
+        1. Create roles with appropriate cluster and index privileges
+        2. Map users to roles based on least privilege principle
+        3. Document all role assignments and access policies
+        
+        Example role creation via API:
+        PUT /_security/role/logs_reader
+        {
+          "indices": [
+            {
+              "names": [ "logs-*" ],
+              "privileges": [ "read" ]
+            }
+          ]
+        }
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required for initial security enablement
+      estimated_time: 30 minutes
+    context:
+      rationale: RBAC prevents unauthorized access to sensitive log data and system resources.
+      impact: High - Unauthorized access can lead to data breaches or system compromise.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206447r1137787_rule
+    tags:
+      - access-control
+      - rbac
+      - authorization
+
+  - rule_id: STIG-206460
+    legacy_ids:
+      - SV-206460r1051115_rule
+    rule_name: Unique User Identification and Authentication
+    rule_description: The Central Log Server must be configured to uniquely identify and authenticate organizational users (or processes acting on behalf of organizational users).
+    category: Authentication
+    subcategory: User Identification
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that all users have unique identifiers and authentication is required
+      check_command: "curl -s -u elastic:password localhost:9200/_security/user 2>/dev/null | jq -r 'keys[]' | wc -l && curl -s localhost:9200 2>&1 | grep -q '401' && echo 'Authentication required' || echo 'No auth required'"
+      expected_value: "Unique users configured and authentication enforced"
+    remediation:
+      remediation_step: |
+        Ensure unique user identification and authentication:
+        
+        1. Create unique user accounts for each user:
+        POST /_security/user/johndoe
+        {
+          "password": "secure_password",
+          "roles": [ "appropriate_role" ],
+          "full_name": "John Doe",
+          "email": "john.doe@example.com"
+        }
+        
+        2. Disable or remove shared accounts
+        
+        3. Configure authentication realms in elasticsearch.yml:
+        xpack.security.authc.realms:
+          native.native1:
+            order: 0
+          ldap.ldap1:
+            order: 1
+            url: "ldaps://ldap.example.com:636"
+        
+        4. Enable security features to enforce authentication:
+        xpack.security.enabled: true
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 20 minutes
+    context:
+      rationale: Unique identification ensures accountability and prevents unauthorized access through shared accounts.
+      impact: High - Shared accounts prevent proper accountability and audit trail.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206460r1051115_rule
+    tags:
+      - authentication
+      - users
+      - identification
+
+  - rule_id: STIG-206474
+    legacy_ids:
+      - SV-206474r981742_rule
+    rule_name: Cryptographic Password Storage
+    rule_description: For accounts using password authentication, the Central Log Server must be configured to store only cryptographic representations of passwords.
+    category: Authentication
+    subcategory: Password Security
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that passwords are stored using cryptographic hashing
+      check_command: "grep 'xpack.security.authc.password_hashing.algorithm' /etc/elasticsearch/elasticsearch.yml || echo 'Using default (bcrypt)'"
+      expected_value: "bcrypt or pbkdf2_stretch configured"
+    remediation:
+      remediation_step: |
+        Configure cryptographic password storage in elasticsearch.yml:
+        
+        For standard deployments:
+        xpack.security.authc.password_hashing.algorithm: bcrypt
+        
+        For FIPS-compliant deployments:
+        xpack.security.authc.password_hashing.algorithm: pbkdf2_stretch
+        
+        Elasticsearch uses bcrypt by default which is a strong cryptographic hash.
+        Never store passwords in plain text in configuration files.
+        Use the Elasticsearch keystore for sensitive settings.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Cryptographic password storage prevents password exposure if the database is compromised.
+      impact: High - Plain text passwords can be easily extracted and misused.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206474r981742_rule
+    tags:
+      - authentication
+      - passwords
+      - cryptography
+
+  - rule_id: STIG-206475
+    legacy_ids:
+      - SV-206475r961029_rule
+    rule_name: FIPS-Validated Password Protection
+    rule_description: For accounts using password authentication, the Central Log Server must use FIPS-validated SHA-1 or later protocol to protect the integrity of the password authentication process.
+    category: Authentication
+    subcategory: FIPS Compliance
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify FIPS-validated hash algorithms are used for password protection
+      check_command: "grep 'xpack.security.fips_mode.enabled\\|xpack.security.authc.password_hashing.algorithm' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "FIPS mode enabled or SHA-256+ algorithm configured"
+    remediation:
+      remediation_step: |
+        For FIPS-compliant deployments:
+        
+        1. Enable FIPS mode in elasticsearch.yml:
+        xpack.security.fips_mode.enabled: true
+        xpack.security.authc.password_hashing.algorithm: pbkdf2_stretch
+        
+        2. Ensure JVM is FIPS-compliant:
+        - Use a FIPS-validated JDK
+        - Configure Bouncy Castle FIPS provider
+        
+        3. Use FIPS-approved cipher suites:
+        xpack.security.transport.ssl.cipher_suites: ["TLS_AES_256_GCM_SHA384"]
+        xpack.security.transport.ssl.supported_protocols: ["TLSv1.2", "TLSv1.3"]
+        
+        For non-FIPS deployments, use SHA-256+ via bcrypt:
+        xpack.security.authc.password_hashing.algorithm: bcrypt
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: FIPS-validated algorithms ensure cryptographic protection meets federal standards.
+      impact: High - Non-compliant algorithms may be vulnerable to attacks.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-206475r961029_rule
+    tags:
+      - fips
+      - authentication
+      - cryptography
+
+  - rule_id: STIG-206478
+    legacy_ids:
+      - SV-206478r961038_rule
+    rule_name: PKI Certificate Path Validation
+    rule_description: The Central Log Server, when utilizing PKI-based authentication, must validate certificates by constructing a certification path (which includes status information) to an accepted trust anchor.
+    category: Authentication
+    subcategory: PKI
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify PKI certificate validation is properly configured
+      check_command: "grep -A10 'xpack.security.authc.realms' /etc/elasticsearch/elasticsearch.yml | grep -E 'ssl.verification_mode|ssl.certificate_authorities'"
+      expected_value: "Certificate verification mode set to full or certificate"
+    remediation:
+      remediation_step: |
+        Configure PKI certificate validation in elasticsearch.yml:
+        
+        For PKI authentication realm:
+        xpack.security.authc.realms.pki.pki1:
+          order: 0
+          ssl.certificate_authorities: ["/path/to/ca.crt"]
+          ssl.verification_mode: full
+        
+        For TLS connections:
+        xpack.security.transport.ssl.verification_mode: full
+        xpack.security.transport.ssl.certificate_authorities: ["/path/to/ca.crt"]
+        xpack.security.http.ssl.verification_mode: full
+        xpack.security.http.ssl.certificate_authorities: ["/path/to/ca.crt"]
+        
+        Ensure:
+        - Certificate chain is valid
+        - Root CA is trusted
+        - Certificate revocation is checked (CRL or OCSP)
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Proper certificate validation prevents man-in-the-middle attacks and ensures authentication to legitimate servers.
+      impact: High - Invalid certificates can lead to authentication bypass.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-206478r961038_rule
+    tags:
+      - pki
+      - certificates
+      - authentication
+
+  - rule_id: STIG-206479
+    legacy_ids:
+      - SV-206479r961041_rule
+    rule_name: Private Key Access Control
+    rule_description: The Central Log Server, when using PKI-based authentication, must enforce authorized access to the corresponding private key.
+    category: Authentication
+    subcategory: PKI
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Partial
+      audit_type: config
+      detection_step: Verify private key file permissions are restricted
+      check_command: "stat -c '%a %n' /etc/elasticsearch/*.p12 /etc/elasticsearch/*.key 2>/dev/null || echo 'Check certificate files'"
+      expected_value: "Private key files readable only by elasticsearch user (600 or 400)"
+    remediation:
+      remediation_step: |
+        Secure private key access:
+        
+        1. Set proper file permissions:
+        chmod 600 /etc/elasticsearch/*.p12
+        chmod 600 /etc/elasticsearch/*.key
+        chmod 600 /etc/elasticsearch/*.keystore
+        
+        2. Set proper ownership:
+        chown elasticsearch:elasticsearch /etc/elasticsearch/*.p12
+        chown elasticsearch:elasticsearch /etc/elasticsearch/*.key
+        
+        3. Use keystore for passwords:
+        ./bin/elasticsearch-keystore add xpack.security.transport.ssl.keystore.secure_password
+        
+        4. Restrict access to configuration directory:
+        chmod 750 /etc/elasticsearch
+        
+        5. Never store private keys in version control or shared locations.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart may be required
+      estimated_time: 10 minutes
+    context:
+      rationale: Private key compromise allows attackers to impersonate the server.
+      impact: High - Compromised private keys lead to complete authentication bypass.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206479r961041_rule
+    tags:
+      - pki
+      - private-key
+      - file-permissions
+
+  - rule_id: STIG-206481
+    legacy_ids:
+      - SV-206481r961047_rule
+    rule_name: Obfuscate Authentication Information
+    rule_description: The Central Log Server must obfuscate authentication information during the authentication process so that the authentication is not visible.
+    category: Authentication
+    subcategory: Credential Protection
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify TLS is enabled to encrypt authentication data in transit
+      check_command: "grep 'xpack.security.http.ssl.enabled\\|xpack.security.transport.ssl.enabled' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "Both HTTP and Transport TLS enabled"
+    remediation:
+      remediation_step: |
+        Enable TLS to encrypt authentication data:
+        
+        For HTTP layer (client to Elasticsearch):
+        xpack.security.http.ssl.enabled: true
+        xpack.security.http.ssl.keystore.path: http.p12
+        xpack.security.http.ssl.truststore.path: http.p12
+        
+        For Transport layer (inter-node):
+        xpack.security.transport.ssl.enabled: true
+        xpack.security.transport.ssl.keystore.path: transport.p12
+        xpack.security.transport.ssl.truststore.path: transport.p12
+        
+        For Kibana, enable TLS in kibana.yml:
+        server.ssl.enabled: true
+        server.ssl.certificate: /path/to/kibana.crt
+        server.ssl.key: /path/to/kibana.key
+        
+        Never use HTTP (port 9200) without TLS in production.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch and Kibana restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Unencrypted authentication credentials can be captured via network sniffing.
+      impact: High - Credential theft leads to unauthorized access.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206481r961047_rule
+    tags:
+      - tls
+      - encryption
+      - authentication
+
+  - rule_id: STIG-206482
+    legacy_ids:
+      - SV-206482r961050_rule
+    rule_name: FIPS-Validated Hash Functions
+    rule_description: The Central Log Server must use FIPS-validated SHA-1 or higher hash function to protect the integrity of keyed-hash message authentication code (HMAC), Key Derivation Functions (KDFs), Random Bit Generation, hash-only applications, and digital signature verification (legacy use only).
+    category: Cryptography
+    subcategory: Hash Functions
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify FIPS-validated hash functions are configured
+      check_command: "grep 'xpack.security.fips_mode.enabled' /etc/elasticsearch/elasticsearch.yml || echo 'FIPS mode not configured'"
+      expected_value: "FIPS mode enabled for FIPS-compliant deployments"
+    remediation:
+      remediation_step: |
+        Enable FIPS mode for compliant deployments:
+        
+        In elasticsearch.yml:
+        xpack.security.fips_mode.enabled: true
+        
+        Configure FIPS-compliant settings:
+        xpack.security.authc.password_hashing.algorithm: pbkdf2_stretch
+        xpack.security.transport.ssl.supported_protocols: ["TLSv1.2", "TLSv1.3"]
+        xpack.security.transport.ssl.cipher_suites: ["TLS_AES_256_GCM_SHA384", "TLS_AES_128_GCM_SHA256"]
+        
+        Ensure JVM is configured with FIPS provider:
+        - Use Bouncy Castle FIPS provider
+        - Configure in java.security file
+        
+        Note: SHA-1 is only allowed for legacy digital signature verification.
+        Use SHA-256 or higher for all new implementations.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: FIPS-validated hash functions ensure cryptographic operations meet federal standards.
+      impact: High - Non-compliant hash functions may be vulnerable to collision attacks.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-206482r961050_rule
+    tags:
+      - fips
+      - cryptography
+      - hash-functions
+
+  - rule_id: STIG-206509
+    legacy_ids:
+      - SV-206509r961632_rule
+    rule_name: Protect Transmitted Information
+    rule_description: The Central Log Server must be configured to protect the confidentiality and integrity of transmitted information.
+    category: Encryption
+    subcategory: Data in Transit
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify TLS is enabled for all network communications
+      check_command: "grep 'ssl.enabled' /etc/elasticsearch/elasticsearch.yml | grep -v '#' && netstat -tlnp | grep -E '9200|9300' || echo 'Check ports'"
+      expected_value: "TLS enabled on all network interfaces"
+    remediation:
+      remediation_step: |
+        Enable TLS for all communications:
+        
+        1. Transport layer (inter-node):
+        xpack.security.transport.ssl.enabled: true
+        xpack.security.transport.ssl.verification_mode: full
+        xpack.security.transport.ssl.keystore.path: transport.p12
+        
+        2. HTTP layer (client-server):
+        xpack.security.http.ssl.enabled: true
+        xpack.security.http.ssl.keystore.path: http.p12
+        
+        3. Configure Logstash TLS:
+        output {
+          elasticsearch {
+            hosts => ["https://es-node:9200"]
+            ssl_enabled => true
+            ssl_certificate_authorities => ["/path/to/ca.crt"]
+          }
+        }
+        
+        4. Configure Kibana TLS:
+        server.ssl.enabled: true
+        elasticsearch.hosts: ["https://es-node:9200"]
+        
+        5. Configure Beats TLS:
+        output.elasticsearch.hosts: ["https://es-node:9200"]
+        output.elasticsearch.ssl.certificate_authorities: ["/path/to/ca.crt"]
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Full stack restart required
+      estimated_time: 60 minutes
+    context:
+      rationale: Unencrypted transmissions expose sensitive log data to interception and tampering.
+      impact: High - Data interception can lead to information disclosure or corruption.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206509r961632_rule
+    tags:
+      - tls
+      - encryption
+      - data-protection
+
+  - rule_id: STIG-206510
+    legacy_ids:
+      - SV-206510r1137788_rule
+    rule_name: NIST FIPS-Validated Cryptography
+    rule_description: "The Central Log Server must implement NIST FIPS-validated cryptography for the following: to provision digital signatures; to generate cryptographic hashes; and/or to protect unclassified information requiring confidentiality and cryptographic protection."
+    category: Cryptography
+    subcategory: FIPS Compliance
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify FIPS mode is enabled
+      check_command: "grep 'xpack.security.fips_mode.enabled' /etc/elasticsearch/elasticsearch.yml && java -version 2>&1 | grep -i fips"
+      expected_value: "FIPS mode enabled with FIPS-validated JVM"
+    remediation:
+      remediation_step: |
+        Implement FIPS-validated cryptography:
+        
+        1. Enable FIPS mode in elasticsearch.yml:
+        xpack.security.fips_mode.enabled: true
+        
+        2. Install FIPS-validated JDK:
+        - Use JDK with FIPS certification
+        - Configure Bouncy Castle FIPS provider
+        
+        3. Configure FIPS-approved algorithms:
+        xpack.security.authc.password_hashing.algorithm: pbkdf2_stretch
+        xpack.security.transport.ssl.supported_protocols: ["TLSv1.2", "TLSv1.3"]
+        
+        4. Use FIPS-approved cipher suites:
+        xpack.security.transport.ssl.cipher_suites: ["TLS_AES_256_GCM_SHA384"]
+        
+        5. Document FIPS configuration and maintain compliance documentation.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 60 minutes
+    context:
+      rationale: FIPS-validated cryptography ensures compliance with federal security requirements.
+      impact: High - Non-compliant cryptography can lead to regulatory violations and security weaknesses.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206510r1137788_rule
+    tags:
+      - fips
+      - cryptography
+      - compliance
+
+  - rule_id: STIG-221929
+    legacy_ids:
+      - SV-221929r961896_rule
+    rule_name: SHA-2 for Digital Signatures
+    rule_description: The Central Log Server must use FIPS-validated SHA-2 or higher hash function for digital signature generation and verification (non-legacy use).
+    category: Cryptography
+    subcategory: Digital Signatures
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify SHA-2 or higher is used for digital signatures
+      check_command: "grep 'xpack.security.fips_mode.enabled' /etc/elasticsearch/elasticsearch.yml || echo 'Verify TLS cipher suites'"
+      expected_value: "SHA-256+ algorithms configured"
+    remediation:
+      remediation_step: |
+        Configure SHA-2 or higher for digital signatures:
+        
+        1. Enable FIPS mode:
+        xpack.security.fips_mode.enabled: true
+        
+        2. Configure TLS with SHA-256+ cipher suites:
+        xpack.security.transport.ssl.cipher_suites:
+          - TLS_AES_256_GCM_SHA384
+          - TLS_AES_128_GCM_SHA256
+          - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        
+        3. Use certificates with SHA-256+ signatures:
+        - Generate certificates with SHA-256 or SHA-384
+        - Avoid SHA-1 certificates
+        
+        4. Configure password hashing:
+        xpack.security.authc.password_hashing.algorithm: pbkdf2_stretch
+        
+        5. Ensure all generated signatures use SHA-256 or higher.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: SHA-1 is vulnerable to collision attacks. SHA-256+ provides adequate security for digital signatures.
+      impact: High - SHA-1 signatures can be forged, compromising authentication and integrity.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-221929r961896_rule
+    tags:
+      - fips
+      - digital-signatures
+      - sha2
+
+  - rule_id: STIG-278988
+    legacy_ids:
+      - SV-278988r1137791_rule
+    rule_name: Install Security Updates Within 30 Days
+    rule_description: The Central Log Server must install security-relevant software updates within 30 days unless the time period is directed by an authoritative source (e.g., IAVM, CTOs, DTMs, STIGs).
+    category: System Configuration
+    subcategory: Patch Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: false
+      automation_level: Partial
+      audit_type: runtime
+      detection_step: Verify current version and check for available security updates
+      check_command: "curl -s localhost:9200 2>/dev/null | jq -r '.version.number' && echo 'Check https://www.elastic.co/guide/en/elasticsearch/reference/current/release-notes.html for updates'"
+      expected_value: "Current version within 30 days of latest security release"
+    remediation:
+      remediation_step: |
+        Establish and follow a patch management process:
+        
+        1. Subscribe to Elastic security advisories:
+        https://www.elastic.co/community/security
+        
+        2. Monitor release notes:
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/release-notes.html
+        
+        3. Review CVE database for Elasticsearch:
+        https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=elasticsearch
+        
+        4. Test updates in non-production environment first
+        
+        5. Schedule and apply security updates within 30 days:
+        - For package installations: yum update elasticsearch
+        - For archive installations: Download and replace binaries
+        - For Docker: Pull latest image
+        
+        6. Document all updates and maintain change log
+        
+        7. Verify cluster health after updates:
+        curl -X GET "localhost:9200/_cluster/health?pretty"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Rolling restart required for updates
+      estimated_time: 60 minutes
+    context:
+      rationale: Timely patching prevents exploitation of known vulnerabilities.
+      impact: High - Unpatched systems are vulnerable to known attacks.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-278988r1137791_rule
+    tags:
+      - patch-management
+      - updates
+      - security
+
+  - rule_id: STIG-278989
+    legacy_ids:
+      - SV-278989r1137794_rule
+    rule_name: Use Vendor-Supported Version
+    rule_description: The Central Log Server must be a version supported by the vendor.
+    category: System Configuration
+    subcategory: Version Management
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify current version is still supported by Elastic
+      check_command: "curl -s localhost:9200 2>/dev/null | jq -r '.version.number' && echo 'Check https://www.elastic.co/support/eol for EOL dates'"
+      expected_value: "Version not end-of-life"
+    remediation:
+      remediation_step: |
+        Ensure running a supported version:
+        
+        1. Check current version:
+        curl -X GET "localhost:9200"
+        
+        2. Review Elastic support lifecycle:
+        https://www.elastic.co/support/eol
+        
+        3. Plan upgrade if approaching EOL:
+        - Review breaking changes in upgrade guide
+        - Test upgrade in non-production environment
+        - Create backup before upgrade
+        - Follow rolling upgrade process for zero-downtime
+        
+        4. Upgrade to supported version:
+        For minor version upgrades:
+        - Rolling upgrade supported
+        - Upgrade one node at a time
+        
+        For major version upgrades:
+        - Review upgrade assistant in Kibana
+        - May require cluster restart
+        - Follow upgrade documentation
+        
+        5. Maintain upgrade schedule to stay within support window.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Upgrade process may require restarts
+      estimated_time: 120 minutes
+    context:
+      rationale: Unsupported versions no longer receive security updates and may have unpatched vulnerabilities.
+      impact: High - EOL versions have known vulnerabilities and no vendor support.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-278989r1137794_rule
+    tags:
+      - version-management
+      - support
+      - lifecycle

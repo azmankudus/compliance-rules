@@ -1,0 +1,777 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: DISA STIG for Elastic Stack - CAT II
+  version: 3.3.0
+  description: DISA Security Requirements Guide for Central Log Server applied to Elastic Stack 8.x - Medium Severity
+  platform: Elastic Stack
+  benchmark: DISA Central Log Server Security Requirements Guide V3R3
+  author: Compliance Rules Team
+  source: https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Central_Log_Server_V3R3_SRG.zip
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  compatible_platforms:
+    - Elasticsearch 8.x
+    - Kibana 8.x
+    - Logstash 8.x
+    - Beats 8.x
+
+system_info:
+  name: Elastic Stack
+  version: "8.0"
+  company: Elastic
+  category: Central Log Server
+  compatible_platforms:
+    - Linux
+    - Windows
+    - Docker
+    - Kubernetes
+
+compliance_info:
+  framework: STIG
+  version: 3.3.0
+  profile: CAT II (Medium Severity)
+
+file_info:
+  name: elastic-elasticstack-8-stig-cat2-v3r3.yaml
+  description: DISA STIG CAT II rules for Elastic Stack 8.x
+  created: "2026-03-17T00:00:00Z"
+  modified: "2026-03-17T00:00:00Z"
+  rule_id_prefix: STIG
+
+profile:
+  name: STIG CAT II
+  description: Standard security requirements from DISA Central Log Server SRG
+  level: 2
+
+rules:
+  - rule_id: STIG-206448
+    legacy_ids:
+      - SV-206448r960864_rule
+    rule_name: Protect Log Record Integrity
+    rule_description: The Central Log Server must be configured to protect the data sent from hosts and devices from being altered in a way that may prevent the attribution of an action to an individual.
+    category: Data Integrity
+    subcategory: Log Protection
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify TLS is enabled for log transmission and data integrity checks are configured
+      check_command: "grep 'xpack.security.http.ssl.enabled' /etc/elasticsearch/elasticsearch.yml && grep 'xpack.security.transport.ssl.enabled' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "TLS enabled for data transmission"
+    remediation:
+      remediation_step: |
+        Enable TLS for log transmission integrity:
+        
+        1. Enable TLS on all Elasticsearch nodes:
+        xpack.security.transport.ssl.enabled: true
+        xpack.security.transport.ssl.verification_mode: full
+        
+        2. Configure Logstash to use TLS:
+        output {
+          elasticsearch {
+            hosts => ["https://es-node:9200"]
+            ssl_enabled => true
+            ssl_certificate_authorities => ["/path/to/ca.crt"]
+          }
+        }
+        
+        3. Configure Beats to use TLS:
+        output.elasticsearch.hosts: ["https://es-node:9200"]
+        output.elasticsearch.ssl.certificate_authorities: ["/path/to/ca.crt"]
+        
+        4. Enable index-level checksums (default in Elasticsearch)
+        
+        5. Configure audit logging to track modifications:
+        xpack.security.audit.enabled: true
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Service restarts required
+      estimated_time: 30 minutes
+    context:
+      rationale: Data integrity ensures log records cannot be altered without detection.
+      impact: Medium - Altered logs can hide malicious activity.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206448r960864_rule
+    tags:
+      - integrity
+      - tls
+      - log-protection
+
+  - rule_id: STIG-206449
+    legacy_ids:
+      - SV-206449r960873_rule
+    rule_name: Aggregate Log Records
+    rule_description: The Central Log Server must be configured to aggregate log records from organization-defined devices and hosts within its scope of coverage.
+    category: Logging
+    subcategory: Log Aggregation
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Logstash and Beats are configured to collect logs from defined sources
+      check_command: "ls -la /etc/logstash/conf.d/*.conf 2>/dev/null && ls -la /etc/filebeat/filebeat.yml 2>/dev/null || echo 'Check log collection configuration'"
+      expected_value: "Log collection configured from multiple sources"
+    remediation:
+      remediation_step: |
+        Configure log aggregation:
+        
+        1. Install and configure Beats agents:
+        - Filebeat for log files
+        - Metricbeat for system metrics
+        - Auditbeat for audit logs
+        - Packetbeat for network data
+        
+        2. Configure Beats to send to Logstash:
+        output.logstash:
+          hosts: ["logstash:5044"]
+          ssl.enabled: true
+          ssl.certificate_authorities: ["/path/to/ca.crt"]
+        
+        3. Configure Logstash pipelines:
+        input {
+          beats {
+            port => 5044
+            ssl => true
+            ssl_certificate_authorities => ["/path/to/ca.crt"]
+          }
+        }
+        
+        4. Document all log sources and retention requirements
+        
+        5. Verify logs are being aggregated:
+        GET _cat/indices?v&h=index,docs.count
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 60 minutes
+    context:
+      rationale: Centralized log aggregation enables comprehensive security monitoring.
+      impact: Medium - Missing logs reduce visibility into security events.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206449r960873_rule
+    tags:
+      - logging
+      - aggregation
+      - beats
+
+  - rule_id: STIG-206453
+    legacy_ids:
+      - SV-206453r960879_rule
+    rule_name: Retain Log Record Attributes
+    rule_description: The Central Log Server must be configured to retain the DoD-defined attributes of the log records sent by the devices and hosts.
+    category: Logging
+    subcategory: Log Retention
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify index templates and ILM policies retain required log attributes
+      check_command: "curl -s localhost:9200/_template 2>/dev/null | jq 'keys[]' || echo 'Check index templates'"
+      expected_value: "Templates configured to retain required fields"
+    remediation:
+      remediation_step: |
+        Configure log attribute retention:
+        
+        1. Define index templates with required fields:
+        PUT _index_template/logs_template
+        {
+          "template": {
+            "mappings": {
+              "properties": {
+                "@timestamp": { "type": "date" },
+                "host.name": { "type": "keyword" },
+                "host.ip": { "type": "ip" },
+                "source.ip": { "type": "ip" },
+                "user.name": { "type": "keyword" },
+                "event.action": { "type": "keyword" },
+                "message": { "type": "text" }
+              }
+            }
+          }
+        }
+        
+        2. Configure Index Lifecycle Management (ILM):
+        PUT _ilm/policy/logs_policy
+        {
+          "policy": {
+            "phases": {
+              "hot": { "actions": { "rollover": { "max_size": "50gb", "max_age": "1d" } } },
+              "warm": { "min_age": "7d", "actions": { "forcemerge": { "max_num_segments": 1 } } },
+              "cold": { "min_age": "30d", "actions": { "freeze": {} } },
+              "delete": { "min_age": "90d", "actions": { "delete": {} } }
+            }
+          }
+        }
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 30 minutes
+    context:
+      rationale: Retaining log attributes ensures forensic capability and audit trail.
+      impact: Medium - Missing attributes reduce log usefulness for investigations.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206453r960879_rule
+    tags:
+      - logging
+      - retention
+      - ilm
+
+  - rule_id: STIG-206461
+    legacy_ids:
+      - SV-206461r960918_rule
+    rule_name: Multifactor Authentication for Privileged Access
+    rule_description: The Central Log Server must use multifactor authentication for network access to privileged accounts.
+    category: Authentication
+    subcategory: MFA
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Partial
+      audit_type: config
+      detection_step: Verify MFA is configured for privileged user access
+      check_command: "grep -A20 'xpack.security.authc.realms' /etc/elasticsearch/elasticsearch.yml | grep -E 'saml|oidc|kerberos'"
+      expected_value: "MFA realm configured (SAML, OIDC, or Kerberos)"
+    remediation:
+      remediation_step: |
+        Configure MFA for privileged access:
+        
+        Option 1: SAML with MFA provider:
+        xpack.security.authc.realms.saml.saml1:
+          order: 0
+          idp.metadata.path: saml/idp-metadata.xml
+          idp.entity_id: "https://idp.example.com"
+          sp.entity_id: "https://es.example.com"
+          sp.acs: "https://es.example.com/api/security/saml/callback"
+          attributes.principal: "nameid"
+          attributes.groups: "groups"
+        
+        Option 2: OIDC with MFA:
+        xpack.security.authc.realms.oidc.oidc1:
+          order: 0
+          client_id: "elasticsearch"
+          client_secret: in_keystore
+          oidc.rp.issuer: "https://es.example.com"
+          oidc.rp.redirect_uri: "https://es.example.com/api/security/oidc/callback"
+        
+        Option 3: Configure Kibana with SAML/OIDC for MFA:
+        xpack.security.authc.providers:
+          saml.saml1:
+            order: 0
+            realm: saml1
+            description: "Log in with SSO"
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch and Kibana restart required
+      estimated_time: 60 minutes
+    context:
+      rationale: MFA significantly reduces risk of credential compromise for privileged accounts.
+      impact: Medium - Single-factor authentication is vulnerable to credential theft.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-206461r960918_rule
+    tags:
+      - authentication
+      - mfa
+      - saml
+
+  - rule_id: STIG-206466
+    legacy_ids:
+      - SV-206466r961009_rule
+    rule_name: Disable Inactive Accounts
+    rule_description: The Central Log Server must disable accounts after 35 days of inactivity.
+    category: User Management
+    subcategory: Account Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Partial
+      audit_type: runtime
+      detection_step: Review user accounts for last login activity
+      check_command: "curl -s -u elastic:password localhost:9200/_security/user 2>/dev/null | jq -r '.[] | .username' || echo 'Check user list'"
+      expected_value: "Inactive accounts disabled or removed"
+    remediation:
+      remediation_step: |
+        Implement inactive account management:
+        
+        1. Review user accounts regularly:
+        GET /_security/user
+        
+        2. Check last login (requires audit logging):
+        Enable audit logging to track user activity:
+        xpack.security.audit.enabled: true
+        
+        3. Create script to identify inactive users:
+        - Query audit logs for last login time
+        - Disable accounts inactive > 35 days
+        
+        4. Disable inactive accounts:
+        PUT /_security/user/username/_disable
+        
+        5. Or remove inactive accounts:
+        DELETE /_security/user/username
+        
+        6. Document account review process and schedule
+        
+        7. Consider using LDAP/AD with automatic account management
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 30 minutes
+    context:
+      rationale: Inactive accounts increase attack surface and may indicate compromise.
+      impact: Medium - Unused accounts can be exploited for unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-206466r961009_rule
+    tags:
+      - user-management
+      - accounts
+      - inactive
+
+  - rule_id: STIG-206491
+    legacy_ids:
+      - SV-206491r961620_rule
+    rule_name: Off-Load Audit Records
+    rule_description: The Central Log Server must be configured to off-load audit records onto a different system or media than the system being audited.
+    category: Auditing
+    subcategory: Audit Storage
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify audit logs are forwarded to external systems
+      check_command: "grep 'xpack.security.audit.enabled' /etc/elasticsearch/elasticsearch.yml && ls -la /var/log/elasticsearch/*audit* 2>/dev/null || echo 'Check audit configuration'"
+      expected_value: "Audit logs enabled and forwarded to external storage"
+    remediation:
+      remediation_step: |
+        Configure audit record off-loading:
+        
+        1. Enable audit logging:
+        xpack.security.audit.enabled: true
+        xpack.security.audit.logfile.events.include: access_denied, access_granted, authentication_failed, connection_denied, security_config_change
+        
+        2. Configure Logstash to forward audit logs:
+        input {
+          file {
+            path => "/var/log/elasticsearch/*_audit.json"
+            type => "elasticsearch-audit"
+          }
+        }
+        output {
+          elasticsearch {
+            hosts => ["https://audit-cluster:9200"]
+            index => "audit-%{+YYYY.MM.dd}"
+          }
+        }
+        
+        3. Configure snapshot repository for long-term retention:
+        PUT /_snapshot/audit_backup
+        {
+          "type": "fs",
+          "settings": {
+            "location": "/backup/audit"
+          }
+        }
+        
+        4. Schedule regular snapshots:
+        PUT /_slm/policy/audit-snapshots
+        {
+          "schedule": "0 0 * * * ?",
+          "name": "<audit-snap-{now/d}>",
+          "repository": "audit_backup",
+          "config": {
+            "indices": ["audit-*"]
+          }
+        }
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 45 minutes
+    context:
+      rationale: Separating audit records from audited systems prevents tampering and ensures availability.
+      impact: Medium - Audit logs on the same system can be deleted by attackers.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206491r961620_rule
+    tags:
+      - auditing
+      - off-loading
+      - backup
+
+  - rule_id: STIG-206497
+    legacy_ids:
+      - SV-206497r961636_rule
+    rule_name: Protect Audit Information
+    rule_description: The Central Log Server must be configured to protect audit information from unauthorized read, modification, and deletion.
+    category: Auditing
+    subcategory: Audit Protection
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify audit logs have restricted access and are tamper-protected
+      check_command: "stat -c '%a %n' /var/log/elasticsearch/*audit* 2>/dev/null && grep 'xpack.security.audit.enabled' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "Audit logs have restricted permissions and monitoring enabled"
+    remediation:
+      remediation_step: |
+        Protect audit information:
+        
+        1. Restrict file permissions:
+        chmod 640 /var/log/elasticsearch/*audit*
+        chown elasticsearch:elasticsearch /var/log/elasticsearch/*audit*
+        
+        2. Restrict directory access:
+        chmod 750 /var/log/elasticsearch
+        
+        3. Configure RBAC for audit indices:
+        PUT /_security/role/audit_reader
+        {
+          "indices": [
+            {
+              "names": ["audit-*"],
+              "privileges": ["read", "view_index_metadata"]
+            }
+          ]
+        }
+        
+        4. Enable audit logging to track access to audit data:
+        xpack.security.audit.enabled: true
+        xpack.security.audit.logfile.events.include: access_granted, access_denied
+        
+        5. Use document and field level security for sensitive audit data
+        
+        6. Implement immutable storage (e.g., WORM media, S3 Object Lock)
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 30 minutes
+    context:
+      rationale: Audit log protection ensures forensic evidence is available for investigations.
+      impact: Medium - Compromised audit logs can hide malicious activity.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206497r961636_rule
+    tags:
+      - auditing
+      - protection
+      - file-permissions
+
+  - rule_id: STIG-206506
+    legacy_ids:
+      - SV-206506r961647_rule
+    rule_name: Accept DoD CAC Credentials
+    rule_description: The Central Log Server must be configured to accept the DoD CAC credential to support identity management and personal authentication.
+    category: Authentication
+    subcategory: PKI
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Partial
+      audit_type: config
+      detection_step: Verify PKI authentication is configured to accept CAC credentials
+      check_command: "grep -A10 'pki' /etc/elasticsearch/elasticsearch.yml || echo 'PKI realm not configured'"
+      expected_value: "PKI realm configured for CAC authentication"
+    remediation:
+      remediation_step: |
+        Configure CAC authentication:
+        
+        1. Configure PKI realm in elasticsearch.yml:
+        xpack.security.authc.realms.pki.pki1:
+          order: 0
+          enabled: true
+          certificate_authorities: ["/path/to/dod-ca.crt"]
+          username_pattern: "CN=(.*?)(?:,|$)"
+        
+        2. Import DoD CA certificates:
+        - Obtain DoD Root CA and Intermediate CA certificates
+        - Place in /etc/elasticsearch/certs/
+        - Configure truststore
+        
+        3. Configure TLS for client certificate authentication:
+        xpack.security.http.ssl.enabled: true
+        xpack.security.http.ssl.client_authentication: required
+        xpack.security.http.ssl.certificate_authorities: ["/path/to/dod-ca.crt"]
+        
+        4. Create role mappings for CAC users:
+        PUT /_security/role_mapping/cac_users
+        {
+          "roles": ["user_role"],
+          "rules": {
+            "field": {
+              "cn": ["user1", "user2"]
+            }
+          }
+        }
+        
+        5. Configure Kibana for CAC:
+        server.ssl.enabled: true
+        server.ssl.clientAuthentication: required
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch and Kibana restart required
+      estimated_time: 90 minutes
+    context:
+      rationale: CAC authentication ensures strong identity verification for DoD users.
+      impact: Medium - Weak authentication allows unauthorized access.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-206506r961647_rule
+    tags:
+      - authentication
+      - pki
+      - cac
+
+  - rule_id: STIG-206512
+    legacy_ids:
+      - SV-206512r961660_rule
+    rule_name: Retain Source Identity
+    rule_description: The Central Log Server must be configured to retain the identity of the original source host or device where the event occurred as part of the log record.
+    category: Logging
+    subcategory: Log Attributes
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify log records contain source host information
+      check_command: "curl -s localhost:9200/logs-*/_search?size=1 2>/dev/null | jq '.hits.hits[0]._source | keys' || echo 'Check log format'"
+      expected_value: "Source host fields present in log records"
+    remediation:
+      remediation_step: |
+        Configure source identity retention:
+        
+        1. Configure Beats to include host information:
+        # In filebeat.yml
+        processors:
+          - add_host_metadata: ~
+          - add_cloud_metadata: ~
+          - add_docker_metadata: ~
+        
+        2. Ensure Logstash preserves source information:
+        filter {
+          if ![@metadata][source_host] {
+            mutate {
+              add_field => { "[@metadata][source_host]" => "%{host}" }
+            }
+          }
+        }
+        
+        3. Create index mapping for source fields:
+        PUT _index_template/logs_template
+        {
+          "template": {
+            "mappings": {
+              "properties": {
+                "host.name": { "type": "keyword" },
+                "host.hostname": { "type": "keyword" },
+                "host.ip": { "type": "ip" },
+                "host.id": { "type": "keyword" },
+                "source.ip": { "type": "ip" },
+                "source.domain": { "type": "keyword" }
+              }
+            }
+          }
+        }
+        
+        4. Verify fields are populated:
+        GET logs-*/_search
+        {
+          "size": 1,
+          "_source": ["host.*", "source.*"]
+        }
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 30 minutes
+    context:
+      rationale: Source identity enables attribution and forensic analysis.
+      impact: Medium - Missing source information reduces log value for investigations.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206512r961660_rule
+    tags:
+      - logging
+      - source-identity
+      - metadata
+
+  - rule_id: STIG-206513
+    legacy_ids:
+      - SV-206513r961663_rule
+    rule_name: Use TCP for Log Transmission
+    rule_description: The Central Log Server that aggregates log records from hosts and devices must be configured to use TCP for transmission.
+    category: Network Configuration
+    subcategory: Protocol Configuration
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify TCP is used for log transmission
+      check_command: "grep -A5 'beats' /etc/logstash/pipelines/*.conf 2>/dev/null | grep -i 'port\\|ssl' || echo 'Check Logstash Beats input'"
+      expected_value: "TCP protocol configured for log inputs"
+    remediation:
+      remediation_step: |
+        Configure TCP for log transmission:
+        
+        1. Configure Logstash Beats input (TCP-based):
+        input {
+          beats {
+            port => 5044
+            ssl => true
+            ssl_certificate => "/path/to/logstash.crt"
+            ssl_key => "/path/to/logstash.key"
+            ssl_certificate_authorities => ["/path/to/ca.crt"]
+          }
+        }
+        
+        2. Configure Beats to use TCP:
+        output.logstash:
+          hosts: ["logstash:5044"]
+          ssl.enabled: true
+          ssl.certificate_authorities: ["/path/to/ca.crt"]
+        
+        3. For Syslog, use TCP:
+        input {
+          tcp {
+            port => 514
+            ssl_enable => true
+          }
+        }
+        
+        4. Avoid UDP for critical log data as it lacks delivery confirmation
+        
+        5. Enable TLS for encrypted TCP connections
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Logstash restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: TCP ensures reliable log delivery with confirmation and retransmission.
+      impact: Medium - UDP can lose log records without detection.
+      false_positive_risk: None
+      references:
+        - type: STIG
+          reference: SV-206513r961663_rule
+    tags:
+      - network
+      - tcp
+      - log-transmission
+
+  - rule_id: STIG-206514
+    legacy_ids:
+      - SV-206514r961666_rule
+    rule_name: Notify on Attack Detection
+    rule_description: The Central Log Server must be configured to notify the System Administrator and Information System Security Officer, at a minimum, when an attack is detected on multiple devices and hosts within its scope of coverage.
+    category: Monitoring
+    subcategory: Alerting
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: false
+      automation_level: Partial
+      audit_type: config
+      detection_step: Verify alerting is configured in Kibana for attack detection
+      check_command: "curl -s localhost:5601/api/alerts/rules 2>/dev/null | jq '.data[] | .name' || echo 'Check Kibana alerting rules'"
+      expected_value: "Alerting rules configured for attack detection"
+    remediation:
+      remediation_step: |
+        Configure attack detection alerting:
+        
+        1. Create detection rules in Kibana Security:
+        - Navigate to Security > Alerts > Manage Rules
+        - Create rules for common attack patterns
+        - Examples:
+          * Multiple failed login attempts
+          * Privilege escalation attempts
+          * Unusual data access patterns
+          * Malware signatures detected
+        
+        2. Configure alert actions:
+        PUT /_watcher/watch/attack_detection
+        {
+          "trigger": { "schedule": { "interval": "5m" } },
+          "input": {
+            "search": {
+              "request": {
+                "indices": ["logs-*"],
+                "body": {
+                  "query": {
+                    "bool": {
+                      "must": [
+                        { "match": { "event.category": "authentication" } },
+                        { "match": { "event.outcome": "failure" } }
+                      ]
+                    }
+                  },
+                  "aggs": {
+                    "sources": {
+                      "terms": { "field": "source.ip", "size": 10 }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "condition": {
+            "compare": {
+              "ctx.payload.hits.total": { "gt": 10 }
+            }
+          },
+          "actions": {
+            "email_admin": {
+              "email": {
+                "to": "admin@example.com, isso@example.com",
+                "subject": "Attack Detected",
+                "body": "Multiple attacks detected from {{ctx.payload.aggregations.sources}}"
+              }
+            }
+          }
+        }
+        
+        3. Integrate with SIEM systems:
+        - Configure webhook actions
+        - Send alerts to external ticketing systems
+        - Configure PagerDuty or Slack integration
+      rollback_supported: true
+      reboot_required: false
+      service_impact: None
+      estimated_time: 90 minutes
+    context:
+      rationale: Timely notification enables rapid response to attacks.
+      impact: Medium - Delayed notification allows attacks to continue unchecked.
+      false_positive_risk: Low
+      references:
+        - type: STIG
+          reference: SV-206514r961666_rule
+    tags:
+      - monitoring
+      - alerting
+      - attack-detection

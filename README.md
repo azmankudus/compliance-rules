@@ -14,6 +14,7 @@
 <img src="https://img.shields.io/badge/Windows_Server-2016|2019|2022|2025-blue?style=flat-square&logo=windows&logoColor=white" alt="Windows Server"/>
 <img src="https://img.shields.io/badge/Oracle_Solaris-11.4-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle Solaris"/>
 <img src="https://img.shields.io/badge/Oracle_WebLogic-12c|14c|15c-red?style=flat-square&logo=oracle&logoColor=white" alt="Oracle WebLogic"/>
+<img src="https://img.shields.io/badge/Elastic_Stack-8.x-yellow?style=flat-square&logo=elastic&logoColor=white" alt="Elastic Stack"/>
 <img src="https://img.shields.io/badge/Python-3.6+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.6+"/>
 
 <br/><br/>
@@ -84,12 +85,15 @@ compliance-rules/
 │   │   ├── windowsserver-2022/  # Windows Server 2022
 │   │   └── windowsserver-2025/  # Windows Server 2025
 │   │
-│   └── oracle/                  # Oracle products
-│       ├── solaris-11.4/        # Solaris 11.4
-│       ├── weblogic-12c/        # WebLogic 12c
-│       ├── weblogic-14c/        # WebLogic 14c
-│       ├── weblogic-15c/        # WebLogic 15c
-│       └── http-server-12c/     # HTTP Server 12c
+│   ├── oracle/                  # Oracle products
+│   │   ├── solaris-11.4/        # Solaris 11.4
+│   │   ├── weblogic-12c/        # WebLogic 12c
+│   │   ├── weblogic-14c/        # WebLogic 14c
+│   │   ├── weblogic-15c/        # WebLogic 15c
+│   │   └── http-server-12c/     # HTTP Server 12c
+│   │
+│   └── elastic/                  # Elastic products
+│       └── elasticstack-8/       # Elastic Stack 8.x (ELK)
 │
 ├── scripts/                     # Utility scripts
 │   ├── download-stig-json.sh    # Download STIG catalog
@@ -175,6 +179,14 @@ oracle-weblogic-12c-oracle-security-1.0.0.yaml
 | WebLogic 14c | - | 1 file | 1 |
 | WebLogic 15c | - | 1 file | 1 |
 | HTTP Server 12c | - | 1 file | 1 |
+
+### Elastic Stack (ELK)
+
+| Version | STIG | Vendor Docs | Total Rules |
+|---------|------|-------------|-------------|
+| 8.x | 2 files (CAT I/II) - 24 rules | 1 file - 30 rules | 54 rules |
+
+**Note**: CIS Benchmark is not available for Elastic Stack. STIG rules are based on DISA Central Log Server Security Requirements Guide.
 
 ---
 

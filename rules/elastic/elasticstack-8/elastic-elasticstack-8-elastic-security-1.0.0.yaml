@@ -1,0 +1,1196 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: "1.0.0"
+$metadata:
+  name: Elastic Stack Security Hardening
+  version: 1.0.0
+  description: Security hardening rules for Elastic Stack 8.x based on official Elastic documentation
+  platform: Elastic Stack
+  benchmark: Elastic Stack Security Best Practices
+  author: Compliance Rules Team
+  source: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+  created: "2026-03-16T00:00:00Z"
+  modified: "2026-03-16T00:00:00Z"
+  compatible_platforms:
+    - Elasticsearch 8.x
+    - Kibana 8.x
+    - Logstash 8.x
+    - Beats 8.x
+
+system_info:
+  name: Elastic Stack
+  version: "8.0"
+  company: Elastic
+  category: Data Platform
+  compatible_platforms:
+    - Linux
+    - Windows
+    - macOS
+    - Docker
+    - Kubernetes
+
+compliance_info:
+  framework: STIG
+  version: 1.0.0
+  profile: Vendor Documentation Best Practices
+
+file_info:
+  name: elastic-elasticstack-8-elastic-security-1.0.0.yaml
+  description: Security hardening rules for Elastic Stack 8.x
+  created: "2026-03-16T00:00:00Z"
+  modified: "2026-03-16T00:00:00Z"
+  rule_id_prefix: ES
+
+profile:
+  name: Security Best Practices
+  description: Essential security configurations for Elastic Stack based on official documentation
+  level: 1
+
+rules:
+  - rule_id: ES-SEC-001
+    rule_name: Enable Elasticsearch Security Features
+    rule_description: Elasticsearch security features must be enabled to provide authentication, authorization, and audit capabilities. Running Elasticsearch without security enabled leaves the cluster exposed to unauthorized access.
+    category: Authentication
+    subcategory: Security Configuration
+    testing_status: untested
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that xpack.security.enabled is set to true in elasticsearch.yml configuration file
+      check_command: "grep 'xpack.security.enabled' /etc/elasticsearch/elasticsearch.yml || echo 'Setting not found'"
+      expected_value: "xpack.security.enabled: true"
+    remediation:
+      remediation_step: |
+        Add the following setting to elasticsearch.yml on every node in the cluster:
+        xpack.security.enabled: true
+        Restart Elasticsearch for the change to take effect.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Security features provide essential authentication, authorization, and audit capabilities to protect the cluster from unauthorized access.
+      impact: Critical - Without security enabled, anyone with network access can read, modify, or delete data in the cluster.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - security
+      - authentication
+      - critical
+
+  - rule_id: ES-SEC-002
+    rule_name: Configure TLS on Transport Layer
+    rule_description: TLS must be enabled on the transport layer to encrypt internode communications and protect against man-in-the-middle attacks.
+    category: Encryption
+    subcategory: Transport Security
+    testing_status: untested
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that TLS is enabled for transport layer communications
+      check_command: "grep 'xpack.security.transport.ssl.enabled' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "xpack.security.transport.ssl.enabled: true"
+    remediation:
+      remediation_step: |
+        Configure TLS for the transport layer in elasticsearch.yml:
+        xpack.security.transport.ssl.enabled: true
+        xpack.security.transport.ssl.verification_mode: certificate
+        xpack.security.transport.ssl.keystore.path: elastic-certificates.p12
+        xpack.security.transport.ssl.truststore.path: elastic-certificates.p12
+        Generate certificates and restart all nodes.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Cluster restart required
+      estimated_time: 30 minutes
+    context:
+      rationale: Transport layer encryption protects internode communications from eavesdropping and tampering.
+      impact: Critical - Unencrypted transport traffic exposes cluster data to network-level attacks.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - tls
+      - encryption
+      - transport
+
+  - rule_id: ES-SEC-003
+    rule_name: Configure TLS on HTTP Layer
+    rule_description: TLS must be enabled on the HTTP layer to encrypt communications between clients and Elasticsearch nodes.
+    category: Encryption
+    subcategory: HTTP Security
+    testing_status: untested
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that TLS is enabled for HTTP layer communications
+      check_command: "grep 'xpack.security.http.ssl.enabled' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "xpack.security.http.ssl.enabled: true"
+    remediation:
+      remediation_step: |
+        Configure TLS for the HTTP layer in elasticsearch.yml:
+        xpack.security.http.ssl.enabled: true
+        xpack.security.http.ssl.keystore.path: http-certificates.p12
+        xpack.security.http.ssl.truststore.path: http-certificates.p12
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 15 minutes
+    context:
+      rationale: HTTP layer encryption protects client-server communications from eavesdropping.
+      impact: Critical - Unencrypted HTTP traffic exposes credentials and data to network sniffing.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - tls
+      - encryption
+      - http
+
+  - rule_id: ES-SEC-004
+    rule_name: Set Strong Passwords for Built-in Users
+    rule_description: Strong passwords must be set for all built-in users including elastic, kibana_system, logstash_system, beats_system, apm_system, and remote_monitoring_user.
+    category: Authentication
+    subcategory: User Management
+    testing_status: untested
+    assessment:
+      severity: Critical
+      is_auto: false
+      automation_level: Manual
+      audit_type: config
+      detection_step: Verify that passwords have been set for all built-in users by attempting to authenticate with default credentials
+      check_command: "./bin/elasticsearch-reset-password -u elastic -i -b 2>&1 | head -1"
+      expected_value: "Password already set"
+    remediation:
+      remediation_step: |
+        Set strong passwords for all built-in users using the elasticsearch-reset-password tool:
+        ./bin/elasticsearch-reset-password -u elastic -i
+        ./bin/elasticsearch-reset-password -u kibana_system -i
+        ./bin/elasticsearch-reset-password -u logstash_system -i
+        ./bin/elasticsearch-reset-password -u beats_system -i
+        ./bin/elasticsearch-reset-password -u apm_system -i
+        ./bin/elasticsearch-reset-password -u remote_monitoring_user -i
+        Store passwords securely in a password manager.
+      rollback_supported: false
+      reboot_required: false
+      service_impact: None
+      estimated_time: 10 minutes
+    context:
+      rationale: Default or weak passwords allow unauthorized access to the cluster.
+      impact: Critical - Unsecured built-in accounts can lead to complete cluster compromise.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/built-in-users.html
+    tags:
+      - authentication
+      - passwords
+      - users
+
+  - rule_id: ES-SEC-005
+    rule_name: Enable Audit Logging
+    rule_description: Audit logging must be enabled to record security-related events such as authentication failures, refused connections, and data-access events.
+    category: Auditing
+    subcategory: Logging Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that audit logging is enabled in elasticsearch.yml
+      check_command: "grep 'xpack.security.audit.enabled' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "xpack.security.audit.enabled: true"
+    remediation:
+      remediation_step: |
+        Enable audit logging in elasticsearch.yml:
+        xpack.security.audit.enabled: true
+        xpack.security.audit.logfile.events.include: access_denied, access_granted, anonymous_access_denied, authentication_failed, connection_denied, tampered_request, run_as_denied, run_as_granted, security_config_change
+        Restart Elasticsearch for changes to take effect.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Audit logs provide visibility into security events and forensic evidence in case of security incidents.
+      impact: High - Without audit logs, security incidents cannot be properly investigated.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/auditing-settings.html
+    tags:
+      - auditing
+      - logging
+      - security
+
+  - rule_id: ES-SEC-006
+    rule_name: Configure TLS Certificate Verification
+    rule_description: TLS certificate verification mode must be set to 'full' or 'certificate' to prevent man-in-the-middle attacks.
+    category: Encryption
+    subcategory: Certificate Verification
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that TLS certificate verification mode is properly configured
+      check_command: "grep 'xpack.security.transport.ssl.verification_mode' /etc/elasticsearch/elasticsearch.yml || grep 'xpack.security.http.ssl.verification_mode' /etc/elasticsearch/elasticsearch.yml"
+      expected_value: "verification_mode: full or certificate"
+    remediation:
+      remediation_step: |
+        Configure certificate verification in elasticsearch.yml:
+        xpack.security.transport.ssl.verification_mode: full
+        xpack.security.http.ssl.verification_mode: full
+        Restart Elasticsearch after configuration changes.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper certificate verification prevents man-in-the-middle attacks and ensures connection to legitimate servers.
+      impact: High - Weak or disabled certificate verification allows attackers to intercept communications.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - tls
+      - certificates
+      - verification
+
+  - rule_id: ES-SEC-007
+    rule_name: Disable Anonymous Access
+    rule_description: Anonymous access must be disabled unless explicitly required and properly configured with restricted roles.
+    category: Authentication
+    subcategory: Access Control
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify that anonymous access is not enabled or is properly restricted
+      check_command: "grep -A3 'xpack.security.authc.anonymous' /etc/elasticsearch/elasticsearch.yml || echo 'Anonymous access not configured'"
+      expected_value: "Anonymous access not configured or properly restricted"
+    remediation:
+      remediation_step: |
+        If anonymous access is not required, ensure the following settings are NOT present in elasticsearch.yml:
+        xpack.security.authc.anonymous.username
+        xpack.security.authc.anonymous.roles
+        If anonymous access is required, configure it with minimal roles:
+        xpack.security.authc.anonymous.roles: anonymous_role
+        Create a restricted role with minimal permissions for anonymous users.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Anonymous access allows unauthenticated users to interact with the cluster, potentially exposing data.
+      impact: High - Unrestricted anonymous access can lead to data breaches.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - authentication
+      - anonymous
+      - access-control
+
+  - rule_id: ES-SEC-008
+    rule_name: Configure API Key Service Settings
+    rule_description: API key service must be properly configured with appropriate cache settings and retention policies.
+    category: Authentication
+    subcategory: API Key Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify API key service configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.authc.api_key' /etc/elasticsearch/elasticsearch.yml || echo 'Using default API key settings'"
+      expected_value: "API key service configured with appropriate settings"
+    remediation:
+      remediation_step: |
+        Configure API key settings in elasticsearch.yml:
+        xpack.security.authc.api_key.enabled: true
+        xpack.security.authc.api_key.cache.ttl: 1d
+        xpack.security.authc.api_key.cache.max_keys: 10000
+        xpack.security.authc.api_key.delete.retention_period: 7d
+        Restart Elasticsearch after configuration changes.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper API key configuration ensures secure programmatic access with appropriate caching and cleanup.
+      impact: Medium - Misconfigured API key settings can lead to security issues or performance problems.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - authentication
+      - api-keys
+      - caching
+
+  - rule_id: ES-SEC-009
+    rule_name: Configure Token Service Settings
+    rule_description: Token service must be properly configured with appropriate timeout settings to prevent token-based attacks.
+    category: Authentication
+    subcategory: Token Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify token service configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.authc.token' /etc/elasticsearch/elasticsearch.yml || echo 'Using default token settings'"
+      expected_value: "Token timeout should not exceed 1 hour"
+    remediation:
+      remediation_step: |
+        Configure token service settings in elasticsearch.yml:
+        xpack.security.authc.token.enabled: true
+        xpack.security.authc.token.timeout: 20m
+        Ensure the timeout does not exceed 1 hour (60m).
+        Restart Elasticsearch after configuration changes.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper token configuration prevents long-lived tokens from being exploited if compromised.
+      impact: Medium - Long-lived tokens increase the window of opportunity for token theft attacks.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - authentication
+      - tokens
+      - timeout
+
+  - rule_id: ES-SEC-010
+    rule_name: Enable FIPS Mode for Compliance
+    rule_description: FIPS 140-2 compliant mode must be enabled for deployments requiring FIPS certification.
+    category: Cryptography
+    subcategory: FIPS Compliance
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify FIPS mode configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.fips_mode.enabled' /etc/elasticsearch/elasticsearch.yml || echo 'FIPS mode not configured'"
+      expected_value: "xpack.security.fips_mode.enabled: true"
+    remediation:
+      remediation_step: |
+        Enable FIPS mode in elasticsearch.yml (requires FIPS-enabled JVM):
+        xpack.security.fips_mode.enabled: true
+        Optionally configure required providers:
+        xpack.security.fips_mode.required_providers: ["BCFIPS", "BCJSSE"]
+        Ensure the JVM is configured for FIPS compliance before enabling this setting.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: FIPS 140-2 compliance is required for certain government and regulated industries.
+      impact: High - Non-compliance can result in regulatory violations.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - fips
+      - cryptography
+      - compliance
+
+  - rule_id: ES-SEC-011
+    rule_name: Configure Kibana Security Settings
+    rule_description: Kibana must be configured with proper security settings including authentication credentials and encryption.
+    category: Authentication
+    subcategory: Kibana Configuration
+    testing_status: untested
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Kibana security configuration in kibana.yml
+      check_command: "grep 'elasticsearch.username\\|elasticsearch.password\\|xpack.security.encryptionKey' /etc/kibana/kibana.yml"
+      expected_value: "Kibana configured with authentication and encryption"
+    remediation:
+      remediation_step: |
+        Configure Kibana security in kibana.yml:
+        elasticsearch.username: "kibana_system"
+        Add password to keystore:
+        ./bin/kibana-keystore create
+        ./bin/kibana-keystore add elasticsearch.password
+        Configure encryption key:
+        xpack.security.encryptionKey: "at_least_32_characters_long_encryption_key"
+        xpack.reporting.encryptionKey: "at_least_32_characters_long_encryption_key"
+        Restart Kibana after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Kibana restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: Proper Kibana security configuration ensures secure access to the Elasticsearch cluster.
+      impact: Critical - Unsecured Kibana can expose cluster data and configuration.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/kibana/current/using-kibana-with-security.html
+    tags:
+      - kibana
+      - authentication
+      - encryption
+
+  - rule_id: ES-SEC-012
+    rule_name: Configure Logstash Security Settings
+    rule_description: Logstash must be configured with proper authentication credentials and TLS settings to securely communicate with Elasticsearch.
+    category: Authentication
+    subcategory: Logstash Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Logstash security configuration in pipeline configuration files
+      check_command: "grep -r 'user\\|password\\|ssl' /etc/logstash/conf.d/*.conf 2>/dev/null || echo 'Check Logstash pipeline configurations'"
+      expected_value: "Logstash configured with authentication and TLS"
+    remediation:
+      remediation_step: |
+        Configure Logstash security in pipeline configuration:
+        output {
+          elasticsearch {
+            hosts => ["https://localhost:9200"]
+            user => "logstash_internal"
+            password => "secure_password"
+            ssl_enabled => true
+            ssl_certificate_authorities => ['/path/to/ca.crt']
+          }
+        }
+        Alternatively use API keys:
+        output {
+          elasticsearch {
+            api_key => "id:api_key"
+            ssl_enabled => true
+          }
+        }
+        Restart Logstash after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Logstash restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: Proper Logstash security ensures secure data transmission to Elasticsearch.
+      impact: High - Unsecured Logstash can expose data during transmission.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/logstash/current/ls-security.html
+    tags:
+      - logstash
+      - authentication
+      - tls
+
+  - rule_id: ES-SEC-013
+    rule_name: Configure Password Hashing Algorithm
+    rule_description: A strong password hashing algorithm must be configured for secure credential storage.
+    category: Cryptography
+    subcategory: Password Security
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify password hashing algorithm configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.authc.password_hashing.algorithm' /etc/elasticsearch/elasticsearch.yml || echo 'Using default (bcrypt)'"
+      expected_value: "bcrypt or pbkdf2_stretch (FIPS mode)"
+    remediation:
+      remediation_step: |
+        Configure password hashing in elasticsearch.yml:
+        xpack.security.authc.password_hashing.algorithm: bcrypt
+        For FIPS mode, use:
+        xpack.security.authc.password_hashing.algorithm: pbkdf2_stretch
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Strong password hashing protects against brute-force attacks on stolen credentials.
+      impact: Medium - Weak hashing algorithms can lead to credential compromise.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - cryptography
+      - passwords
+      - hashing
+
+  - rule_id: ES-SEC-014
+    rule_name: Configure SSL/TLS Protocols
+    rule_description: Only secure TLS protocol versions (TLSv1.2, TLSv1.3) must be enabled; older insecure protocols must be disabled.
+    category: Encryption
+    subcategory: Protocol Configuration
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify supported SSL/TLS protocols in elasticsearch.yml
+      check_command: "grep 'ssl.supported_protocols' /etc/elasticsearch/elasticsearch.yml || echo 'Using default protocols'"
+      expected_value: "TLSv1.2, TLSv1.3 only"
+    remediation:
+      remediation_step: |
+        Configure supported protocols in elasticsearch.yml:
+        xpack.security.transport.ssl.supported_protocols: ["TLSv1.2", "TLSv1.3"]
+        xpack.security.http.ssl.supported_protocols: ["TLSv1.2", "TLSv1.3"]
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Older SSL/TLS protocols have known vulnerabilities and should not be used.
+      impact: High - Insecure protocols can be exploited for man-in-the-middle attacks.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - tls
+      - encryption
+      - protocols
+
+  - rule_id: ES-SEC-015
+    rule_name: Configure Secure Settings Keystore
+    rule_description: Sensitive settings must be stored in the Elasticsearch keystore rather than in plain text configuration files.
+    category: Data Security
+    subcategory: Secure Settings
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: false
+      automation_level: Partial
+      audit_type: config
+      detection_step: Verify that sensitive settings are stored in the keystore
+      check_command: "./bin/elasticsearch-keystore list 2>/dev/null || echo 'Keystore not accessible'"
+      expected_value: "Sensitive settings in keystore"
+    remediation:
+      remediation_step: |
+        Create or update the Elasticsearch keystore:
+        ./bin/elasticsearch-keystore create
+        Add sensitive settings:
+        ./bin/elasticsearch-keystore add xpack.security.transport.ssl.secure_truststore_password
+        ./bin/elasticsearch-keystore add xpack.security.http.ssl.secure_truststore_password
+        Remove sensitive settings from elasticsearch.yml and restart Elasticsearch.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: Storing sensitive settings in the keystore provides better protection than plain text configuration files.
+      impact: High - Exposed credentials in configuration files can lead to cluster compromise.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/secure-settings.html
+    tags:
+      - security
+      - keystore
+      - credentials
+
+  - rule_id: ES-SEC-016
+    rule_name: Configure Document and Field Level Security
+    rule_description: Document and field level security must be enabled to control access to specific documents and fields within indices.
+    category: Access Control
+    subcategory: Data Security
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify document and field level security configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.dls_fls.enabled' /etc/elasticsearch/elasticsearch.yml || echo 'DLS/FLS enabled by default'"
+      expected_value: "xpack.security.dls_fls.enabled: true or not set (default true)"
+    remediation:
+      remediation_step: |
+        Ensure DLS/FLS is enabled in elasticsearch.yml:
+        xpack.security.dls_fls.enabled: true
+        Configure appropriate cache settings:
+        xpack.security.dls.bitset.cache.ttl: 2h
+        xpack.security.dls.bitset.cache.size: 10%
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Document and field level security provides fine-grained access control to sensitive data.
+      impact: Medium - Without DLS/FLS, users may access data they should not see.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - access-control
+      - dls
+      - fls
+
+  - rule_id: ES-SEC-017
+    rule_name: Run Elasticsearch as Non-Root User
+    rule_description: Elasticsearch must run as a dedicated, unprivileged user to limit the potential impact of a security breach.
+    category: System Configuration
+    subcategory: User Privileges
+    testing_status: untested
+    assessment:
+      severity: Critical
+      is_auto: true
+      automation_level: Full
+      audit_type: runtime
+      detection_step: Verify the user running Elasticsearch process
+      check_command: "ps -ef | grep elasticsearch | grep -v grep | awk '{print $1}'"
+      expected_value: "elasticsearch or non-root user"
+    remediation:
+      remediation_step: |
+        Create a dedicated elasticsearch user if not exists:
+        sudo useradd -r -s /bin/false elasticsearch
+        Change ownership of Elasticsearch directories:
+        sudo chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+        sudo chown -R elasticsearch:elasticsearch /var/lib/elasticsearch
+        sudo chown -R elasticsearch:elasticsearch /var/log/elasticsearch
+        sudo chown -R elasticsearch:elasticsearch /etc/elasticsearch
+        Start Elasticsearch as the elasticsearch user.
+      rollback_supported: false
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: Running as root allows any vulnerability to potentially compromise the entire system.
+      impact: Critical - Running as root invalidates any defense strategy.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html
+    tags:
+      - system
+      - privileges
+      - user
+
+  - rule_id: ES-SEC-018
+    rule_name: Configure Single Node Discovery for Development
+    rule_description: For single-node clusters, discovery type must be set to single-node to prevent accidental connection to other clusters.
+    category: Network Configuration
+    subcategory: Cluster Formation
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify discovery type for single-node clusters
+      check_command: "grep 'discovery.type' /etc/elasticsearch/elasticsearch.yml || echo 'Using default discovery'"
+      expected_value: "discovery.type: single-node for single-node clusters"
+    remediation:
+      remediation_step: |
+        For single-node development clusters, add to elasticsearch.yml:
+        discovery.type: single-node
+        For production multi-node clusters, configure proper discovery settings:
+        discovery.seed_hosts: ["host1", "host2"]
+        cluster.initial_master_nodes: ["node1", "node2"]
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Single-node discovery prevents accidental connection to other clusters on the network.
+      impact: Medium - Incorrect discovery settings can lead to cluster formation issues or data exposure.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/discovery-settings.html
+    tags:
+      - network
+      - discovery
+      - cluster
+
+  - rule_id: ES-SEC-019
+    rule_name: Configure Audit Log Event Filtering
+    rule_description: Audit log events must be properly filtered to reduce noise while capturing important security events.
+    category: Auditing
+    subcategory: Event Filtering
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify audit log event configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.audit.logfile.events' /etc/elasticsearch/elasticsearch.yml || echo 'Using default events'"
+      expected_value: "Appropriate events configured"
+    remediation:
+      remediation_step: |
+        Configure audit events in elasticsearch.yml:
+        xpack.security.audit.logfile.events.include: access_denied, access_granted, anonymous_access_denied, authentication_failed, connection_denied, tampered_request, run_as_denied, run_as_granted, security_config_change
+        Exclude noisy events if needed:
+        xpack.security.audit.logfile.events.exclude: []
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper event filtering ensures important security events are logged without overwhelming storage.
+      impact: Medium - Missing important events or excessive logging can impact security monitoring.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/auditing-settings.html
+    tags:
+      - auditing
+      - logging
+      - events
+
+  - rule_id: ES-SEC-020
+    rule_name: Configure Cipher Suites for TLS
+    rule_description: Strong cipher suites must be configured for TLS communications to ensure encryption strength.
+    category: Encryption
+    subcategory: Cipher Configuration
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify cipher suite configuration in elasticsearch.yml
+      check_command: "grep 'ssl.cipher_suites' /etc/elasticsearch/elasticsearch.yml || echo 'Using default ciphers'"
+      expected_value: "Strong cipher suites configured or defaults"
+    remediation:
+      remediation_step: |
+        Configure strong cipher suites in elasticsearch.yml:
+        xpack.security.transport.ssl.cipher_suites: ["TLS_AES_256_GCM_SHA384", "TLS_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"]
+        xpack.security.http.ssl.cipher_suites: ["TLS_AES_256_GCM_SHA384", "TLS_AES_128_GCM_SHA256"]
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Strong cipher suites ensure encryption cannot be easily broken.
+      impact: Medium - Weak ciphers can lead to decrypted communications.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - tls
+      - encryption
+      - ciphers
+
+  - rule_id: ES-SEC-021
+    rule_name: Hide Sensitive Settings from API
+    rule_description: Sensitive settings must be hidden from the nodes info API to prevent credential exposure.
+    category: Data Security
+    subcategory: API Security
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify hidden settings configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.hide_settings' /etc/elasticsearch/elasticsearch.yml || echo 'Using defaults'"
+      expected_value: "Sensitive settings hidden"
+    remediation:
+      remediation_step: |
+        Configure hidden settings in elasticsearch.yml:
+        xpack.security.hide_settings: xpack.security.authc.realms.*, ssl.*, bind_dn, bind_password
+        Add additional settings to hide as needed.
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Hiding sensitive settings prevents accidental exposure through the nodes info API.
+      impact: Medium - Exposed settings can reveal authentication credentials and SSL configurations.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - api
+      - security
+      - settings
+
+  - rule_id: ES-SEC-022
+    rule_name: Configure Security Auto Configuration
+    rule_description: Security auto configuration should be enabled to automatically configure security features on first startup.
+    category: Security Configuration
+    subcategory: Auto Configuration
+    testing_status: untested
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify security auto configuration setting in elasticsearch.yml
+      check_command: "grep 'xpack.security.autoconfiguration.enabled' /etc/elasticsearch/elasticsearch.yml || echo 'Using default (true)'"
+      expected_value: "xpack.security.autoconfiguration.enabled: true or not set (default true)"
+    remediation:
+      remediation_step: |
+        Ensure security auto configuration is enabled in elasticsearch.yml:
+        xpack.security.autoconfiguration.enabled: true
+        This allows Elasticsearch to automatically configure security on first startup.
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Auto configuration simplifies initial security setup and reduces misconfiguration risk.
+      impact: Low - Manual configuration is more error-prone.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - security
+      - configuration
+      - automation
+
+  - rule_id: ES-SEC-023
+    rule_name: Configure Kibana Session Management
+    rule_description: Kibana session timeouts and concurrent session limits must be configured to prevent unauthorized access through idle sessions.
+    category: Authentication
+    subcategory: Session Management
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Kibana session settings in kibana.yml
+      check_command: "grep 'xpack.security.session' /etc/kibana/kibana.yml || echo 'Using default session settings'"
+      expected_value: "Session timeouts configured"
+    remediation:
+      remediation_step: |
+        Configure session management in kibana.yml:
+        xpack.security.session.idleTimeout: "1h"
+        xpack.security.session.lifespan: "8h"
+        xpack.security.session.concurrentSessions.max: 10
+        Restart Kibana after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Kibana restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper session management prevents unauthorized access through abandoned sessions.
+      impact: Medium - Long-lived sessions can be exploited if a user's computer is compromised.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/kibana/current/security-settings.html
+    tags:
+      - kibana
+      - session
+      - authentication
+
+  - rule_id: ES-SEC-024
+    rule_name: Configure Realm Authentication Order
+    rule_description: Authentication realms must be configured with appropriate order to ensure proper authentication flow.
+    category: Authentication
+    subcategory: Realm Configuration
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify realm configuration in elasticsearch.yml
+      check_command: "grep -A10 'xpack.security.authc.realms' /etc/elasticsearch/elasticsearch.yml || echo 'Using default realms'"
+      expected_value: "Realms configured with proper order"
+    remediation:
+      remediation_step: |
+        Configure realms with order in elasticsearch.yml:
+        xpack.security.authc.realms:
+          native.realm1:
+            order: 0
+          ldap.realm2:
+            order: 1
+          active_directory.realm3:
+            order: 2
+        Ensure each realm has a unique order value.
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper realm order ensures authentication attempts are processed in the expected sequence.
+      impact: Medium - Incorrect order can lead to authentication failures or security bypasses.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - authentication
+      - realms
+      - ldap
+
+  - rule_id: ES-SEC-025
+    rule_name: Configure LDAP Realm SSL Settings
+    rule_description: LDAP realms must be configured with SSL/TLS to protect authentication credentials during LDAP queries.
+    category: Authentication
+    subcategory: LDAP Security
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify LDAP SSL configuration in elasticsearch.yml
+      check_command: "grep -A20 'ldap\\.' /etc/elasticsearch/elasticsearch.yml | grep 'url\\|ssl'"
+      expected_value: "LDAP URLs use ldaps:// or SSL is configured"
+    remediation:
+      remediation_step: |
+        Configure LDAP with SSL in elasticsearch.yml:
+        xpack.security.authc.realms.ldap.my_ldap:
+          order: 0
+          url: "ldaps://ldap.example.com:636"
+          ssl.verification_mode: full
+          ssl.certificate_authorities: ["/path/to/ca.crt"]
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 10 minutes
+    context:
+      rationale: SSL/TLS for LDAP protects credentials during transmission to the LDAP server.
+      impact: High - Unencrypted LDAP traffic exposes credentials to network sniffing.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - ldap
+      - ssl
+      - authentication
+
+  - rule_id: ES-SEC-026
+    rule_name: Configure Automata Cache Settings
+    rule_description: Automata cache settings must be configured to prevent DoS attacks through complex pattern matching.
+    category: System Configuration
+    subcategory: Performance Security
+    testing_status: untested
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify automata cache configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.automata' /etc/elasticsearch/elasticsearch.yml || echo 'Using defaults'"
+      expected_value: "Automata cache configured or using defaults"
+    remediation:
+      remediation_step: |
+        Configure automata cache in elasticsearch.yml:
+        xpack.security.automata.max_determinized_states: 100000
+        xpack.security.automata.cache.enabled: true
+        xpack.security.automata.cache.size: 10000
+        xpack.security.automata.cache.ttl: 48h
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper automata settings prevent DoS attacks through complex wildcard patterns.
+      impact: Low - Misconfigured settings can lead to performance issues or DoS.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - performance
+      - security
+      - cache
+
+  - rule_id: ES-SEC-027
+    rule_name: Configure Native Realm Cache Settings
+    rule_description: Native realm cache settings must be configured to balance security and performance.
+    category: Authentication
+    subcategory: Cache Configuration
+    testing_status: untested
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify native realm cache configuration in elasticsearch.yml
+      check_command: "grep -A5 'native\\.' /etc/elasticsearch/elasticsearch.yml | grep 'cache'"
+      expected_value: "Cache settings configured or using defaults"
+    remediation:
+      remediation_step: |
+        Configure native realm cache in elasticsearch.yml:
+        xpack.security.authc.realms.native.native1:
+          order: 0
+          cache.ttl: 20m
+          cache.max_users: 100000
+          cache.hash_algo: ssha256
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper cache settings balance authentication performance with security.
+      impact: Low - Incorrect cache settings can impact performance or security.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - authentication
+      - cache
+      - native
+
+  - rule_id: ES-SEC-028
+    rule_name: Configure File Realm Cache Settings
+    rule_description: File realm cache settings must be configured to balance security and performance.
+    category: Authentication
+    subcategory: Cache Configuration
+    testing_status: untested
+    assessment:
+      severity: Low
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify file realm cache configuration in elasticsearch.yml
+      check_command: "grep -A5 'file\\.' /etc/elasticsearch/elasticsearch.yml | grep 'cache'"
+      expected_value: "Cache settings configured or using defaults"
+    remediation:
+      remediation_step: |
+        Configure file realm cache in elasticsearch.yml:
+        xpack.security.authc.realms.file.file1:
+          order: 0
+          cache.ttl: 20m
+          cache.max_users: 100000
+          cache.hash_algo: ssha256
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Proper cache settings balance authentication performance with security.
+      impact: Low - Incorrect cache settings can impact performance or security.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - authentication
+      - cache
+      - file
+
+  - rule_id: ES-SEC-029
+    rule_name: Configure Active Directory Realm Settings
+    rule_description: Active Directory realms must be properly configured with SSL and appropriate timeouts.
+    category: Authentication
+    subcategory: Active Directory
+    testing_status: untested
+    assessment:
+      severity: High
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify Active Directory realm configuration in elasticsearch.yml
+      check_command: "grep -A30 'active_directory\\.' /etc/elasticsearch/elasticsearch.yml || echo 'Active Directory not configured'"
+      expected_value: "AD realm configured with SSL and proper settings"
+    remediation:
+      remediation_step: |
+        Configure Active Directory realm in elasticsearch.yml:
+        xpack.security.authc.realms.active_directory.my_ad:
+          order: 0
+          domain_name: example.com
+          url: ldaps://ad.example.com:636
+          bind_dn: cn=service_account,ou=users,dc=example,dc=com
+          secure_bind_password: in_keystore
+          ssl.verification_mode: full
+          timeout.tcp_connect: 5s
+          timeout.ldap_search: 5s
+        Store bind password in keystore:
+        ./bin/elasticsearch-keystore add xpack.security.authc.realms.active_directory.my_ad.secure_bind_password
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 15 minutes
+    context:
+      rationale: Proper AD configuration ensures secure and reliable authentication.
+      impact: High - Misconfigured AD can lead to authentication failures or security issues.
+      false_positive_risk: Low
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - authentication
+      - active-directory
+      - ldap
+
+  - rule_id: ES-SEC-030
+    rule_name: Enable Security Enrollment
+    rule_description: Security enrollment must be enabled to allow nodes and Kibana to enroll in a secured cluster.
+    category: Security Configuration
+    subcategory: Enrollment
+    testing_status: untested
+    assessment:
+      severity: Medium
+      is_auto: true
+      automation_level: Full
+      audit_type: config
+      detection_step: Verify enrollment configuration in elasticsearch.yml
+      check_command: "grep 'xpack.security.enrollment.enabled' /etc/elasticsearch/elasticsearch.yml || echo 'Using default'"
+      expected_value: "xpack.security.enrollment.enabled: true for clusters accepting new nodes"
+    remediation:
+      remediation_step: |
+        Enable enrollment in elasticsearch.yml:
+        xpack.security.enrollment.enabled: true
+        This allows generation of enrollment tokens for new nodes and Kibana.
+        Restart Elasticsearch after configuration.
+      rollback_supported: true
+      reboot_required: false
+      service_impact: Elasticsearch restart required
+      estimated_time: 5 minutes
+    context:
+      rationale: Enrollment simplifies adding new nodes and Kibana to a secured cluster.
+      impact: Medium - Without enrollment, manual security configuration is required for each new node.
+      false_positive_risk: None
+      references:
+        - type: Documentation
+          reference: https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html
+    tags:
+      - security
+      - enrollment
+      - configuration
