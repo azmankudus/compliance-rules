@@ -1,0 +1,1084 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: CIS Benchmark for Oracle Linux 9 - Level 1 Server
+  version: 2.0.0
+  description: Center for Internet Security Benchmark for Oracle Linux 9 Level 1 Server
+    Profile
+  platform: Oracle Linux 9
+  benchmark: CIS Oracle Linux 9 Benchmark v2.0.0
+  author: Center for Internet Security
+  created: '2024-06-20T00:00:00Z'
+  modified: '2024-06-20T00:00:00Z'
+  compatible_platforms:
+  - Oracle Linux 9.0
+  - Oracle Linux 9.1
+  - Oracle Linux 9.2
+  - Oracle Linux 9.3
+  - Oracle Linux 9.4
+  - Oracle Linux 9.5
+compliance_info:
+  framework: CIS
+  version: 2.0.0
+  profile: Level 1 - Server
+profile:
+  name: CIS Level 1 Server
+  description: Baseline security configuration for Oracle Linux 9 servers - Level
+    1 provides practical security without excessive disruption
+  level: 1
+rules:
+- rule_id: CIS-1.1.1.1
+  rule_name: Ensure mounting of cramfs filesystems is disabled
+  rule_description: The cramfs filesystem type is a compressed read-only Linux filesystem
+    embedded in small footprint systems. Disabling unnecessary filesystem types reduces
+    the attack surface.
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify cramfs kernel module is disabled
+    check_command: modprobe -n -v cramfs | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/cramfs.conf with: install cramfs
+      /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level1-server
+  rationale: Unused filesystem drivers increase attack surface and should be disabled.
+  impact: Low - Reduces potential attack vectors
+  false_positive_risk: Low
+  id: CIS-1.1.1.1
+  title: Ensure mounting of cramfs filesystems is disabled
+  description: The cramfs filesystem type is a compressed read-only Linux filesystem
+    embedded in small footprint systems. Disabling unnecessary filesystem types reduces
+    the attack surface.
+  severity: Medium
+- rule_id: CIS-1.1.1.2
+  rule_name: Ensure mounting of freevxfs filesystems is disabled
+  rule_description: The freevxfs filesystem type is a Veritas filesystem driver that
+    is rarely needed on modern systems.
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify freevxfs kernel module is disabled
+    check_command: modprobe -n -v freevxfs | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/freevxfs.conf with: install
+      freevxfs /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level1-server
+  rationale: Removing unused filesystem drivers reduces kernel attack surface.
+  impact: Low - Reduces potential attack vectors
+  false_positive_risk: Low
+  id: CIS-1.1.1.2
+  title: Ensure mounting of freevxfs filesystems is disabled
+  description: The freevxfs filesystem type is a Veritas filesystem driver that is
+    rarely needed on modern systems.
+  severity: Medium
+- rule_id: CIS-1.1.1.3
+  rule_name: Ensure mounting of jffs2 filesystems is disabled
+  rule_description: The jffs2 filesystem type is used for flash memory devices and
+    is not typically needed on servers.
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify jffs2 kernel module is disabled
+    check_command: modprobe -n -v jffs2 | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/jffs2.conf with: install jffs2
+      /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level1-server
+  rationale: Unused filesystem drivers should be disabled to reduce attack surface.
+  impact: Low - Reduces potential attack vectors
+  false_positive_risk: Low
+  id: CIS-1.1.1.3
+  title: Ensure mounting of jffs2 filesystems is disabled
+  description: The jffs2 filesystem type is used for flash memory devices and is not
+    typically needed on servers.
+  severity: Medium
+- rule_id: CIS-1.1.1.4
+  rule_name: Ensure mounting of hfs filesystems is disabled
+  rule_description: The hfs filesystem type is the Apple Macintosh filesystem and
+    is not needed on Linux servers.
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify hfs kernel module is disabled
+    check_command: modprobe -n -v hfs | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/hfs.conf with: install hfs /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level1-server
+  rationale: Disabling unused filesystem types reduces attack surface.
+  impact: Low - Reduces potential attack vectors
+  false_positive_risk: Low
+  id: CIS-1.1.1.4
+  title: Ensure mounting of hfs filesystems is disabled
+  description: The hfs filesystem type is the Apple Macintosh filesystem and is not
+    needed on Linux servers.
+  severity: Medium
+- rule_id: CIS-1.1.1.5
+  rule_name: Ensure mounting of hfsplus filesystems is disabled
+  rule_description: The hfsplus filesystem is the extended Apple Macintosh filesystem.
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify hfsplus kernel module is disabled
+    check_command: modprobe -n -v hfsplus | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/hfsplus.conf with: install hfsplus
+      /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level1-server
+  rationale: Removing unused filesystem drivers reduces kernel attack surface.
+  impact: Low - Reduces potential attack vectors
+  false_positive_risk: Low
+  id: CIS-1.1.1.5
+  title: Ensure mounting of hfsplus filesystems is disabled
+  description: The hfsplus filesystem is the extended Apple Macintosh filesystem.
+  severity: Medium
+- rule_id: CIS-1.1.1.6
+  rule_name: Ensure mounting of squashfs filesystems is disabled
+  rule_description: The squashfs filesystem type is a compressed read-only filesystem
+    used for embedded systems.
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify squashfs kernel module is disabled
+    check_command: modprobe -n -v squashfs | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/squashfs.conf with: install
+      squashfs /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect live CD/snap package functionality
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level1-server
+  rationale: Disabling unused filesystem types reduces attack surface.
+  impact: Low - May affect some container/snap functionality
+  false_positive_risk: Medium
+  id: CIS-1.1.1.6
+  title: Ensure mounting of squashfs filesystems is disabled
+  description: The squashfs filesystem type is a compressed read-only filesystem used
+    for embedded systems.
+  severity: Medium
+- rule_id: CIS-1.1.1.7
+  rule_name: Ensure mounting of udf filesystems is disabled
+  rule_description: The udf filesystem type is the Universal Disk Format used for
+    optical media.
+  category: Filesystem
+  subcategory: Filesystem Types
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify udf kernel module is disabled
+    check_command: modprobe -n -v udf | grep -E '(install /bin/true|not found)'
+    expected_value: install /bin/true or not found
+  remediation:
+    remediation_step: 'Create or edit /etc/modprobe.d/udf.conf with: install udf /bin/true'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - kernel-modules
+  - hardening
+  - level1-server
+  rationale: Removing unused filesystem drivers reduces kernel attack surface.
+  impact: Low - Reduces potential attack vectors
+  false_positive_risk: Low
+  id: CIS-1.1.1.7
+  title: Ensure mounting of udf filesystems is disabled
+  description: The udf filesystem type is the Universal Disk Format used for optical
+    media.
+  severity: Medium
+- rule_id: CIS-1.1.2.1
+  rule_name: Ensure /tmp is configured
+  rule_description: The /tmp directory is a world-writable directory used for temporary
+    files. It should be configured as a separate filesystem with appropriate mount
+    options.
+  category: Filesystem
+  subcategory: Partitioning
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify /tmp is a separate mount point
+    check_command: mount | grep ' /tmp '
+    expected_value: /tmp on /tmp type tmpfs or separate partition
+  remediation:
+    remediation_step: Configure /tmp as tmpfs or separate partition in /etc/fstab
+      with nodev,nosuid,noexec options
+    rollback_supported: false
+    reboot_required: true
+    service_impact: Requires filesystem reconfiguration
+    estimated_time: 30 minutes
+  tags:
+  - filesystem
+  - partitioning
+  - tmp
+  - level1-server
+  rationale: Separate /tmp prevents resource exhaustion and allows restrictive mount
+    options.
+  impact: Medium - Improves security and stability
+  false_positive_risk: None
+  id: CIS-1.1.2.1
+  title: Ensure /tmp is configured
+  description: The /tmp directory is a world-writable directory used for temporary
+    files. It should be configured as a separate filesystem with appropriate mount
+    options.
+  severity: Medium
+- rule_id: CIS-1.1.2.2
+  rule_name: Ensure nodev option set on /tmp partition
+  rule_description: The nodev mount option specifies that the filesystem cannot contain
+    special device files.
+  category: Filesystem
+  subcategory: Mount Options
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify nodev option on /tmp
+    check_command: mount | grep ' /tmp ' | grep nodev
+    expected_value: /tmp with nodev option
+  remediation:
+    remediation_step: Add nodev option to /tmp in /etc/fstab
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - mount-options
+  - tmp
+  - nodev
+  - level1-server
+  rationale: Prevents creation of device files in /tmp which could be used for attacks.
+  impact: Medium - Prevents device-based attacks
+  false_positive_risk: None
+  id: CIS-1.1.2.2
+  title: Ensure nodev option set on /tmp partition
+  description: The nodev mount option specifies that the filesystem cannot contain
+    special device files.
+  severity: Medium
+- rule_id: CIS-1.1.2.3
+  rule_name: Ensure nosuid option set on /tmp partition
+  rule_description: The nosuid mount option prevents set-user-identifier and set-group-identifier
+    bits from taking effect.
+  category: Filesystem
+  subcategory: Mount Options
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify nosuid option on /tmp
+    check_command: mount | grep ' /tmp ' | grep nosuid
+    expected_value: /tmp with nosuid option
+  remediation:
+    remediation_step: Add nosuid option to /tmp in /etc/fstab
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - mount-options
+  - tmp
+  - nosuid
+  - level1-server
+  rationale: Prevents privilege escalation via SUID binaries in /tmp.
+  impact: Medium - Prevents privilege escalation
+  false_positive_risk: None
+  id: CIS-1.1.2.3
+  title: Ensure nosuid option set on /tmp partition
+  description: The nosuid mount option prevents set-user-identifier and set-group-identifier
+    bits from taking effect.
+  severity: Medium
+- rule_id: CIS-1.1.2.4
+  rule_name: Ensure noexec option set on /tmp partition
+  rule_description: The noexec mount option prevents direct execution of binaries
+    from the filesystem.
+  category: Filesystem
+  subcategory: Mount Options
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify noexec option on /tmp
+    check_command: mount | grep ' /tmp ' | grep noexec
+    expected_value: /tmp with noexec option
+  remediation:
+    remediation_step: Add noexec option to /tmp in /etc/fstab
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect some scripts that execute from /tmp
+    estimated_time: 1 minute
+  tags:
+  - filesystem
+  - mount-options
+  - tmp
+  - noexec
+  - level1-server
+  rationale: Prevents execution of malicious binaries from /tmp.
+  impact: Medium - Prevents code execution attacks
+  false_positive_risk: Low
+  id: CIS-1.1.2.4
+  title: Ensure noexec option set on /tmp partition
+  description: The noexec mount option prevents direct execution of binaries from
+    the filesystem.
+  severity: Medium
+- rule_id: CIS-1.2.1
+  rule_name: Ensure package manager repositories are configured
+  rule_description: Systems need to have package manager repositories configured to
+    ensure they receive security updates.
+  category: Package Management
+  subcategory: Repository Configuration
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify repositories are configured and accessible
+    check_command: dnf repolist
+    expected_value: At least one enabled repository
+  remediation:
+    remediation_step: Configure appropriate package repositories using subscription-manager
+      or by adding repo files
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 5 minutes
+  tags:
+  - packages
+  - repositories
+  - updates
+  - level1-server
+  rationale: Configured repositories are essential for receiving security updates.
+  impact: High - Required for system security
+  false_positive_risk: None
+  id: CIS-1.2.1
+  title: Ensure package manager repositories are configured
+  description: Systems need to have package manager repositories configured to ensure
+    they receive security updates.
+  severity: Medium
+- rule_id: CIS-1.2.2
+  rule_name: Ensure GPG keys are configured
+  rule_description: GPG keys are used to verify the authenticity of packages during
+    installation.
+  category: Package Management
+  subcategory: GPG Configuration
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify Oracle GPG keys are installed
+    check_command: 'rpm -q gpg-pubkey --qf ''%{name}-%{version}-%{release} --> %{summary}
+
+      '''
+    expected_value: Oracle GPG keys present
+  remediation:
+    remediation_step: 'Import Oracle GPG keys: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-oracle-release'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - packages
+  - gpg
+  - security
+  - level1-server
+  rationale: GPG keys ensure package authenticity and integrity.
+  impact: High - Prevents installation of tampered packages
+  false_positive_risk: None
+  id: CIS-1.2.2
+  title: Ensure GPG keys are configured
+  description: GPG keys are used to verify the authenticity of packages during installation.
+  severity: Medium
+- rule_id: CIS-1.3.1
+  rule_name: Ensure AIDE is installed
+  rule_description: Advanced Intrusion Detection Environment (AIDE) provides file
+    integrity checking.
+  category: File Integrity
+  subcategory: AIDE
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify AIDE package is installed
+    check_command: rpm -q aide
+    expected_value: aide-<version>
+  remediation:
+    remediation_step: 'Install AIDE: dnf install aide && aide --init && mv /var/lib/aide/aide.db.new.gz
+      /var/lib/aide/aide.db.gz'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Initial database creation may take time
+    estimated_time: 15 minutes
+  tags:
+  - file-integrity
+  - aide
+  - intrusion-detection
+  - level1-server
+  rationale: File integrity monitoring detects unauthorized file changes.
+  impact: High - Essential for intrusion detection
+  false_positive_risk: Low
+  id: CIS-1.3.1
+  title: Ensure AIDE is installed
+  description: Advanced Intrusion Detection Environment (AIDE) provides file integrity
+    checking.
+  severity: Medium
+- rule_id: CIS-1.4.1
+  rule_name: Ensure bootloader password is set
+  rule_description: Setting the bootloader password protects against unauthorized
+    changes to boot parameters.
+  category: Boot Configuration
+  subcategory: GRUB Security
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify GRUB password is configured
+    check_command: grep -E 'password_pbkdf2|GRUB2_PASSWORD' /boot/grub2/grub.cfg /etc/grub.d/01_users
+      2>/dev/null
+    expected_value: Password entry should be present
+  remediation:
+    remediation_step: 'Set GRUB password: grub2-setpassword && grub2-mkconfig -o /boot/grub2/grub.cfg'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None until reboot
+    estimated_time: 5 minutes
+  tags:
+  - boot
+  - grub
+  - password
+  - security
+  - level1-server
+  rationale: Bootloader password prevents unauthorized modification of boot parameters.
+  impact: High - Critical for physical security
+  false_positive_risk: None
+  id: CIS-1.4.1
+  title: Ensure bootloader password is set
+  description: Setting the bootloader password protects against unauthorized changes
+    to boot parameters.
+  severity: High
+- rule_id: CIS-1.5.1
+  rule_name: Ensure core dumps are restricted
+  rule_description: Core dumps can contain sensitive information and should be restricted.
+  category: System Configuration
+  subcategory: Core Dumps
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify core dump restrictions
+    check_command: grep -E '^\*\s+hard\s+core' /etc/security/limits.conf /etc/security/limits.d/*
+    expected_value: '* hard core 0'
+  remediation:
+    remediation_step: 'Add to /etc/security/limits.conf: * hard core 0'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Core dumps disabled for new sessions
+    estimated_time: 1 minute
+  tags:
+  - system
+  - core-dumps
+  - security
+  - level1-server
+  rationale: Core dumps may contain sensitive memory data and consume disk space.
+  impact: Medium - Prevents information disclosure
+  false_positive_risk: None
+  id: CIS-1.5.1
+  title: Ensure core dumps are restricted
+  description: Core dumps can contain sensitive information and should be restricted.
+  severity: Medium
+- rule_id: CIS-1.6.1.1
+  rule_name: Ensure SELinux is installed
+  rule_description: SELinux provides mandatory access control for enhanced security.
+  category: Security Modules
+  subcategory: SELinux
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SELinux packages are installed
+    check_command: rpm -q libselinux selinux-policy-targeted
+    expected_value: Both packages installed
+  remediation:
+    remediation_step: 'Install SELinux packages: dnf install libselinux selinux-policy-targeted'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 2 minutes
+  tags:
+  - selinux
+  - security
+  - mac
+  - critical
+  - level1-server
+  rationale: SELinux provides critical mandatory access control capabilities.
+  impact: Critical - Core security feature
+  false_positive_risk: None
+  id: CIS-1.6.1.1
+  title: Ensure SELinux is installed
+  description: SELinux provides mandatory access control for enhanced security.
+  severity: High
+- rule_id: CIS-1.6.1.2
+  rule_name: Ensure SELinux is not disabled in bootloader configuration
+  rule_description: SELinux should not be disabled via bootloader parameters.
+  category: Security Modules
+  subcategory: SELinux
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SELinux is not disabled in GRUB
+    check_command: grubby --info=ALL | grep -E 'selinux=0'
+    expected_value: No output (selinux=0 should not be present)
+  remediation:
+    remediation_step: 'Remove selinux=0 from kernel parameters: grubby --update-kernel=ALL
+      --remove-args=''selinux=0'''
+    rollback_supported: true
+    reboot_required: true
+    service_impact: SELinux will be enabled after reboot
+    estimated_time: 1 minute
+  tags:
+  - selinux
+  - boot
+  - security
+  - critical
+  - level1-server
+  rationale: Disabling SELinux at boot removes a critical security control.
+  impact: Critical - SELinux bypassed entirely
+  false_positive_risk: None
+  id: CIS-1.6.1.2
+  title: Ensure SELinux is not disabled in bootloader configuration
+  description: SELinux should not be disabled via bootloader parameters.
+  severity: High
+- rule_id: CIS-1.6.1.3
+  rule_name: Ensure SELinux policy is configured
+  rule_description: SELinux should be configured with an appropriate policy.
+  category: Security Modules
+  subcategory: SELinux
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SELinux policy type
+    check_command: grep -E '^SELINUXTYPE=' /etc/selinux/config
+    expected_value: SELINUXTYPE=targeted
+  remediation:
+    remediation_step: 'Edit /etc/selinux/config: SELINUXTYPE=targeted'
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Policy change requires relabeling
+    estimated_time: 15 minutes
+  tags:
+  - selinux
+  - policy
+  - security
+  - level1-server
+  rationale: Targeted policy provides security for specific services while allowing
+    normal operation.
+  impact: High - Core security configuration
+  false_positive_risk: None
+  id: CIS-1.6.1.3
+  title: Ensure SELinux policy is configured
+  description: SELinux should be configured with an appropriate policy.
+  severity: High
+- rule_id: CIS-1.6.1.4
+  rule_name: Ensure SELinux mode is enforcing or permissive
+  rule_description: SELinux should be running in enforcing mode for maximum security.
+  category: Security Modules
+  subcategory: SELinux
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SELinux mode
+    check_command: getenforce
+    expected_value: Enforcing
+  remediation:
+    remediation_step: 'Set SELinux to enforcing: Edit /etc/selinux/config: SELINUX=enforcing'
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May require policy adjustments
+    estimated_time: 10 minutes
+  tags:
+  - selinux
+  - enforcing
+  - security
+  - critical
+  - level1-server
+  rationale: Enforcing mode actively blocks policy violations.
+  impact: Critical - Core security control
+  false_positive_risk: Low
+  id: CIS-1.6.1.4
+  title: Ensure SELinux mode is enforcing or permissive
+  description: SELinux should be running in enforcing mode for maximum security.
+  severity: High
+- rule_id: CIS-5.1.1
+  rule_name: Ensure cron daemon is enabled and running
+  rule_description: The cron daemon is used to execute scheduled jobs and must be
+    running.
+  category: Scheduled Tasks
+  subcategory: Cron
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: runtime
+    detection_step: Verify crond service is enabled and running
+    check_command: systemctl is-enabled crond && systemctl is-active crond
+    expected_value: enabled and active
+  remediation:
+    remediation_step: 'Enable and start crond: systemctl enable --now crond'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Scheduled tasks will resume
+    estimated_time: 1 minute
+  tags:
+  - cron
+  - services
+  - scheduling
+  - level1-server
+  rationale: Cron is essential for scheduled system maintenance tasks.
+  impact: Medium - Required for automated maintenance
+  false_positive_risk: None
+  id: CIS-5.1.1
+  title: Ensure cron daemon is enabled and running
+  description: The cron daemon is used to execute scheduled jobs and must be running.
+  severity: Medium
+- rule_id: CIS-5.2.1
+  rule_name: Ensure permissions on /etc/ssh/sshd_config are configured
+  rule_description: The SSH configuration file must have proper permissions.
+  category: SSH Configuration
+  subcategory: File Permissions
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify sshd_config permissions
+    check_command: stat -c '%a %U %G %n' /etc/ssh/sshd_config
+    expected_value: 600 root root /etc/ssh/sshd_config
+  remediation:
+    remediation_step: 'Set proper permissions: chmod 600 /etc/ssh/sshd_config && chown
+      root:root /etc/ssh/sshd_config'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - ssh
+  - permissions
+  - file-permissions
+  - level1-server
+  rationale: Protecting SSH config prevents unauthorized modifications.
+  impact: High - Prevents SSH configuration tampering
+  false_positive_risk: None
+  id: CIS-5.2.1
+  title: Ensure permissions on /etc/ssh/sshd_config are configured
+  description: The SSH configuration file must have proper permissions.
+  severity: Medium
+- rule_id: CIS-5.2.8
+  rule_name: Ensure SSH root login is disabled
+  rule_description: Direct root login via SSH should be disabled.
+  category: SSH Configuration
+  subcategory: Root Access
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify root login is disabled
+    check_command: grep -E '^PermitRootLogin' /etc/ssh/sshd_config
+    expected_value: PermitRootLogin no or prohibit-password
+  remediation:
+    remediation_step: 'Add or modify in /etc/ssh/sshd_config: PermitRootLogin no'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Root SSH login blocked
+    estimated_time: 1 minute
+  tags:
+  - ssh
+  - root
+  - authentication
+  - critical
+  - level1-server
+  rationale: Preventing direct root login improves accountability and reduces attack
+    surface.
+  impact: High - Critical security control
+  false_positive_risk: None
+  id: CIS-5.2.8
+  title: Ensure SSH root login is disabled
+  description: Direct root login via SSH should be disabled.
+  severity: High
+- rule_id: CIS-5.2.9
+  rule_name: Ensure SSH PermitEmptyPasswords is disabled
+  rule_description: Empty passwords must not be permitted for SSH authentication.
+  category: SSH Configuration
+  subcategory: Authentication
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify empty passwords are disabled
+    check_command: grep -E '^PermitEmptyPasswords' /etc/ssh/sshd_config
+    expected_value: PermitEmptyPasswords no
+  remediation:
+    remediation_step: 'Add or modify in /etc/ssh/sshd_config: PermitEmptyPasswords
+      no'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - ssh
+  - authentication
+  - passwords
+  - critical
+  - level1-server
+  rationale: Empty passwords provide no authentication security.
+  impact: Critical - Prevents unauthorized access
+  false_positive_risk: None
+  id: CIS-5.2.9
+  title: Ensure SSH PermitEmptyPasswords is disabled
+  description: Empty passwords must not be permitted for SSH authentication.
+  severity: High
+- rule_id: CIS-5.3.1
+  rule_name: Ensure password creation requirements are configured
+  rule_description: Strong password requirements should be enforced.
+  category: Authentication
+  subcategory: Password Policy
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify pwquality configuration
+    check_command: grep -E '^(minlen|minclass|dcredit|ucredit|lcredit|ocredit)' /etc/security/pwquality.conf
+    expected_value: minlen = 14 or more, minclass = 4 or appropriate credit settings
+  remediation:
+    remediation_step: Configure /etc/security/pwquality.conf with strong password
+      requirements
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Affects new password creation
+    estimated_time: 2 minutes
+  tags:
+  - authentication
+  - passwords
+  - policy
+  - level1-server
+  rationale: Strong passwords are essential for authentication security.
+  impact: High - Prevents weak passwords
+  false_positive_risk: None
+  id: CIS-5.3.1
+  title: Ensure password creation requirements are configured
+  description: Strong password requirements should be enforced.
+  severity: High
+- rule_id: CIS-5.4.1
+  rule_name: Ensure password expiration is configured
+  rule_description: Password expiration should be configured appropriately.
+  category: Authentication
+  subcategory: Password Expiration
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify password expiration settings
+    check_command: grep -E '^PASS_MAX_DAYS|^PASS_MIN_DAYS|^PASS_WARN_AGE' /etc/login.defs
+    expected_value: PASS_MAX_DAYS 365 or less
+  remediation:
+    remediation_step: Configure /etc/login.defs with appropriate expiration settings
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Affects new accounts
+    estimated_time: 2 minutes
+  tags:
+  - authentication
+  - passwords
+  - expiration
+  - level1-server
+  rationale: Password expiration limits the window of opportunity for compromised
+    credentials.
+  impact: Medium - Enforces password lifecycle
+  false_positive_risk: None
+  id: CIS-5.4.1
+  title: Ensure password expiration is configured
+  description: Password expiration should be configured appropriately.
+  severity: Medium
+- rule_id: CIS-5.5.1
+  rule_name: Ensure default user shell timeout is configured
+  rule_description: Inactive sessions should be automatically terminated.
+  category: Session Management
+  subcategory: Timeout
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify shell timeout configuration
+    check_command: grep -E '^TMOUT=' /etc/profile /etc/profile.d/*.sh 2>/dev/null
+    expected_value: TMOUT=900 or less
+  remediation:
+    remediation_step: 'Add to /etc/profile.d/tmout.sh: TMOUT=900; export TMOUT'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Sessions will timeout after inactivity
+    estimated_time: 1 minute
+  tags:
+  - session
+  - timeout
+  - security
+  - level1-server
+  rationale: Automatic session timeout prevents unauthorized access to unattended
+    sessions.
+  impact: Medium - Improves physical security
+  false_positive_risk: None
+  id: CIS-5.5.1
+  title: Ensure default user shell timeout is configured
+  description: Inactive sessions should be automatically terminated.
+  severity: Medium
+- rule_id: CIS-6.1.1
+  rule_name: Ensure permissions on /etc/passwd are configured
+  rule_description: The /etc/passwd file must have proper permissions.
+  category: File Permissions
+  subcategory: System Files
+  testing_status: verified
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify /etc/passwd permissions
+    check_command: stat -c '%a %U %G %n' /etc/passwd
+    expected_value: 644 root root /etc/passwd
+  remediation:
+    remediation_step: chmod 644 /etc/passwd && chown root:root /etc/passwd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - permissions
+  - etc
+  - passwd
+  - level1-server
+  rationale: Proper permissions prevent unauthorized modification of user accounts.
+  impact: High - Protects user account information
+  false_positive_risk: None
+  id: CIS-6.1.1
+  title: Ensure permissions on /etc/passwd are configured
+  description: The /etc/passwd file must have proper permissions.
+  severity: Medium
+- rule_id: CIS-6.1.2
+  rule_name: Ensure permissions on /etc/shadow are configured
+  rule_description: The /etc/shadow file must have restrictive permissions.
+  category: File Permissions
+  subcategory: System Files
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify /etc/shadow permissions
+    check_command: stat -c '%a %U %G %n' /etc/shadow
+    expected_value: 000 root root /etc/shadow or 600
+  remediation:
+    remediation_step: chmod 0000 /etc/shadow && chown root:root /etc/shadow
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - permissions
+  - etc
+  - shadow
+  - critical
+  - level1-server
+  rationale: Shadow file contains password hashes and must be protected.
+  impact: Critical - Prevents credential exposure
+  false_positive_risk: None
+  id: CIS-6.1.2
+  title: Ensure permissions on /etc/shadow are configured
+  description: The /etc/shadow file must have restrictive permissions.
+  severity: High
+- rule_id: CIS-6.2.1
+  rule_name: Ensure accounts in /etc/passwd use shadowed passwords
+  rule_description: All accounts must use shadowed passwords.
+  category: User Management
+  subcategory: Password Shadowing
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify all passwords are shadowed
+    check_command: 'awk -F: ''($2 != "x" ) {print $1}'' /etc/passwd'
+    expected_value: No output (all passwords shadowed)
+  remediation:
+    remediation_step: 'Convert accounts to use shadowed passwords: pwconv'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - users
+  - passwords
+  - shadow
+  - level1-server
+  rationale: Shadowed passwords protect password hashes from being accessible.
+  impact: High - Prevents credential exposure
+  false_positive_risk: None
+  id: CIS-6.2.1
+  title: Ensure accounts in /etc/passwd use shadowed passwords
+  description: All accounts must use shadowed passwords.
+  severity: High
+- rule_id: CIS-6.2.2
+  rule_name: Ensure root is the only UID 0 account
+  rule_description: Only the root account should have UID 0.
+  category: User Management
+  subcategory: Root Access
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify only root has UID 0
+    check_command: 'awk -F: ''($3 == 0) {print $1}'' /etc/passwd'
+    expected_value: root
+  remediation:
+    remediation_step: Change UID of non-root accounts with UID 0 or remove them
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Affected users lose root access
+    estimated_time: 5 minutes
+  tags:
+  - users
+  - root
+  - uid
+  - critical
+  - level1-server
+  rationale: Multiple UID 0 accounts complicate audit and increase attack surface.
+  impact: Critical - Core security control
+  false_positive_risk: None
+  id: CIS-6.2.2
+  title: Ensure root is the only UID 0 account
+  description: Only the root account should have UID 0.
+  severity: High

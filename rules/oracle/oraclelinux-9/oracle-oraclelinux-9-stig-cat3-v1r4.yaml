@@ -1,0 +1,898 @@
+schema_version: 1.0.0
+metadata:
+  name: Oracle Linux 9 STIG CAT_III Rules
+  version: "2.7"
+  description: DISA STIG Low severity (Category I) rules for Oracle Linux 9
+  platform: Oracle Linux 9
+  benchmark: DISA STIG
+  author: DISA
+  created: '2025-01-24'
+  modified: '2025-01-24'
+  compatible_platforms:
+  - Oracle Linux 9
+  - CentOS Stream 9
+  - Rocky Linux 9
+  - AlmaLinux 9
+compliance_info:
+  framework: STIG
+  version: '2.7'
+  category: CAT_III
+profile:
+  name: Oracle Linux 9 STIG CAT_III
+  description: Low severity security baseline for Oracle Linux 9
+  level: 1
+rules:
+- rule_id: OLSEC-1
+  rule_name: Oracle Linux 9 must use a separate file system for /var.
+  rule_description: Ensuring that "/var" is mounted on its own partition enables the
+    setting of more restrictive mount options. This helps protect system services
+    such as daemons or other programs which use it. It is not uncommon for the "/var"
+    directory to contain world-writable directories installed by other software packages.
+  category: Security
+  subcategory: File System
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify that a separate file system/partition has been created
+      for "/var" with the following command: $ mount | grep /var /dev/mapper/rootvg-varlv
+      on /var type xfs (rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota)
+      Note: Options displayed for mount may differ. If a separate entry for "/var"
+      is not in use, this is a finding.'
+    check_command: $ mount | grep /var
+    expected_value: ''
+  remediation:
+    remediation_step: Migrate the "/var" path onto a separate file system.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-231020
+  - CCI-000366
+  - SRG-OS-000480-GPOS-00227
+  - STIG
+  - DISA
+  rationale: Ensuring that "/var" is mounted on its own partition enables the setting
+    of more restrictive mount options. This helps protect system services such as
+    daemons or other programs which use it. It is not uncommon for the "/var" directory
+    to contain world-writable directories installed by other software packages.
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-1
+  title: Oracle Linux 9 must use a separate file system for /var.
+  description: Ensuring that "/var" is mounted on its own partition enables the setting
+    of more restrictive mount options. This helps protect system services such as
+    daemons or other programs which use it. It is not uncommon for the "/var" directory
+    to contain world-writable directories installed by other software packages.
+  severity: Low
+- rule_id: OLSEC-2
+  rule_name: Oracle Linux 9 must use a separate file system for /var/log.
+  rule_description: Placing "/var/log" in its own partition enables better separation
+    between log files and other files in "/var/".
+  category: Security
+  subcategory: File System
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify that a separate file system/partition has been created
+      for "/var/log" with the following command: $ mount | grep /var/log /dev/mapper/rhel-var_log
+      on /var/log type xfs (rw,nosuid,nodev,noexec,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k)
+      Note: Options displayed for mount may differ. If a separate entry for "/var/log"
+      is not in use, this is a finding.'
+    check_command: $ mount | grep /var/log
+    expected_value: ''
+  remediation:
+    remediation_step: Migrate the "/var/log" path onto a separate file system.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-231025
+  - CCI-000366
+  - SRG-OS-000480-GPOS-00227
+  - STIG
+  - DISA
+  rationale: Placing "/var/log" in its own partition enables better separation between
+    log files and other files in "/var/".
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-2
+  title: Oracle Linux 9 must use a separate file system for /var/log.
+  description: Placing "/var/log" in its own partition enables better separation between
+    log files and other files in "/var/".
+  severity: Low
+- rule_id: OLSEC-3
+  rule_name: Oracle Linux 9 must use a separate file system for the system audit data
+    path.
+  rule_description: 'Placing "/var/log/audit" in its own partition enables better
+    separation between audit files and other system files, and helps ensure that auditing
+    cannot be halted due to the partition running out of space. Satisfies: SRG-OS-000341-GPOS-00132,
+    SRG-OS-000480-GPOS-00227'
+  category: Security
+  subcategory: Auditing
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify that a separate file system/partition has been created
+      for the system audit data path with the following command: Note: /var/log/audit
+      is used as the example as it is a common location. $ mount | grep /var/log/audit  /dev/mapper/rootvg-varlogaudit
+      on /var/log/audit type xfs (rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota)
+      Note: Options displayed for mount may differ. If no line is returned, this is
+      a finding.'
+    check_command: $ mount | grep /var/log/audit
+    expected_value: ''
+  remediation:
+    remediation_step: Migrate the system audit data path onto a separate file system.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-231030
+  - CCI-001849
+  - SRG-OS-000341-GPOS-00132
+  - STIG
+  - DISA
+  rationale: 'Placing "/var/log/audit" in its own partition enables better separation
+    between audit files and other system files, and helps ensure that auditing cannot
+    be halted due to the partition running out of space. Satisfies: SRG-OS-000341-GPOS-00132,
+    SRG-OS-000480-GPOS-00227'
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-3
+  title: Oracle Linux 9 must use a separate file system for the system audit data
+    path.
+  description: 'Placing "/var/log/audit" in its own partition enables better separation
+    between audit files and other system files, and helps ensure that auditing cannot
+    be halted due to the partition running out of space. Satisfies: SRG-OS-000341-GPOS-00132,
+    SRG-OS-000480-GPOS-00227'
+  severity: Low
+- rule_id: OLSEC-4
+  rule_name: Oracle Linux 9 must enable the hardware random number generator entropy
+    gatherer service.
+  rule_description: The most important characteristic of a random number generator
+    is its randomness, namely its ability to deliver random numbers that are impossible
+    to predict. Entropy in computer security is associated with the unpredictability
+    of a source of randomness. The random source with high entropy tends to achieve
+    a uniform distribution of random values. Random number generators are one of the
+    most important building blocks of cryptosystems.  The rngd service feeds random
+    data from hardware device to kernel random device. Quality (nonpredictable) random
+    number generation is important for several security functions (i.e., ciphers).
+  category: Security
+  subcategory: Services
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Note: For Oracle Linux 9 systems running with kernel FIPS mode
+      enabled as specified by Oracle Linux-09-671010, this requirement is Not Applicable.
+      Verify that Oracle Linux 9 has enabled the hardware random number generator
+      entropy gatherer service with the following command: $ systemctl is-active rngd
+      active If the "rngd" service is not active, this is a finding.'
+    check_command: $ systemctl is-active rngd
+    expected_value: ''
+  remediation:
+    remediation_step: 'Install the rng-tools package with the following command: $
+      sudo dnf install rng-tools Then enable the rngd service run the following command:
+      $ sudo systemctl enable --now rngd'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-211035
+  - CCI-000366
+  - SRG-OS-000480-GPOS-00227
+  - STIG
+  - DISA
+  rationale: The most important characteristic of a random number generator is its
+    randomness, namely its ability to deliver random numbers that are impossible to
+    predict. Entropy in computer security is associated with the unpredictability
+    of a source of randomness. The random source with high entropy tends to achieve
+    a uniform distribution of random values. Random number generators are one of the
+    most important building blocks of cryptosystems.  The rngd service feeds random
+    data from hardware device to kernel random device. Quality (nonpredictable) random
+    number generation is important for several security functions (i.e., ciphers).
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-4
+  title: Oracle Linux 9 must enable the hardware random number generator entropy gatherer
+    service.
+  description: The most important characteristic of a random number generator is its
+    randomness, namely its ability to deliver random numbers that are impossible to
+    predict. Entropy in computer security is associated with the unpredictability
+    of a source of randomness. The random source with high entropy tends to achieve
+    a uniform distribution of random values. Random number generators are one of the
+    most important building blocks of cryptosystems.  The rngd service feeds random
+    data from hardware device to kernel random device. Quality (nonpredictable) random
+    number generation is important for several security functions (i.e., ciphers).
+  severity: Low
+- rule_id: OLSEC-5
+  rule_name: Oracle Linux 9 must enable mitigations against processor-based vulnerabilities.
+  rule_description: 'Kernel page-table isolation is a kernel feature that mitigates
+    the Meltdown security vulnerability and hardens the kernel against attempts to
+    bypass kernel address space layout randomization (KASLR). Satisfies: SRG-OS-000433-GPOS-00193,
+    SRG-OS-000095-GPOS-00049'
+  category: Security
+  subcategory: System Configuration
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify Oracle Linux 9 enables kernel page-table isolation with
+      the following command: $ sudo grubby --info=ALL | grep args | grep -v ''pti=on''
+      If any output is returned, this is a finding. Check that kernel page-table isolation
+      is enabled by default to persist in kernel updates:  $ grep pti /etc/default/grub
+      GRUB_CMDLINE_LINUX="pti=on" If "pti" is not set to "on", is missing or commented
+      out, this is a finding.'
+    check_command: $ sudo grubby --info=ALL | grep args | grep -v 'pti=on'
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure Oracle Linux 9 to enable kernel page-table isolation
+      with the following command: $ sudo grubby --update-kernel=ALL --args="pti=on"
+      Add or modify the following line in "/etc/default/grub" to ensure the configuration
+      survives kernel updates: GRUB_CMDLINE_LINUX="pti=on"'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-212050
+  - CCI-000381
+  - SRG-OS-000433-GPOS-00193
+  - STIG
+  - DISA
+  rationale: 'Kernel page-table isolation is a kernel feature that mitigates the Meltdown
+    security vulnerability and hardens the kernel against attempts to bypass kernel
+    address space layout randomization (KASLR). Satisfies: SRG-OS-000433-GPOS-00193,
+    SRG-OS-000095-GPOS-00049'
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-5
+  title: Oracle Linux 9 must enable mitigations against processor-based vulnerabilities.
+  description: 'Kernel page-table isolation is a kernel feature that mitigates the
+    Meltdown security vulnerability and hardens the kernel against attempts to bypass
+    kernel address space layout randomization (KASLR). Satisfies: SRG-OS-000433-GPOS-00193,
+    SRG-OS-000095-GPOS-00049'
+  severity: Low
+- rule_id: OLSEC-6
+  rule_name: Oracle Linux 9 must enable auditing of processes that start prior to
+    the audit daemon.
+  rule_description: 'Without the capability to generate audit records, it would be
+    difficult to establish, correlate, and investigate the events relating to an incident
+    or identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Satisfies: SRG-OS-000037-GPOS-00015, SRG-OS-000042-GPOS-00020,
+    SRG-OS-000062-GPOS-00031, SRG-OS-000392-GPOS-00172, SRG-OS-000462-GPOS-00206,
+    SRG-OS-000471-GPOS-00215, SRG-OS-000473-GPOS-00218, SRG-OS-000254-GPOS-00095'
+  category: Security
+  subcategory: Auditing
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify that GRUB 2 is configured to enable auditing of processes
+      that start prior to the audit daemon with the following commands: Check that
+      the current GRUB 2 configuration enables auditing: $ sudo grubby --info=ALL
+      | grep args | grep -v ''audit=1'' If any output is returned, this is a finding.
+      Check that auditing is enabled by default to persist in kernel updates:  $ grep
+      audit /etc/default/grub GRUB_CMDLINE_LINUX="audit=1" If "audit" is not set to
+      "1", is missing, or is commented out, this is a finding.'
+    check_command: $ sudo grubby --info=ALL | grep args | grep -v 'audit=1'
+    expected_value: ''
+  remediation:
+    remediation_step: 'Enable auditing of processes that start prior to the audit
+      daemon with the following command: $ sudo grubby --update-kernel=ALL --args="audit=1"
+      Add or modify the following line in "/etc/default/grub" to ensure the configuration
+      survives kernel updates: GRUB_CMDLINE_LINUX="audit=1"'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-212055
+  - CCI-000130
+  - SRG-OS-000037-GPOS-00015
+  - STIG
+  - DISA
+  rationale: 'Without the capability to generate audit records, it would be difficult
+    to establish, correlate, and investigate the events relating to an incident or
+    identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Satisfies: SRG-OS-000037-GPOS-00015, SRG-OS-000042-GPOS-00020,
+    SRG-OS-000062-GPOS-00031, SRG-OS-000392-GPOS-00172, SRG-OS-000462-GPOS-00206,
+    SRG-OS-000471-GPOS-00215, SRG-OS-000473-GPOS-00218, SRG-OS-000254-GPOS-00095'
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-6
+  title: Oracle Linux 9 must enable auditing of processes that start prior to the
+    audit daemon.
+  description: 'Without the capability to generate audit records, it would be difficult
+    to establish, correlate, and investigate the events relating to an incident or
+    identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Satisfies: SRG-OS-000037-GPOS-00015, SRG-OS-000042-GPOS-00020,
+    SRG-OS-000062-GPOS-00031, SRG-OS-000392-GPOS-00172, SRG-OS-000462-GPOS-00206,
+    SRG-OS-000471-GPOS-00215, SRG-OS-000473-GPOS-00218, SRG-OS-000254-GPOS-00095'
+  severity: Low
+- rule_id: OLSEC-7
+  rule_name: Oracle Linux 9 must remove all software components after updated versions
+    have been installed.
+  rule_description: Previous versions of software components that are not removed
+    from the information system after updates have been installed may be exploited
+    by some adversaries.
+  category: Security
+  subcategory: Package Management
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify Oracle Linux 9 removes all software components after updated
+      versions have been installed with the following command: $ grep -i clean_requirements_on_remove
+      /etc/dnf/dnf.conf clean_requirements_on_remove=True If "clean_requirements_on_remove"
+      is not set to "True", this is a finding.'
+    check_command: $ grep -i clean_requirements_on_remove /etc/dnf/dnf.conf
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure Oracle Linux 9 to remove all software components
+      after updated versions have been installed. Edit the file /etc/dnf/dnf.conf
+      by adding or editing the following line:  clean_requirements_on_remove=True'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-214035
+  - CCI-002617
+  - SRG-OS-000437-GPOS-00194
+  - STIG
+  - DISA
+  rationale: Previous versions of software components that are not removed from the
+    information system after updates have been installed may be exploited by some
+    adversaries.
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-7
+  title: Oracle Linux 9 must remove all software components after updated versions
+    have been installed.
+  description: Previous versions of software components that are not removed from
+    the information system after updates have been installed may be exploited by some
+    adversaries.
+  severity: Low
+- rule_id: OLSEC-8
+  rule_name: Oracle Linux 9 must disable mounting of cramfs.
+  rule_description: It is detrimental for operating systems to provide, or install
+    by default, functionality exceeding requirements or mission objectives. These
+    unnecessary capabilities or services are often overlooked and therefore may remain
+    unsecured. They increase the risk to the platform by providing additional attack
+    vectors. Removing support for unneeded filesystem types reduces the local attack
+    surface of the server. Compressed ROM/RAM file system (or cramfs) is a read-only
+    file system designed for simplicity and space-efficiency. It is mainly used in
+    embedded and small-footprint systems.
+  category: Security
+  subcategory: File System
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify that Oracle Linux 9 disables the ability to load the cramfs
+      kernel module with the following command: $ grep -r cramfs /etc/modprobe.conf
+      /etc/modprobe.d/*  install cramfs /bin/false blacklist cramfs If the command
+      does not return any output or the lines are commented out, and use of cramfs
+      is not documented with the information system security officer (ISSO) as an
+      operational requirement, this is a finding.'
+    check_command: $ grep -r cramfs /etc/modprobe.conf /etc/modprobe.d/*
+    expected_value: ''
+  remediation:
+    remediation_step: 'To configure the system to prevent the cramfs kernel module
+      from being loaded, add the following lines to the file /etc/modprobe.d/blacklist.conf
+      (or create blacklist.conf if it does not exist): install cramfs /bin/false blacklist
+      cramfs'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-231195
+  - CCI-000381
+  - SRG-OS-000095-GPOS-00049
+  - STIG
+  - DISA
+  rationale: It is detrimental for operating systems to provide, or install by default,
+    functionality exceeding requirements or mission objectives. These unnecessary
+    capabilities or services are often overlooked and therefore may remain unsecured.
+    They increase the risk to the platform by providing additional attack vectors.
+    Removing support for unneeded filesystem types reduces the local attack surface
+    of the server. Compressed ROM/RAM file system (or cramfs) is a read-only file
+    system designed for simplicity and space-efficiency. It is mainly used in embedded
+    and small-footprint systems.
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-8
+  title: Oracle Linux 9 must disable mounting of cramfs.
+  description: It is detrimental for operating systems to provide, or install by default,
+    functionality exceeding requirements or mission objectives. These unnecessary
+    capabilities or services are often overlooked and therefore may remain unsecured.
+    They increase the risk to the platform by providing additional attack vectors.
+    Removing support for unneeded filesystem types reduces the local attack surface
+    of the server. Compressed ROM/RAM file system (or cramfs) is a read-only file
+    system designed for simplicity and space-efficiency. It is mainly used in embedded
+    and small-footprint systems.
+  severity: Low
+- rule_id: OLSEC-9
+  rule_name: Oracle Linux 9 must disable the chrony daemon from acting as a server.
+  rule_description: 'Minimizing the exposure of the server functionality of the chrony
+    daemon diminishes the attack surface. Satisfies: SRG-OS-000096-GPOS-00050, SRG-OS-000095-GPOS-00049'
+  category: Security
+  subcategory: System Configuration
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify Oracle Linux 9 disables the chrony daemon from acting
+      as a server with the following command: $ grep -w port /etc/chrony.conf port
+      0 If the "port" option is not set to "0", is commented out, or is missing, this
+      is a finding.'
+    check_command: $ grep -w port /etc/chrony.conf
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure Oracle Linux 9 to disable the chrony daemon from
+      acting as a server by adding/modifying the following line in the /etc/chrony.conf
+      file: port 0'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-252025
+  - CCI-000381
+  - SRG-OS-000096-GPOS-00050
+  - STIG
+  - DISA
+  rationale: 'Minimizing the exposure of the server functionality of the chrony daemon
+    diminishes the attack surface. Satisfies: SRG-OS-000096-GPOS-00050, SRG-OS-000095-GPOS-00049'
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-9
+  title: Oracle Linux 9 must disable the chrony daemon from acting as a server.
+  description: 'Minimizing the exposure of the server functionality of the chrony
+    daemon diminishes the attack surface. Satisfies: SRG-OS-000096-GPOS-00050, SRG-OS-000095-GPOS-00049'
+  severity: Low
+- rule_id: OLSEC-10
+  rule_name: Oracle Linux 9 must disable network management of the chrony daemon.
+  rule_description: 'Not exposing the management interface of the chrony daemon on
+    the network diminishes the attack space. Satisfies: SRG-OS-000096-GPOS-00050,
+    SRG-OS-000095-GPOS-00049'
+  category: Security
+  subcategory: Network
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify Oracle Linux 9 disables network management of the chrony
+      daemon with the following command: $ grep -w cmdport /etc/chrony.conf cmdport
+      0 If the "cmdport" option is not set to "0", is commented out, or is missing,
+      this is a finding.'
+    check_command: $ grep -w cmdport /etc/chrony.conf
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure Oracle Linux 9 to disable network management of the
+      chrony daemon by adding/modifying the following line in the /etc/chrony.conf
+      file: cmdport 0'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-252030
+  - CCI-000381
+  - SRG-OS-000096-GPOS-00050
+  - STIG
+  - DISA
+  rationale: 'Not exposing the management interface of the chrony daemon on the network
+    diminishes the attack space. Satisfies: SRG-OS-000096-GPOS-00050, SRG-OS-000095-GPOS-00049'
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-10
+  title: Oracle Linux 9 must disable network management of the chrony daemon.
+  description: 'Not exposing the management interface of the chrony daemon on the
+    network diminishes the attack space. Satisfies: SRG-OS-000096-GPOS-00050, SRG-OS-000095-GPOS-00049'
+  severity: Low
+- rule_id: OLSEC-11
+  rule_name: Oracle Linux 9 must enable Linux audit logging for the USBGuard daemon.
+  rule_description: 'Without the capability to generate audit records, it would be
+    difficult to establish, correlate, and investigate the events relating to an incident
+    or identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Audit records can be generated from various
+    components within the information system (e.g., module or policy filter). The
+    list of audited events is the set of events for which audits are to be generated.
+    This set of events is typically a subset of the list of all events for which the
+    system is capable of generating audit records. DOD has defined the list of events
+    for which Oracle Linux 9 will provide an audit record generation capability as
+    the following: 1) Successful and unsuccessful attempts to access, modify, or delete
+    privileges, security objects, security levels, or categories of information (e.g.,
+    classification levels); 2) Access actions, such as successful and unsuccessful
+    logon attempts, privileged activities or other system-level access, starting and
+    ending time for user access to the system, concurrent logons from different workstations,
+    successful and unsuccessful accesses to objects, all program initiations, and
+    all direct access to the information system; 3) All account creations, modifications,
+    disabling, and terminations; and  4) All kernel module load, unload, and restart
+    actions.'
+  category: Security
+  subcategory: Auditing
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'To verify that Linux Audit logging is enabled for the USBGuard
+      daemon with the following command: $ sudo grep AuditBackend /etc/usbguard/usbguard-daemon.conf  AuditBackend=LinuxAudit  If
+      "AuditBackend" is not set to "LinuxAudit", this is a finding. If the system
+      is virtual machine with no virtual or physical USB peripherals attached, this
+      is not a finding.'
+    check_command: $ sudo grep AuditBackend /etc/usbguard/usbguard-daemon.conf
+    expected_value: ''
+  remediation:
+    remediation_step: Configure Oracle Linux 9 USBGuard AuditBackend to use the audit
+      system. Add or edit the following line in /etc/usbguard/usbguard-daemon.conf  AuditBackend=LinuxAudit
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-291025
+  - CCI-000169
+  - SRG-OS-000062-GPOS-00031
+  - STIG
+  - DISA
+  rationale: 'Without the capability to generate audit records, it would be difficult
+    to establish, correlate, and investigate the events relating to an incident or
+    identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Audit records can be generated from various
+    components within the information system (e.g., module or policy filter). The
+    list of audited events is the set of events for which audits are to be generated.
+    This set of events is typically a subset of the list of all events for which the
+    system is capable of generating audit records. DOD has defined the list of events
+    for which Oracle Linux 9 will provide an audit record generation capability as
+    the following: 1) Successful and unsuccessful attempts to access, modify, or delete
+    privileges, security objects, security levels, or categories of information (e.g.,
+    classification levels); 2) Access actions, such as successful and unsuccessful
+    logon attempts, privileged activities or other system-level access, starting and
+    ending time for user access to the system, concurrent logons from different workstations,
+    successful and unsuccessful accesses to objects, all program initiations, and
+    all direct access to the information system; 3) All account creations, modifications,
+    disabling, and terminations; and  4) All kernel module load, unload, and restart
+    actions.'
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-11
+  title: Oracle Linux 9 must enable Linux audit logging for the USBGuard daemon.
+  description: 'Without the capability to generate audit records, it would be difficult
+    to establish, correlate, and investigate the events relating to an incident or
+    identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Audit records can be generated from various
+    components within the information system (e.g., module or policy filter). The
+    list of audited events is the set of events for which audits are to be generated.
+    This set of events is typically a subset of the list of all events for which the
+    system is capable of generating audit records. DOD has defined the list of events
+    for which Oracle Linux 9 will provide an audit record generation capability as
+    the following: 1) Successful and unsuccessful attempts to access, modify, or delete
+    privileges, security objects, security levels, or categories of information (e.g.,
+    classification levels); 2) Access actions, such as successful and unsuccessful
+    logon attempts, privileged activities or other system-level access, starting and
+    ending time for user access to the system, concurrent logons from different workstations,
+    successful and unsuccessful accesses to objects, all program initiations, and
+    all direct access to the information system; 3) All account creations, modifications,
+    disabling, and terminations; and  4) All kernel module load, unload, and restart
+    actions.'
+  severity: Low
+- rule_id: OLSEC-12
+  rule_name: Oracle Linux 9 must limit the number of concurrent sessions to ten for
+    all accounts and/or account types.
+  rule_description: Operating system management includes the ability to control the
+    number of users and user sessions that utilize an operating system. Limiting the
+    number of allowed users and sessions per user is helpful in reducing the risks
+    related to denial-of-service (DoS) attacks. This requirement addresses concurrent
+    sessions for information system accounts and does not address concurrent sessions
+    by single users via multiple system accounts. The maximum number of concurrent
+    sessions must be defined based on mission needs and the operational environment
+    for each system.
+  category: Security
+  subcategory: System Configuration
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify Oracle Linux 9 limits the number of concurrent sessions
+      to "10" for all accounts and/or account types with the following command: $
+      grep -r -s maxlogins /etc/security/limits.conf /etc/security/limits.d/*.conf
+      /etc/security/limits.conf:* hard maxlogins 10 This can be set as a global domain
+      (with the * wildcard) but may be set differently for multiple domains. If the
+      "maxlogins" item is missing, commented out, or the value is set greater than
+      "10" and is not documented with the information system security officer (ISSO)
+      as an operational requirement for all domains that have the "maxlogins" item
+      assigned, this is a finding.'
+    check_command: $ grep -r -s maxlogins /etc/security/limits.conf /etc/security/limits.d/*.conf
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure Oracle Linux 9 to limit the number of concurrent
+      sessions to "10" for all accounts and/or account types. Add the following line
+      to the top of the /etc/security/limits.conf or in a ".conf" file defined in
+      /etc/security/limits.d/: * hard maxlogins 10'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-412040
+  - CCI-000054
+  - SRG-OS-000027-GPOS-00008
+  - STIG
+  - DISA
+  rationale: Operating system management includes the ability to control the number
+    of users and user sessions that utilize an operating system. Limiting the number
+    of allowed users and sessions per user is helpful in reducing the risks related
+    to denial-of-service (DoS) attacks. This requirement addresses concurrent sessions
+    for information system accounts and does not address concurrent sessions by single
+    users via multiple system accounts. The maximum number of concurrent sessions
+    must be defined based on mission needs and the operational environment for each
+    system.
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-12
+  title: Oracle Linux 9 must limit the number of concurrent sessions to ten for all
+    accounts and/or account types.
+  description: Operating system management includes the ability to control the number
+    of users and user sessions that utilize an operating system. Limiting the number
+    of allowed users and sessions per user is helpful in reducing the risks related
+    to denial-of-service (DoS) attacks. This requirement addresses concurrent sessions
+    for information system accounts and does not address concurrent sessions by single
+    users via multiple system accounts. The maximum number of concurrent sessions
+    must be defined based on mission needs and the operational environment for each
+    system.
+  severity: Low
+- rule_id: OLSEC-13
+  rule_name: Oracle Linux 9 must display the date and time of the last successful
+    account logon upon logon.
+  rule_description: Users need to be aware of activity that occurs regarding their
+    account. Providing users with information regarding the number of unsuccessful
+    attempts that were made to login to their account allows the user to determine
+    if any unauthorized activity has occurred and gives them an opportunity to notify
+    administrators.
+  category: Security
+  subcategory: Logging
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify users are provided with feedback on when account accesses
+      last occurred with the following command: $ sudo grep pam_lastlog /etc/pam.d/postlogin
+      session required pam_lastlog.so showfailed If "pam_lastlog" is missing from
+      "/etc/pam.d/postlogin" file, or the silent option is present, this is a finding.'
+    check_command: $ sudo grep pam_lastlog /etc/pam.d/postlogin
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure Oracle Linux 9 to provide users with feedback on
+      when account accesses last occurred by setting the required configuration options
+      in "/etc/pam.d/postlogin".  Add the following line to the top of "/etc/pam.d/postlogin":
+      session required pam_lastlog.so showfailed'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-412075
+  - CCI-000366
+  - SRG-OS-000480-GPOS-00227
+  - STIG
+  - DISA
+  rationale: Users need to be aware of activity that occurs regarding their account.
+    Providing users with information regarding the number of unsuccessful attempts
+    that were made to login to their account allows the user to determine if any unauthorized
+    activity has occurred and gives them an opportunity to notify administrators.
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-13
+  title: Oracle Linux 9 must display the date and time of the last successful account
+    logon upon logon.
+  description: Users need to be aware of activity that occurs regarding their account.
+    Providing users with information regarding the number of unsuccessful attempts
+    that were made to login to their account allows the user to determine if any unauthorized
+    activity has occurred and gives them an opportunity to notify administrators.
+  severity: Low
+- rule_id: OLSEC-14
+  rule_name: Oracle Linux 9 must be configured so that the file integrity tool verifies
+    Access Control Lists (ACLs).
+  rule_description: Oracle Linux 9 installation media ships with an optional file
+    integrity tool called Advanced Intrusion Detection Environment (AIDE). AIDE is
+    highly configurable at install time. This requirement assumes the "aide.conf"
+    file is under the "/etc" directory. ACLs can provide permissions beyond those
+    permitted through the file mode and must be verified by the file integrity tools.
+  category: Security
+  subcategory: File System
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify that AIDE is verifying ACLs with the following command:
+      $ sudo grep acl /etc/aide.conf All= p+i+n+u+g+s+m+S+sha512+acl+xattrs+selinux
+      If the "acl" rule is not being used on all uncommented selection lines in the
+      "/etc/aide.conf" file, or ACLs are not being checked by another file integrity
+      tool, this is a finding.'
+    check_command: $ sudo grep acl /etc/aide.conf
+    expected_value: ''
+  remediation:
+    remediation_step: Configure the file integrity tool to check file and directory
+      ACLs.  If AIDE is installed, ensure the "acl" rule is present on all uncommented
+      file and directory selection lists.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-651030
+  - CCI-000366
+  - SRG-OS-000480-GPOS-00227
+  - STIG
+  - DISA
+  rationale: Oracle Linux 9 installation media ships with an optional file integrity
+    tool called Advanced Intrusion Detection Environment (AIDE). AIDE is highly configurable
+    at install time. This requirement assumes the "aide.conf" file is under the "/etc"
+    directory. ACLs can provide permissions beyond those permitted through the file
+    mode and must be verified by the file integrity tools.
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-14
+  title: Oracle Linux 9 must be configured so that the file integrity tool verifies
+    Access Control Lists (ACLs).
+  description: Oracle Linux 9 installation media ships with an optional file integrity
+    tool called Advanced Intrusion Detection Environment (AIDE). AIDE is highly configurable
+    at install time. This requirement assumes the "aide.conf" file is under the "/etc"
+    directory. ACLs can provide permissions beyond those permitted through the file
+    mode and must be verified by the file integrity tools.
+  severity: Low
+- rule_id: OLSEC-15
+  rule_name: Oracle Linux 9 must be configured so that the file integrity tool verifies
+    extended attributes.
+  rule_description: Oracle Linux 9 installation media ships with an optional file
+    integrity tool called Advanced Intrusion Detection Environment (AIDE). AIDE is
+    highly configurable at install time. This requirement assumes the "aide.conf"
+    file is under the "/etc" directory. Extended attributes in file systems are used
+    to contain arbitrary data and file metadata with security implications.
+  category: Security
+  subcategory: File System
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify that AIDE is configured to verify extended attributes
+      with the following command: $ sudo grep xattrs /etc/aide.conf All= p+i+n+u+g+s+m+S+sha512+acl+xattrs+selinux
+      If the "xattrs" rule is not being used on all uncommented selection lines in
+      the "/etc/aide.conf" file, or extended attributes are not being checked by another
+      file integrity tool, this is a finding.'
+    check_command: $ sudo grep xattrs /etc/aide.conf
+    expected_value: ''
+  remediation:
+    remediation_step: Configure the file integrity tool to check file and directory
+      extended attributes.  If AIDE is installed, ensure the "xattrs" rule is present
+      on all uncommented file and directory selection lists.
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-651035
+  - CCI-000366
+  - SRG-OS-000480-GPOS-00227
+  - STIG
+  - DISA
+  rationale: Oracle Linux 9 installation media ships with an optional file integrity
+    tool called Advanced Intrusion Detection Environment (AIDE). AIDE is highly configurable
+    at install time. This requirement assumes the "aide.conf" file is under the "/etc"
+    directory. Extended attributes in file systems are used to contain arbitrary data
+    and file metadata with security implications.
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-15
+  title: Oracle Linux 9 must be configured so that the file integrity tool verifies
+    extended attributes.
+  description: Oracle Linux 9 installation media ships with an optional file integrity
+    tool called Advanced Intrusion Detection Environment (AIDE). AIDE is highly configurable
+    at install time. This requirement assumes the "aide.conf" file is under the "/etc"
+    directory. Extended attributes in file systems are used to contain arbitrary data
+    and file metadata with security implications.
+  severity: Low
+- rule_id: OLSEC-16
+  rule_name: Oracle Linux 9 must allocate an audit_backlog_limit of sufficient size
+    to capture processes that start prior to the audit daemon.
+  rule_description: 'Without the capability to generate audit records, it would be
+    difficult to establish, correlate, and investigate the events relating to an incident
+    or identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Audit records can be generated from various
+    components within the information system (e.g., module or policy filter). Allocating
+    an audit_backlog_limit of sufficient size is critical in maintaining a stable
+    boot process. With an insufficient limit allocated, the system is susceptible
+    to boot failures and crashes. Satisfies: SRG-OS-000254-GPOS-00095, SRG-OS-000341-GPOS-00132'
+  category: Security
+  subcategory: Auditing
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: Configuration
+    detection_step: 'Verify Oracle Linux 9 allocates a sufficient audit_backlog_limit
+      to capture processes that start prior to the audit daemon with the following
+      command: $ sudo grubby --info=ALL | grep args | grep ''audit_backlog_limit''
+      If the command returns any outputs, and audit_backlog_limit is less than "8192",
+      this is a finding.'
+    check_command: $ sudo grubby --info=ALL | grep args | grep 'audit_backlog_limit'
+    expected_value: ''
+  remediation:
+    remediation_step: 'Configure Oracle Linux 9 to allocate sufficient audit_backlog_limit
+      to capture processes that start prior to the audit daemon with the following
+      command: $ sudo grubby --update-kernel=ALL --args=audit_backlog_limit=8192'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Low
+    estimated_time: 5 minutes
+  tags:
+  - Oracle Linux-09-653120
+  - CCI-001464
+  - SRG-OS-000254-GPOS-00095
+  - STIG
+  - DISA
+  rationale: 'Without the capability to generate audit records, it would be difficult
+    to establish, correlate, and investigate the events relating to an incident or
+    identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Audit records can be generated from various
+    components within the information system (e.g., module or policy filter). Allocating
+    an audit_backlog_limit of sufficient size is critical in maintaining a stable
+    boot process. With an insufficient limit allocated, the system is susceptible
+    to boot failures and crashes. Satisfies: SRG-OS-000254-GPOS-00095, SRG-OS-000341-GPOS-00132'
+  impact: Low severity security finding
+  false_positive_risk: Low
+  id: OLSEC-16
+  title: Oracle Linux 9 must allocate an audit_backlog_limit of sufficient size to
+    capture processes that start prior to the audit daemon.
+  description: 'Without the capability to generate audit records, it would be difficult
+    to establish, correlate, and investigate the events relating to an incident or
+    identify those responsible for one. If auditing is enabled late in the startup
+    process, the actions of some startup processes may not be audited. Some audit
+    systems also maintain state information only available if auditing is enabled
+    before a given process is created. Audit records can be generated from various
+    components within the information system (e.g., module or policy filter). Allocating
+    an audit_backlog_limit of sufficient size is critical in maintaining a stable
+    boot process. With an insufficient limit allocated, the system is susceptible
+    to boot failures and crashes. Satisfies: SRG-OS-000254-GPOS-00095, SRG-OS-000341-GPOS-00132'
+  severity: Low

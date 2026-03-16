@@ -1,0 +1,521 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: DISA STIG for Oracle Linux 9 - CAT I
+  version: '2.7'
+  description: Security Technical Implementation Guide for Oracle Linux 9 - CAT I
+    (High Severity) Rules
+  platform: Oracle Linux 9
+  benchmark: DISA STIG Oracle Linux 9 V2R7
+  author: DISA
+  created: '2025-05-14T00:00:00Z'
+  modified: '2025-05-14T00:00:00Z'
+  compatible_platforms:
+  - Oracle Linux 9.0
+  - Oracle Linux 9.1
+  - Oracle Linux 9.2
+  - Oracle Linux 9.3
+  - Oracle Linux 9.4
+  - Oracle Linux 9.5
+compliance_info:
+  framework: STIG
+  version: '2.7'
+  category: CAT I
+profile:
+  name: STIG CAT I
+  description: DISA STIG Category I - High Severity Controls
+  level: 1
+rules:
+- rule_id: STIG-211010
+  legacy_ids:
+  - V-257777
+  - SV-257777r991589_rule
+  rule_name: Oracle Linux 9 must be a vendor-supported release
+  rule_description: An operating system release is considered 'supported' if the vendor
+    continues to provide security patches for the product. With an unsupported release,
+    it will not be possible to resolve security issues discovered in the system software.
+  category: System Updates
+  subcategory: Vendor Support
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify that the version of Oracle Linux 9 is vendor supported
+    check_command: cat /etc/oracle-release
+    expected_value: Oracle Linux release 9.x
+  remediation:
+    remediation_step: Upgrade to a supported version of Oracle Linux 9.
+    rollback_supported: false
+    reboot_required: true
+    service_impact: System upgrade required
+    estimated_time: 30 minutes
+  tags:
+  - system
+  - updates
+  - vendor-support
+  - critical
+  rationale: Running an unsupported OS version leaves the system vulnerable to known
+    security issues
+  impact: Critical - No security patches available
+  false_positive_risk: None
+  id: STIG-211010
+  title: Oracle Linux 9 must be a vendor-supported release
+  description: An operating system release is considered 'supported' if the vendor
+    continues to provide security patches for the product. With an unsupported release,
+    it will not be possible to resolve security issues discovered in the system software.
+  severity: High
+- rule_id: STIG-212005
+  legacy_ids:
+  - V-257784
+  - SV-257784r958478_rule
+  rule_name: The systemd Ctrl-Alt-Delete burst key sequence in Oracle Linux 9 must
+    be disabled
+  rule_description: A locally logged-on user who presses Ctrl-Alt-Delete when at the
+    console can reboot the system. If accidentally pressed, as could happen in the
+    case of mixed OS environment, this can create the risk of short-term loss of availability
+    of systems due to unintentional reboot.
+  category: System Configuration
+  subcategory: Console Security
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify the Ctrl-Alt-Delete burst key sequence is disabled in systemd
+    check_command: grep -r ctrl-alt-del-burst /etc/systemd/system.conf /etc/systemd/system/*.wants/
+      2>/dev/null
+    expected_value: ctrl-alt-del-burst action should be disabled
+  remediation:
+    remediation_step: 'Create or edit /etc/systemd/system/ctrl-alt-del.target to disable:
+      key sequence: ln -sf /dev/null /etc/systemd/system/ctrl-alt-del.target'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - console
+  - systemd
+  - security
+  - availability
+  - critical
+  rationale: Preventing accidental or intentional system reboots via Ctrl-Alt-Delete
+    improves system availability.
+  impact: Medium - Could prevent accidental reboots in multi-OS environments
+  false_positive_risk: None
+  id: STIG-212005
+  title: The systemd Ctrl-Alt-Delete burst key sequence in Oracle Linux 9 must be
+    disabled
+  description: A locally logged-on user who presses Ctrl-Alt-Delete when at the console
+    can reboot the system. If accidentally pressed, as could happen in the case of
+    mixed OS environment, this can create the risk of short-term loss of availability
+    of systems due to unintentional reboot.
+  severity: High
+- rule_id: STIG-212010
+  legacy_ids:
+  - V-257785
+  - SV-257785r958478_rule
+  rule_name: The x86 Ctrl-Alt-Delete key sequence must be disabled on Oracle Linux
+    9
+  rule_description: A locally logged-on user who presses Ctrl-Alt-Delete when at the
+    console can reboot the system. If accidentally pressed, this can create the risk
+    of short-term loss of availability of systems due to unintentional reboot.
+  category: System Configuration
+  subcategory: Console Security
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify Ctrl-Alt-Delete in disabled in systemd configuration
+    check_command: systemctl status ctrl-alt-del.target
+    expected_value: Unit ctrl-alt-del.target could not be found or is masked
+  remediation:
+    remediation_step: 'Disable Ctrl-Alt-Delete: systemctl mask ctrl-alt-del.target'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 1 minute
+  tags:
+  - console
+  - systemd
+  - security
+  - availability
+  - critical
+  rationale: Disabling Ctrl-Alt-Delete prevents accidental or malicious system reboots.
+  impact: Medium - Prevents unauthorized reboots
+  false_positive_risk: None
+  id: STIG-212010
+  title: The x86 Ctrl-Alt-Delete key sequence must be disabled on Oracle Linux 9
+  description: A locally logged-on user who presses Ctrl-Alt-Delete when at the console
+    can reboot the system. If accidentally pressed, this can create the risk of short-term
+    loss of availability of systems due to unintentional reboot.
+  severity: High
+- rule_id: STIG-212020
+  legacy_ids:
+  - V-257789
+  - SV-257789r958478_rule
+  rule_name: Oracle Linux 9 must require a unique superusers name upon booting into
+    single-user and maintenance modes
+  rule_description: Having a nondefault grub superuser username makes password-guessing
+    attacks less effective.
+  category: Boot Configuration
+  subcategory: GRUB Security
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify that GRUB superuser is configured with a non-default username
+    check_command: grep -E '^GRUB2_SUPERUSER=' /etc/grub.d/01_users 2>/dev/null ||
+      grep 'superusers' /boot/grub2/grub.cfg
+    expected_value: Non-default superuser name configured
+  remediation:
+    remediation_step: Configure a non-default GRUB superuser in /etc/grub.d/01_users
+      and regenerate grub.cfg
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None until reboot
+    estimated_time: 5 minutes
+  tags:
+  - boot
+  - grub
+  - authentication
+  - security
+  - critical
+  rationale: Default usernames make brute-force attacks easier.
+  impact: High - Protects boot loader from unauthorized access
+  false_positive_risk: Low
+  id: STIG-212020
+  title: Oracle Linux 9 must require a unique superusers name upon booting into single-user
+    and maintenance modes
+  description: Having a nondefault grub superuser username makes password-guessing
+    attacks less effective.
+  severity: High
+- rule_id: STIG-212025
+  legacy_ids:
+  - V-257787
+  - SV-257787r958478_rule
+  rule_name: Oracle Linux 9 must require a boot loader superuser password
+  rule_description: To mitigate the risk of unauthorized access to sensitive information
+    by entities that have been issued certificates by DOD-approved PKIs, all DOD systems
+    must be properly configured to enforce strict authentication requirements.
+  category: Boot Configuration
+  subcategory: GRUB Security
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify that GRUB has a superuser password configured
+    check_command: grep -E 'password_pbkdf2|password' /boot/grub2/grub.cfg
+    expected_value: Password entry should be present
+  remediation:
+    remediation_step: Set a GRUB superuser password using grub2-setpassword and regenerate
+      grub.cfg
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None until reboot
+    estimated_time: 5 minutes
+  tags:
+  - boot
+  - grub
+  - authentication
+  - password
+  - critical
+  rationale: Boot loader password prevents unauthorized modification of boot parameters.
+  impact: Critical - Prevents boot-level attacks
+  false_positive_risk: None
+  id: STIG-212025
+  title: Oracle Linux 9 must require a boot loader superuser password
+  description: To mitigate the risk of unauthorized access to sensitive information
+    by entities that have been issued certificates by DOD-approved PKIs, all DOD systems
+    must be properly configured to enforce strict authentication requirements.
+  severity: High
+- rule_id: STIG-215005
+  legacy_ids:
+  - V-257820
+  - SV-257820r958478_rule
+  rule_name: Oracle Linux 9 must check the GPG signature of software packages originating
+    from external software repositories before installation
+  rule_description: Changes to any software components can have significant effects
+    on the overall security of the operating system. This requirement ensures the
+    software has not been tampered with and has been signed by a trusted vendor.
+  category: Package Management
+  subcategory: GPG Verification
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify GPG signature checking is enabled for all repositories
+    check_command: grep -r gpgcheck /etc/yum.repos.d/*.repo | grep -v 'gpgcheck=1'
+    expected_value: No output (all repos should have gpgcheck=1)
+  remediation:
+    remediation_step: Set gpgcheck=1 in all repository files under /etc/yum.repos.d/
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 2 minutes
+  tags:
+  - packages
+  - gpg
+  - security
+  - critical
+  rationale: GPG signatures ensure package authenticity and integrity.
+  impact: Critical - Prevents installation of tampered packages
+  false_positive_risk: None
+  id: STIG-215005
+  title: Oracle Linux 9 must check the GPG signature of software packages originating
+    from external software repositories before installation
+  description: Changes to any software components can have significant effects on
+    the overall security of the operating system. This requirement ensures the software
+    has not been tampered with and has been signed by a trusted vendor.
+  severity: High
+- rule_id: STIG-254980
+  legacy_ids:
+  - V-257984
+  - SV-257984r958478_rule
+  rule_name: Oracle Linux 9 SSHD must not allow blank passwords
+  rule_description: If an account has an empty password, anyone could log on and run
+    commands with the privileges of that account. Accounts with empty passwords should
+    never be used in production environments.
+  category: SSH Configuration
+  subcategory: Authentication
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SSH does not permit blank passwords
+    check_command: grep -E '^PermitEmptyPasswords' /etc/ssh/sshd_config
+    expected_value: PermitEmptyPasswords no
+  remediation:
+    remediation_step: 'Add or modify in /etc/ssh/sshd_config: PermitEmptyPasswords
+      no'
+    rollback_supported: true
+    reboot_required: false
+    service_impact: SSH service restart required
+    estimated_time: 1 minute
+  tags:
+  - ssh
+  - authentication
+  - passwords
+  - critical
+  rationale: Blank passwords provide no authentication and allow unauthorized access.
+  impact: Critical - Prevents unauthorized access
+  false_positive_risk: None
+  id: STIG-254980
+  title: Oracle Linux 9 SSHD must not allow blank passwords
+  description: If an account has an empty password, anyone could log on and run commands
+    with the privileges of that account. Accounts with empty passwords should never
+    be used in production environments.
+  severity: High
+- rule_id: STIG-255010
+  legacy_ids:
+  - V-258018
+  - SV-258018r958478_rule
+  rule_name: Oracle Linux 9 must not allow unattended or automatic logon via the graphical
+    user interface
+  rule_description: Failure to restrict system access to authenticated users negatively
+    impacts operating system security.
+  category: Authentication
+  subcategory: GUI Login
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify automatic login is disabled
+    check_command: grep -E '^AutomaticLoginEnable' /etc/gdm/custom.conf 2>/dev/null
+      || echo 'Not configured'
+    expected_value: AutomaticLoginEnable=false or not present
+  remediation:
+    remediation_step: In /etc/gdm/custom.conf, set AutomaticLoginEnable=false under
+      [daemon]
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None until next GUI login
+    estimated_time: 1 minute
+  tags:
+  - authentication
+  - gui
+  - gdm
+  - login
+  - critical
+  rationale: Automatic login bypasses authentication requirements.
+  impact: High - Prevents unauthorized physical access
+  false_positive_risk: None
+  id: STIG-255010
+  title: Oracle Linux 9 must not allow unattended or automatic logon via the graphical
+    user interface
+  description: Failure to restrict system access to authenticated users negatively
+    impacts operating system security.
+  severity: High
+- rule_id: STIG-257500
+  legacy_ids:
+  - V-258059
+  - SV-258059r958478_rule
+  rule_name: The root account must be the only account having unrestricted access
+    to Oracle Linux 9 system
+  rule_description: An account has root authority if it has a user identifier (UID)
+    of 0. Multiple accounts with a UID of 0 afford more opportunity for potential
+    intruders to guess a password.
+  category: User Management
+  subcategory: Root Access
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify only root has UID 0
+    check_command: 'awk -F: ''($3 == 0) {print $1}'' /etc/passwd'
+    expected_value: root
+  remediation:
+    remediation_step: Change the UID of any non-root account with UID 0 or remove
+      the account
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Affected users will lose root access
+    estimated_time: 5 minutes
+  tags:
+  - users
+  - root
+  - uid
+  - critical
+  rationale: Multiple UID 0 accounts increase attack surface and audit complexity.
+  impact: Critical - Ensures single point of root access control
+  false_positive_risk: None
+  id: STIG-257500
+  title: The root account must be the only account having unrestricted access to Oracle
+    Linux 9 system
+  description: An account has root authority if it has a user identifier (UID) of
+    0. Multiple accounts with a UID of 0 afford more opportunity for potential intruders
+    to guess a password.
+  severity: High
+- rule_id: STIG-257510
+  legacy_ids:
+  - V-258078
+  - SV-258078r958478_rule
+  rule_name: Oracle Linux 9 must use a Linux Security Module configured to enforce
+    limits on system services
+  rule_description: Without verification of the security functions, security functions
+    may not operate correctly and the failure may go unnoticed. Security function
+    is defined as a technology that detects and prevents intrusions within the system.
+  category: Security Modules
+  subcategory: SELinux
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SELinux is enabled and enforcing
+    check_command: getenforce
+    expected_value: Enforcing
+  remediation:
+    remediation_step: 'Enable SELinux in enforcing mode: Edit /etc/selinux/config
+      and set SELINUX=enforcing'
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May require policy adjustments for applications
+    estimated_time: 10 minutes
+  tags:
+  - selinux
+  - security
+  - mac
+  - critical
+  rationale: SELinux provides mandatory access control to limit service capabilities.
+  impact: Critical - Core security control
+  false_positive_risk: Low
+  id: STIG-257510
+  title: Oracle Linux 9 must use a Linux Security Module configured to enforce limits
+    on system services
+  description: Without verification of the security functions, security functions
+    may not operate correctly and the failure may go unnoticed. Security function
+    is defined as a technology that detects and prevents intrusions within the system.
+  severity: High
+- rule_id: STIG-257520
+  legacy_ids:
+  - V-258094
+  - SV-258094r958478_rule
+  rule_name: Oracle Linux 9 must not allow blank or null passwords
+  rule_description: If an account has an empty password, anyone could log in and run
+    commands with the privileges of that account.
+  category: Authentication
+  subcategory: Password Policy
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify system does not allow null passwords
+    check_command: 'awk -F: ''($2 == "") {print $1}'' /etc/shadow'
+    expected_value: No output (no accounts with empty passwords)
+  remediation:
+    remediation_step: 'Set a password for any account with an empty password field:
+      passwd <username>'
+    rollback_supported: false
+    reboot_required: false
+    service_impact: Users will need to use new passwords
+    estimated_time: 5 minutes
+  tags:
+  - authentication
+  - passwords
+  - security
+  - critical
+  rationale: Empty passwords provide no authentication protection.
+  impact: Critical - Prevents unauthorized access
+  false_positive_risk: None
+  id: STIG-257520
+  title: Oracle Linux 9 must not allow blank or null passwords
+  description: If an account has an empty password, anyone could log in and run commands
+    with the privileges of that account.
+  severity: High
+- rule_id: STIG-257530
+  legacy_ids:
+  - V-258230
+  - SV-258230r958478_rule
+  rule_name: Oracle Linux 9 must enable FIPS mode
+  rule_description: Use of weak or untested encryption algorithms undermines the purposes
+    of utilizing encryption to protect data.
+  category: Cryptography
+  subcategory: FIPS
+  testing_status: verified
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify FIPS mode is enabled
+    check_command: fips-mode-setup --check
+    expected_value: FIPS mode is enabled
+  remediation:
+    remediation_step: 'Enable FIPS mode: fips-mode-setup --enable'
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Cryptographic libraries will use FIPS-validated modules
+    estimated_time: 15 minutes
+  tags:
+  - cryptography
+  - fips
+  - compliance
+  - critical
+  rationale: FIPS mode ensures only approved cryptographic algorithms are used.
+  impact: Critical - Required for compliance in many environments
+  false_positive_risk: None
+  id: STIG-257530
+  title: Oracle Linux 9 must enable FIPS mode
+  description: Use of weak or untested encryption algorithms undermines the purposes
+    of utilizing encryption to protect data.
+  severity: High
