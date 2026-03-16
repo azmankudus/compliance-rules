@@ -1,0 +1,845 @@
+schema_version: 1.0.0
+metadata:
+  name: OpenLiteSpeed Security Hardening Rules
+  version: '1.0.0'
+  description: Security hardening rules for OpenLiteSpeed web server based on official
+    OpenLiteSpeed documentation and best practices
+  platform: OpenLiteSpeed
+  benchmark: OpenLiteSpeed Official Documentation
+  author: Compliance Rules Team
+  source: https://openlitespeed.org/kb/
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - OpenLiteSpeed 1.x
+  references:
+  - type: OpenLiteSpeed Documentation
+    reference: https://openlitespeed.org/kb/
+  - type: OpenLiteSpeed Security
+    reference: https://openlitespeed.org/kb/category/security/
+compliance_info:
+  framework: NIST
+  version: '1.0.0'
+  profile: security-hardening
+  source:
+    framework: openlitespeed
+    benchmark: OpenLiteSpeed Official Documentation
+    version: latest
+    profile: security-hardening
+    notes: Rules derived from official OpenLiteSpeed documentation and best practices.
+      No dedicated CIS or STIG exists for OpenLiteSpeed.
+rules:
+- rule_id: OLS-ADMIN-001
+  legacy_ids: []
+  rule_name: Secure WebAdmin console
+  rule_description: |
+    Secure the OpenLiteSpeed WebAdmin console with access control and authentication.
+  category: Configuration
+  subcategory: Admin Console
+  testing_status: untested
+  assessment:
+    severity: Critical
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check WebAdmin configuration:
+      
+      cat /usr/local/lsws/conf/httpd_config.xml | grep -A20 "adminRoot"
+      
+      Verify:
+      1. WebAdmin console is not publicly accessible
+      2. IP-based access control is configured
+      3. Default port (7080) is changed or restricted
+      4. SSL is enabled
+      
+      If WebAdmin is publicly accessible, this is a critical finding.
+    check_command: 'grep -E "adminRoot|secure" /usr/local/lsws/conf/httpd_config.xml
+      || echo "WebAdmin config not found"'
+    expected_value: WebAdmin secured with access control
+  remediation:
+    remediation_step: |
+      Secure WebAdmin via WebAdmin Console:
+      
+      1. Navigate to Server > Security > Access Control
+      2. Add trusted IPs to Allowed List
+      3. Add 0.0.0.0/0 to Denied List
+      
+      Or edit configuration:
+      
+      vi /usr/local/lsws/conf/httpd_config.xml
+      
+      Change admin port from default 7080.
+      
+      Ensure SSL is configured for WebAdmin listener.
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Admin access restricted to trusted IPs
+    estimated_time: 5 minutes
+  context:
+    rationale: The WebAdmin console provides full server control and must be secured
+      from unauthorized access.
+    impact: Admin only accessible from trusted IPs
+    false_positive_risk: None
+  tags:
+  - openlitespeed
+  - admin
+  - console
+  - critical
+
+- rule_id: OLS-TLS-001
+  legacy_ids: []
+  rule_name: Configure TLS for all listeners
+  rule_description: |
+    Configure TLS/SSL for all HTTPS listeners with strong cipher configuration.
+  category: Cryptography
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check listener SSL configuration:
+      
+      grep -A20 "listener" /usr/local/lsws/conf/httpd_config.xml | grep -E "ssl|cert"
+      
+      Or check via WebAdmin Console > Listeners > SSL
+      
+      Verify:
+      1. TLS is configured for HTTPS listeners
+      2. Valid certificates are installed
+      3. Strong cipher suites are used
+      
+      If TLS is not configured for HTTPS, this is a finding.
+    check_command: 'grep -E "ssl|cert|keyFile" /usr/local/lsws/conf/httpd_config.xml
+      || echo "TLS not configured"'
+    expected_value: TLS configured with valid certificates
+  remediation:
+    remediation_step: |
+      Configure TLS via WebAdmin Console:
+      
+      1. Navigate to Listeners > HTTPS > SSL
+      2. Set Private Key File: /path/to/privkey.pem
+      3. Set Certificate File: /path/to/fullchain.pem
+      4. Set Chained Certificate: Yes
+      5. Configure strong ciphers at Server > Security > Cipher Configuration
+      
+      For Let's Encrypt:
+      
+      certbot certonly --webroot -w /usr/local/lsws/DEFAULT/html/ -d yourdomain.com
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires server restart
+    estimated_time: 5 minutes
+  context:
+    rationale: TLS encryption protects data in transit and is required for secure
+      communications.
+    impact: Services without valid certificates will fail
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: OLS-HEADER-001
+  legacy_ids: []
+  rule_name: Configure security headers
+  rule_description: |
+    Configure security-related HTTP headers to protect against common web vulnerabilities.
+  category: Application Security
+  subcategory: Security Headers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check security headers configuration:
+      
+      grep -E "Strict-Transport-Security|X-Frame-Options|Content-Security-Policy" /usr/local/lsws/conf/httpd_config.xml
+      
+      Or check .htaccess for header rules
+      
+      Verify:
+      1. HSTS header is set
+      2. X-Frame-Options is configured
+      3. X-Content-Type-Options is set
+      
+      If security headers are not configured, this is a finding.
+    check_command: 'grep -rE "Strict-Transport|X-Frame-Options|Content-Security|Header
+      set" /usr/local/lsws/conf/ 2>/dev/null || echo "Security headers not configured"'
+    expected_value: Security headers configured
+  remediation:
+    remediation_step: |
+      Configure security headers via WebAdmin Console:
+      
+      1. Navigate to Virtual Hosts > [VHost] > Context > Add > Static
+      2. Set URI: /
+      3. Add Extra Headers:
+      
+      Strict-Transport-Security: max-age=31536000; includeSubDomains
+      X-Frame-Options: SAMEORIGIN
+      X-Content-Type-Options: nosniff
+      X-XSS-Protection: 1; mode=block
+      Referrer-Policy: strict-origin-when-cross-origin
+      Permissions-Policy: geolocation=(self "")
+      
+      Or via .htaccess:
+      
+      <IfModule mod_headers.c>
+          Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+          Header set X-Frame-Options "SAMEORIGIN"
+          Header set X-Content-Type-Options "nosniff"
+      </IfModule>
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Response headers will include security policies
+    estimated_time: 5 minutes
+  context:
+    rationale: Security headers protect against XSS, clickjacking, and other common
+      web vulnerabilities.
+    impact: May affect application behavior if headers conflict
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - headers
+  - security
+  - application-security
+
+- rule_id: OLS-WAF-001
+  legacy_ids: []
+  rule_name: Enable Web Application Firewall (WAF)
+  rule_description: |
+    Enable and configure Web Application Firewall (ModSecurity) to protect against web attacks.
+  category: Application Security
+  subcategory: WAF
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check WAF configuration:
+      
+      grep -E "WAF|modsec|ModSecurity" /usr/local/lsws/conf/httpd_config.xml
+      
+      Or check via WebAdmin Console > Server > Security > Web Application Firewall
+      
+      Verify:
+      1. WAF is enabled
+      2. Rule sets are configured
+      3. Request body scanning is enabled
+      
+      If WAF is not enabled, this is a finding.
+    check_command: 'grep -E "WAF|enableWAF|modsec" /usr/local/lsws/conf/httpd_config.xml
+      || echo "WAF not configured"'
+    expected_value: WAF enabled with rule sets
+  remediation:
+    remediation_step: |
+      Enable WAF via WebAdmin Console:
+      
+      1. Navigate to Server > Security > Web Application Firewall (WAF)
+      2. Set Enable WAF: Yes
+      3. Set Log Level: 0
+      4. Set Default Action: deny,log,status:403
+      5. Set Scan Request Body: Yes
+      
+      Add Rule Sets:
+      
+      1. Navigate to Server > Security > WAF Rule Set > Add
+      2. Set Name: OWASP or Comodo
+      3. Set Enabled: Yes
+      4. Set Rules Definition: Include $SERVER_ROOT/conf/modsec/rules.conf
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Malicious requests will be blocked
+    estimated_time: 10 minutes
+  context:
+    rationale: WAF provides protection against SQL injection, XSS, and other common
+      web attacks.
+    impact: May block legitimate requests if rules are too aggressive
+    false_positive_risk: Medium
+  tags:
+  - openlitespeed
+  - waf
+  - modsecurity
+  - application-security
+
+- rule_id: OLS-THROTTLE-001
+  legacy_ids: []
+  rule_name: Configure per-client throttling
+  rule_description: |
+    Configure per-client throttling to prevent abuse and DDoS attacks.
+  category: Network Security
+  subcategory: Rate Limiting
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check throttling configuration:
+      
+      grep -E "throttling|perClient" /usr/local/lsws/conf/httpd_config.xml
+      
+      Or check via WebAdmin Console > Server > Security > Per Client Throttling
+      
+      Verify:
+      1. Static Requests/second is limited
+      2. Dynamic Requests/second is limited
+      3. Connection limits are set
+      
+      If throttling is not configured, this is a finding.
+    check_command: 'grep -E "throttling|perClient|connection" /usr/local/lsws/conf/httpd_config.xml
+      || echo "Throttling not configured"'
+    expected_value: Per-client throttling configured
+  remediation:
+    remediation_step: |
+      Configure throttling via WebAdmin Console:
+      
+      1. Navigate to Server > Security > Per Client Throttling
+      2. Set Static Requests/second: 40
+      3. Set Dynamic Requests/second: 2
+      4. Set Connection Soft Limit: 15
+      5. Set Connection Hard Limit: 20
+      6. Set Grace Period (sec): 15
+      7. Set Banned Period (sec): 60
+      8. Set Block Bad Request: Yes
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive requests will be throttled
+    estimated_time: 5 minutes
+  context:
+    rationale: Per-client throttling protects against DDoS and abuse.
+    impact: Legitimate high-frequency requests may be throttled
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - throttling
+  - rate-limiting
+  - dos-protection
+
+- rule_id: OLS-CAPTCHA-001
+  legacy_ids: []
+  rule_name: Configure reCAPTCHA protection
+  rule_description: |
+    Configure reCAPTCHA protection for sensitive endpoints to prevent bot attacks.
+  category: Application Security
+  subcategory: Bot Protection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check reCAPTCHA configuration:
+      
+      grep -E "captcha|reCAPTCHA" /usr/local/lsws/conf/httpd_config.xml
+      
+      Or check via WebAdmin Console > Server > Security > reCAPTCHA Protection
+      
+      Verify:
+      1. reCAPTCHA is enabled
+      2. Trigger sensitivity is configured
+      3. Protected URLs are defined
+      
+      If reCAPTCHA is not configured for sensitive endpoints, consider enabling it.
+    check_command: 'grep -E "captcha|reCAPTCHA" /usr/local/lsws/conf/httpd_config.xml
+      || echo "reCAPTCHA not configured"'
+    expected_value: reCAPTCHA configured for sensitive endpoints
+  remediation:
+    remediation_step: |
+      Configure reCAPTCHA via WebAdmin Console:
+      
+      1. Navigate to Server > Security > reCAPTCHA Protection
+      2. Set Enable reCAPTCHA: Yes
+      3. Set reCAPTCHA Type: Checkbox or Invisible
+      4. Set Trigger Sensitivity: 50-100
+      5. Set Verification Expires: 86400
+      6. Configure Bot White List for legitimate bots
+      
+      Enable for specific URLs via .htaccess:
+      
+      <IfModule LiteSpeed>
+          RewriteRule /administrator/ - [E=verifycaptcha:deny]
+      </IfModule>
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Protected URLs require CAPTCHA verification
+    estimated_time: 10 minutes
+  context:
+    rationale: reCAPTCHA protects sensitive endpoints from automated bot attacks.
+    impact: Users must complete CAPTCHA for protected URLs
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - recaptcha
+  - bot-protection
+  - application-security
+
+- rule_id: OLS-RESTRICT-001
+  legacy_ids: []
+  rule_name: Enable restrained mode for virtual hosts
+  rule_description: |
+    Enable restrained mode for virtual hosts to limit access to virtual host root directory.
+  category: Access Control
+  subcategory: Directory Access
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check restrained mode configuration:
+      
+      grep -E "restrained" /usr/local/lsws/conf/vhosts/*/vhost.xml
+      
+      Or check via WebAdmin Console > Virtual Hosts > [VHost] > General
+      
+      Verify:
+      1. Restrained is set to Yes for all virtual hosts
+      
+      If restrained mode is not enabled, this is a finding.
+    check_command: 'grep -E "restrained" /usr/local/lsws/conf/vhosts/*/vhost.xml ||
+      echo "Restrained mode not configured"'
+    expected_value: Restrained mode enabled
+  remediation:
+    remediation_step: |
+      Enable restrained mode via WebAdmin Console:
+      
+      1. Navigate to Virtual Hosts > [VHost] > General
+      2. Set Restrained: Yes
+      3. Repeat for all virtual hosts
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: File system access limited to virtual host root
+    estimated_time: 5 minutes
+  context:
+    rationale: Restrained mode prevents access to files outside the virtual host
+      root directory.
+    impact: Applications may need configuration adjustments
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - restrained
+  - directory-access
+  - security
+
+- rule_id: OLS-LOG-001
+  legacy_ids: []
+  rule_name: Configure access logging
+  rule_description: |
+    Configure comprehensive access logging for security monitoring and incident response.
+  category: Logging and Auditing
+  subcategory: Access Logs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check logging configuration:
+      
+      ls -la /usr/local/lsws/logs/
+      grep -E "accessLog|errorLog" /usr/local/lsws/conf/vhosts/*/vhost.xml
+      
+      Or check via WebAdmin Console > Virtual Hosts > [VHost] > Log
+      
+      Verify:
+      1. Access logging is enabled
+      2. Error logging is configured
+      3. Log rotation is set up
+      
+      If logging is not configured, this is a finding.
+    check_command: 'ls -la /usr/local/lsws/logs/*.log 2>/dev/null || echo "Logging
+      not configured"'
+    expected_value: Access and error logging configured
+  remediation:
+    remediation_step: |
+      Configure logging via WebAdmin Console:
+      
+      1. Navigate to Virtual Hosts > [VHost] > Log
+      2. Set Use Server's Log: No
+      3. Set Log File: $VH_ROOT/logs/access.log
+      4. Set Log Level: INFO
+      5. Set Rolling Size: 100M
+      
+      For error log:
+      
+      1. Set Error Log File: $VH_ROOT/logs/error.log
+      2. Set Log Level: ERROR or WARNING
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Additional log storage required
+    estimated_time: 5 minutes
+  context:
+    rationale: Access logging enables security monitoring, incident response, and
+      troubleshooting.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - logging
+  - monitoring
+  - auditing
+
+- rule_id: OLS-CONN-001
+  legacy_ids: []
+  rule_name: Configure connection limits
+  rule_description: |
+    Configure global connection limits to prevent resource exhaustion.
+  category: Network Security
+  subcategory: Connection Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check connection configuration:
+      
+      grep -E "maxConnections|maxSSLConnections" /usr/local/lsws/conf/httpd_config.xml
+      
+      Or check via WebAdmin Console > Server > Tuning
+      
+      Verify:
+      1. Max Connections is configured
+      2. Max SSL Connections is set
+      
+      If connection limits are not configured, this is a finding.
+    check_command: 'grep -E "maxConnections|maxSSLConnections" /usr/local/lsws/conf/httpd_config.xml
+      || echo "Connection limits not configured"'
+    expected_value: Connection limits configured
+  remediation:
+    remediation_step: |
+      Configure connection limits via WebAdmin Console:
+      
+      1. Navigate to Server > Tuning
+      2. Set Max Connections: 20000
+      3. Set Max SSL Connections: 10000
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive connections will be rejected
+    estimated_time: 5 minutes
+  context:
+    rationale: Connection limits prevent resource exhaustion from connection floods.
+    impact: May affect high-traffic applications
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - connection-limits
+  - dos-protection
+  - network
+
+- rule_id: OLS-IP-001
+  legacy_ids: []
+  rule_name: Configure trusted IP handling
+  rule_description: |
+    Configure trusted IP handling properly when using CDN or load balancer.
+  category: Network Security
+  subcategory: IP Detection
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check IP handling configuration:
+      
+      grep -E "useIpInHeader|trusted" /usr/local/lsws/conf/httpd_config.xml
+      
+      Or check via WebAdmin Console > Server > General
+      
+      Verify:
+      1. Use Client IP in Header is set to "Trusted IP Only" or "No"
+      2. Never set to "Yes" without proper trusted IP list
+      3. Trusted IPs are configured if using CDN
+      
+      If IP handling is misconfigured, this is a finding.
+    check_command: 'grep -E "useIpInHeader|trusted" /usr/local/lsws/conf/httpd_config.xml
+      || echo "IP handling not configured"'
+    expected_value: 'Use Client IP in Header set to Trusted IP Only'
+  remediation:
+    remediation_step: |
+      Configure IP handling via WebAdmin Console:
+      
+      1. Navigate to Server > General
+      2. Set Use Client IP in Header: Trusted IP Only
+      3. Never set to Yes
+      
+      Add CDN IPs to trusted list:
+      
+      1. Navigate to Server > Security > Access Control
+      2. Add CDN IP ranges to Allowed List
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Real IP detection only from trusted sources
+    estimated_time: 5 minutes
+  context:
+    rationale: Improper IP handling allows IP spoofing and bypass of access controls.
+    impact: Must configure all legitimate CDN/proxy IPs
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - ip-handling
+  - cdn
+  - security
+
+- rule_id: OLS-AUTH-001
+  legacy_ids: []
+  rule_name: Configure password-protected directories
+  rule_description: |
+    Configure password protection for sensitive directories using authentication realms.
+  category: Authentication
+  subcategory: Basic Auth
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check authentication realm configuration:
+      
+      grep -E "realm|authName|authFile" /usr/local/lsws/conf/vhosts/*/vhost.xml
+      
+      Or check via WebAdmin Console > Virtual Hosts > [VHost] > Security
+      
+      Verify:
+      1. Sensitive directories are password-protected
+      2. Strong passwords are used
+      
+      If sensitive directories lack authentication, this is a finding.
+    check_command: 'grep -E "realm|authName" /usr/local/lsws/conf/vhosts/*/vhost.xml
+      || echo "Authentication not configured"'
+    expected_value: Sensitive directories password-protected
+  remediation:
+    remediation_step: |
+      Configure authentication via WebAdmin Console:
+      
+      1. Navigate to Virtual Hosts > [VHost] > Security
+      2. Click Add under Authorization Realms
+      3. Set DB Type: Password File
+      4. Set Realm Name: ProtectedArea
+      5. Set DB Location: $VH_ROOT/conf/htpasswd
+      6. Create user with password
+      
+      Apply to context:
+      
+      1. Navigate to Virtual Hosts > [VHost] > Context
+      2. Edit or Add context for protected path
+      3. Set Realm: ProtectedArea
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Protected directories require authentication
+    estimated_time: 5 minutes
+  context:
+    rationale: Password protection prevents unauthorized access to sensitive areas.
+    impact: Users must authenticate for protected directories
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - authentication
+  - basic-auth
+  - access-control
+
+- rule_id: OLS-BOT-001
+  legacy_ids: []
+  rule_name: Configure bot protection
+  rule_description: |
+    Configure bot protection to block malicious bots and scanners.
+  category: Application Security
+  subcategory: Bot Protection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check bot protection configuration:
+      
+      grep -E "blockbot|BUbiNG|bot" /usr/local/lsws/conf/vhosts/*/vhost.xml
+      grep -E "RewriteRule.*blockbot" /usr/local/lsws/DEFAULT/html/.htaccess
+      
+      Verify:
+      1. Known bad bots are blocked
+      2. Rewrite rules block malicious user agents
+      
+      If bot protection is not configured, this is a finding.
+    check_command: 'grep -rE "blockbot|BUbiNG|scanner" /usr/local/lsws/ 2>/dev/null
+      || echo "Bot protection not configured"'
+    expected_value: Bot protection configured
+  remediation:
+    remediation_step: |
+      Configure bot protection via .htaccess:
+      
+      <IfModule LiteSpeed>
+          RewriteEngine On
+          RewriteCond %{HTTP_USER_AGENT} "BUbiNG|nikto|sqlmap|nessus"
+          RewriteRule .* - [E=blockbot:1]
+      </IfModule>
+      
+      Whitelist good bots via WebAdmin Console:
+      
+      1. Navigate to Server > Security > reCAPTCHA Protection > Bot White List
+      2. Add: Googlebot, Bingbot
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Malicious bots will be blocked
+    estimated_time: 5 minutes
+  context:
+    rationale: Bot protection prevents automated scanning and attacks.
+    impact: Some automated tools may be blocked
+    false_positive_risk: Medium
+  tags:
+  - openlitespeed
+  - bot-protection
+  - rewrite
+  - application-security
+
+- rule_id: OLS-CHROOT-001
+  legacy_ids: []
+  rule_name: Configure chroot jail
+  rule_description: |
+    Configure chroot jail for additional security isolation.
+  category: Access Control
+  subcategory: Chroot
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: |
+      Check chroot configuration:
+      
+      grep -E "chroot" /usr/local/lsws/conf/httpd_config.xml
+      
+      Or check via WebAdmin Console > Server > Security > chroot Jail
+      
+      Verify:
+      1. chroot is configured (optional but recommended)
+      2. Required directories are available in chroot
+      
+      If chroot is not configured, consider enabling it.
+    check_command: 'grep -E "chroot" /usr/local/lsws/conf/httpd_config.xml || echo
+      "Chroot not configured"'
+    expected_value: Chroot configured (optional but recommended)
+  remediation:
+    remediation_step: |
+      Configure chroot via WebAdmin Console:
+      
+      1. Navigate to Server > Security > chroot Jail
+      2. Set chroot Path: /var/www
+      3. Configure required directories
+      
+      Ensure required files are in chroot:
+      mkdir -p /var/www/{etc,tmp,logs}
+      cp /etc/resolv.conf /var/www/etc/
+      cp /etc/hosts /var/www/etc/
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: File system access limited to chroot
+    estimated_time: 15 minutes
+  context:
+    rationale: Chroot limits the impact of potential security vulnerabilities by restricting
+      file system access.
+    impact: Must configure all required files in chroot
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - chroot
+  - isolation
+  - security
+
+- rule_id: OLS-HSTS-001
+  legacy_ids: []
+  rule_name: Enable HTTP Strict Transport Security (HSTS)
+  rule_description: |
+    Enable HSTS to force HTTPS connections and prevent downgrade attacks.
+  category: Application Security
+  subcategory: Security Headers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check HSTS configuration:
+      
+      grep -E "Strict-Transport-Security" /usr/local/lsws/conf/vhosts/*/vhost.xml
+      grep -rE "Strict-Transport-Security" /usr/local/lsws/DEFAULT/html/.htaccess
+      
+      Verify:
+      1. HSTS header is set with appropriate max-age
+      2. includeSubDomains is configured
+      
+      If HSTS is not configured, this is a finding.
+    check_command: 'grep -rE "Strict-Transport-Security" /usr/local/lsws/ 2>/dev/null
+      || echo "HSTS not configured"'
+    expected_value: HSTS header configured
+  remediation:
+    remediation_step: |
+      Configure HSTS via .htaccess:
+      
+      <IfModule mod_headers.c>
+          Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+      </IfModule>
+      
+      Or via WebAdmin Console Context Extra Headers:
+      
+      Strict-Transport-Security: max-age=31536000; includeSubDomains
+      
+      Restart OpenLiteSpeed: systemctl restart lsws
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Browsers will enforce HTTPS
+    estimated_time: 5 minutes
+  context:
+    rationale: HSTS prevents downgrade attacks and ensures browsers always use HTTPS.
+    impact: Must have valid SSL certificate for all subdomains
+    false_positive_risk: Low
+  tags:
+  - openlitespeed
+  - hsts
+  - https
+  - security-headers
