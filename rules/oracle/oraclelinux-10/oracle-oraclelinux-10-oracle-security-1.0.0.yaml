@@ -1,0 +1,1160 @@
+$schema: https://opencode.ai/schemas/hardening-rule-schema.json
+$schema_version: 1.0.0
+$metadata:
+  name: Oracle Security Hardening Guide for Oracle Linux 10
+  version: 1.0.0
+  description: Security hardening rules from official Oracle Linux 10 Security Hardening
+    documentation
+  platform: Oracle Linux 10
+  benchmark: Oracle Linux 10 Security Hardening Guide
+  author: Oracle
+  source: https://docs.oracle.com/en/documentation/red_hat_enterprise_linux/10/html/security_hardening
+  created: '2026-03-13T00:00:00Z'
+  modified: '2026-03-13T00:00:00Z'
+  compatible_platforms:
+  - Oracle Linux 10.0
+  - Oracle Linux 10.1
+compliance_info:
+  framework: NIST
+  version: 1.0.0
+  profile: Oracle Security Hardening
+profile:
+  name: Oracle Security Hardening
+  description: Comprehensive security hardening based on official Oracle documentation
+    covering FIPS, cryptographic policies, integrity checking, access control, and
+    intrusion prevention
+  level: 1
+rules:
+- rule_id: RHFIPS-001
+  rule_name: Install system with FIPS mode enabled
+  rule_description: To enable cryptographic module self-checks mandated by FIPS 140-3,
+    the system must be installed with FIPS mode enabled. In Oracle Linux 10, switching
+    to FIPS mode after installation is not supported.
+  category: Cryptography
+  subcategory: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify FIPS mode is enabled during system installation
+    check_command: cat /proc/sys/crypto/fips_enabled
+    expected_value: '1'
+  remediation:
+    remediation_step: 'During Oracle Linux installation:
+
+      1. At boot menu, press ''e'' (UEFI) or Tab (BIOS)
+
+      2. Add ''fips=1'' to kernel command line
+
+      3. For systems with separate /boot partition, also add ''boot=UUID=<uuid-of-boot-disk>''
+
+      4. Continue installation
+
+      Note: FIPS mode cannot be disabled after installation without reinstalling the
+      system.
+
+      '
+    rollback_supported: false
+    reboot_required: true
+    service_impact: System must be reinstalled to change FIPS mode
+    estimated_time: 60 minutes
+  tags:
+  - fips
+  - cryptography
+  - compliance
+  rationale: FIPS 140-3 compliance requires cryptographic module self-checks that
+    can only be properly configured during installation
+  impact: Critical - Required for FIPS 140-3 certification
+  false_positive_risk: None
+  id: RHFIPS-001
+  title: Install system with FIPS mode enabled
+  description: To enable cryptographic module self-checks mandated by FIPS 140-3,
+    the system must be installed with FIPS mode enabled. In Oracle Linux 10, switching
+    to FIPS mode after installation is not supported.
+  severity: High
+- rule_id: RHFIPS-002
+  rule_name: Verify FIPS mode status
+  rule_description: Verify that the system is running in FIPS mode by checking the
+    FIPS enabled flag and current cryptographic policy.
+  category: Cryptography
+  subcategory: FIPS Mode
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check FIPS mode status
+    check_command: cat /proc/sys/crypto/fips_enabled && update-crypto-policies --show
+    expected_value: '1
+
+      FIPS
+
+      '
+  remediation:
+    remediation_step: If FIPS mode is not enabled, the system must be reinstalled
+      with FIPS mode enabled during installation.
+    rollback_supported: false
+    reboot_required: false
+    service_impact: None for verification
+    estimated_time: 1 minute
+  tags:
+  - fips
+  - cryptography
+  - verification
+  rationale: Running in FIPS mode ensures all cryptographic operations use FIPS-approved
+    algorithms
+  impact: Critical for compliance requirements
+  false_positive_risk: None
+  id: RHFIPS-002
+  title: Verify FIPS mode status
+  description: Verify that the system is running in FIPS mode by checking the FIPS
+    enabled flag and current cryptographic policy.
+  severity: High
+- rule_id: RHCRYPTO-001
+  rule_name: Use secure system-wide cryptographic policy
+  rule_description: Configure the system-wide cryptographic policy to use secure settings
+    appropriate for your environment. The DEFAULT policy provides secure settings
+    for current threat models.
+  category: Cryptography
+  subcategory: System-wide Policies
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify the current cryptographic policy setting
+    check_command: update-crypto-policies --show
+    expected_value: DEFAULT or FUTURE or FIPS
+  remediation:
+    remediation_step: 'To set the cryptographic policy:
+
+      1. Run: update-crypto-policies --set DEFAULT
+
+      2. Reboot the system: reboot
+
+
+      Available policies:
+
+      - DEFAULT: Secure settings for current threat models (TLS 1.2+, IKEv2, SSH2,
+      2048+ bit keys)
+
+      - LEGACY: Maximum compatibility with Oracle Linux 6 and earlier (less secure)
+
+      - FUTURE: Stricter forward-looking security (3072+ bit keys, no SHA-1)
+
+      - FIPS: Conforms with FIPS 140 requirements (only in FIPS mode)
+
+      '
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect connectivity with legacy systems
+    estimated_time: 10 minutes
+  tags:
+  - cryptography
+  - crypto-policies
+  - tls
+  rationale: System-wide cryptographic policies ensure consistent security across
+    all applications using cryptography
+  impact: Medium - Affects all cryptographic operations on the system
+  false_positive_risk: Low
+  id: RHCRYPTO-001
+  title: Use secure system-wide cryptographic policy
+  description: Configure the system-wide cryptographic policy to use secure settings
+    appropriate for your environment. The DEFAULT policy provides secure settings
+    for current threat models.
+  severity: Medium
+- rule_id: RHCRYPTO-002
+  rule_name: Avoid LEGACY cryptographic policy in production
+  rule_description: The LEGACY cryptographic policy should not be used in production
+    environments as it enables less secure algorithms for compatibility with older
+    systems.
+  category: Cryptography
+  subcategory: System-wide Policies
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify LEGACY policy is not in use
+    check_command: update-crypto-policies --show | grep -v LEGACY
+    expected_value: Output should not contain LEGACY
+  remediation:
+    remediation_step: 'Switch to a more secure policy:
+
+      update-crypto-policies --set DEFAULT
+
+      reboot
+
+      '
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May break compatibility with legacy systems
+    estimated_time: 10 minutes
+  tags:
+  - cryptography
+  - crypto-policies
+  - security-baseline
+  rationale: LEGACY policy enables CBC-mode ciphers and SHA-1 signatures which are
+    less secure
+  impact: Medium - Reduced security posture
+  false_positive_risk: Low
+  id: RHCRYPTO-002
+  title: Avoid LEGACY cryptographic policy in production
+  description: The LEGACY cryptographic policy should not be used in production environments
+    as it enables less secure algorithms for compatibility with older systems.
+  severity: Medium
+- rule_id: RHCRYPTO-003
+  rule_name: Consider FUTURE cryptographic policy for enhanced security
+  rule_description: The FUTURE cryptographic policy provides stricter security settings
+    including 3072+ bit keys and disabled SHA-1, suitable for environments requiring
+    forward-looking security.
+  category: Cryptography
+  subcategory: System-wide Policies
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check if FUTURE policy can be applied
+    check_command: update-crypto-policies --show
+    expected_value: FUTURE (optional, DEFAULT is acceptable)
+  remediation:
+    remediation_step: 'To enable FUTURE policy:
+
+      update-crypto-policies --set FUTURE
+
+      reboot
+
+
+      Note: This may cause interoperability issues with systems using older cryptography.
+
+      Test thoroughly before deploying in production.
+
+      '
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May cause connectivity issues with some systems
+    estimated_time: 10 minutes
+  tags:
+  - cryptography
+  - crypto-policies
+  - enhanced-security
+  rationale: FUTURE policy prepares for upcoming security requirements and deprecates
+    weaker algorithms
+  impact: Low - Enhanced security but potential interoperability issues
+  false_positive_risk: Low
+  id: RHCRYPTO-003
+  title: Consider FUTURE cryptographic policy for enhanced security
+  description: The FUTURE cryptographic policy provides stricter security settings
+    including 3072+ bit keys and disabled SHA-1, suitable for environments requiring
+    forward-looking security.
+  severity: Low
+- rule_id: RHCRYPTO-004
+  rule_name: Post-quantum cryptography awareness
+  rule_description: Oracle Linux 10.1 enables post-quantum cryptography (PQC) algorithms
+    by default in all predefined policy levels to protect against future quantum computing
+    threats.
+  category: Cryptography
+  subcategory: Post-Quantum
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify post-quantum cryptography support status
+    check_command: update-crypto-policies --show
+    expected_value: Any policy without NO-PQ suffix
+  remediation:
+    remediation_step: 'PQC is enabled by default in Oracle Linux 10.1+. To disable
+      (not recommended):
+
+      update-crypto-policies --set DEFAULT:NO-PQ
+
+      reboot
+
+
+      To re-enable:
+
+      update-crypto-policies --set DEFAULT
+
+      reboot
+
+      '
+    rollback_supported: true
+    reboot_required: true
+    service_impact: Minimal - PQC provides protection against future threats
+    estimated_time: 10 minutes
+  tags:
+  - cryptography
+  - post-quantum
+  - future-security
+  rationale: Post-quantum cryptography protects against "harvest now, decrypt later"
+    attacks using future quantum computers
+  impact: Low - Future-proofing security
+  false_positive_risk: None
+  id: RHCRYPTO-004
+  title: Post-quantum cryptography awareness
+  description: Oracle Linux 10.1 enables post-quantum cryptography (PQC) algorithms
+    by default in all predefined policy levels to protect against future quantum computing
+    threats.
+  severity: Low
+- rule_id: RHAIDE-001
+  rule_name: Install and configure AIDE for file integrity
+  rule_description: Install Advanced Intrusion Detection Environment (AIDE) to create
+    a database of file fingerprints and detect unauthorized changes to system files.
+  category: Integrity Checking
+  subcategory: File Integrity
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify AIDE is installed and database exists
+    check_command: rpm -q aide && test -f /var/lib/aide/aide.db.gz && echo "AIDE configured"
+    expected_value: aide package installed and database exists
+  remediation:
+    remediation_step: '1. Install AIDE: dnf install aide
+
+      2. Initialize the database: aide --init
+
+      3. Activate the database: mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+
+      4. Optionally store database on read-only media for additional security
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 15 minutes
+  tags:
+  - integrity
+  - aide
+  - intrusion-detection
+  rationale: AIDE detects unauthorized file changes that may indicate system compromise
+  impact: Medium - Essential for intrusion detection
+  false_positive_risk: Medium - Legitimate changes trigger alerts
+  id: RHAIDE-001
+  title: Install and configure AIDE for file integrity
+  description: Install Advanced Intrusion Detection Environment (AIDE) to create a
+    database of file fingerprints and detect unauthorized changes to system files.
+  severity: Medium
+- rule_id: RHAIDE-002
+  rule_name: Schedule regular AIDE integrity checks
+  rule_description: Configure automated daily or weekly AIDE integrity checks to detect
+    unauthorized file changes in a timely manner.
+  category: Integrity Checking
+  subcategory: File Integrity
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify AIDE cron job is configured
+    check_command: grep -r aide /etc/cron* /etc/crontab 2>/dev/null || systemctl list-timers
+      | grep aide
+    expected_value: AIDE cron job or timer should be configured
+  remediation:
+    remediation_step: 'Add to /etc/crontab for daily checks at 4:05 AM:
+
+      echo "05 4 * * * root /usr/sbin/aide --check" >> /etc/crontab
+
+
+      Or create a systemd timer for more flexibility.
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal - Short CPU/disk usage during check
+    estimated_time: 5 minutes
+  tags:
+  - integrity
+  - aide
+  - automation
+  - monitoring
+  rationale: Regular checks ensure timely detection of unauthorized changes
+  impact: Medium - Essential for continuous monitoring
+  false_positive_risk: Medium - Updates trigger expected changes
+  id: RHAIDE-002
+  title: Schedule regular AIDE integrity checks
+  description: Configure automated daily or weekly AIDE integrity checks to detect
+    unauthorized file changes in a timely manner.
+  severity: Medium
+- rule_id: RHAIDE-003
+  rule_name: Update AIDE database after legitimate changes
+  rule_description: After legitimate system changes such as software updates, update
+    the AIDE database to prevent false positive alerts.
+  category: Integrity Checking
+  subcategory: File Integrity
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: false
+    automation_level: Manual
+    audit_type: process
+    detection_step: Verify process for updating AIDE database exists
+    check_command: Manual process verification
+    expected_value: Documented procedure for updating AIDE after changes
+  remediation:
+    remediation_step: 'After legitimate system changes:
+
+      1. Run: aide --update
+
+      2. Activate new database: mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+
+      3. Optionally store updated database on secure/read-only media
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 10 minutes
+  tags:
+  - integrity
+  - aide
+  - maintenance
+  rationale: Updating the database after legitimate changes prevents alert fatigue
+    from false positives
+  impact: Low - Maintenance task
+  false_positive_risk: None
+  id: RHAIDE-003
+  title: Update AIDE database after legitimate changes
+  description: After legitimate system changes such as software updates, update the
+    AIDE database to prevent false positive alerts.
+  severity: Low
+- rule_id: RHSUDO-001
+  rule_name: Configure sudo access with principle of least privilege
+  rule_description: Grant sudo access following the principle of least privilege,
+    providing users only the specific commands they need rather than full root access.
+  category: Access Control
+  subcategory: Sudo Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Review sudoers configuration for overly permissive rules
+    check_command: grep -r 'ALL=(ALL)' /etc/sudoers /etc/sudoers.d/ 2>/dev/null |
+      grep -v '^#'
+    expected_value: Minimal use of full root access grants
+  remediation:
+    remediation_step: 'Edit sudoers with visudo:
+
+      visudo
+
+
+      Replace broad permissions with specific command grants:
+
+      # Instead of:
+
+      username ALL=(ALL) ALL
+
+
+      # Use:
+
+      username ALL=(root) /usr/bin/systemctl restart httpd, /usr/bin/systemctl status
+      httpd
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect user workflows
+    estimated_time: 30 minutes
+  tags:
+  - access-control
+  - sudo
+  - least-privilege
+  rationale: Limiting sudo access reduces the risk of accidental or malicious system
+    changes
+  impact: High - Critical for access control
+  false_positive_risk: Low
+  id: RHSUDO-001
+  title: Configure sudo access with principle of least privilege
+  description: Grant sudo access following the principle of least privilege, providing
+    users only the specific commands they need rather than full root access.
+  severity: High
+- rule_id: RHSUDO-002
+  rule_name: Use sudoers.d directory for custom sudo rules
+  rule_description: Place custom sudo rules in /etc/sudoers.d/ directory rather than
+    modifying the main sudoers file for better organization and easier management.
+  category: Access Control
+  subcategory: Sudo Configuration
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Check if sudoers.d directory is being used
+    check_command: ls -la /etc/sudoers.d/
+    expected_value: Custom rules should be in /etc/sudoers.d/ directory
+  remediation:
+    remediation_step: 'Create custom sudo rules in /etc/sudoers.d/:
+
+      1. Create file: visudo -f /etc/sudoers.d/custom-rules
+
+      2. Add rules following sudoers syntax
+
+      3. Ensure file permissions are 0440
+
+      4. Verify syntax: visudo -c
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None
+    estimated_time: 10 minutes
+  tags:
+  - access-control
+  - sudo
+  - configuration
+  rationale: Using sudoers.d improves organization and reduces risk of breaking the
+    main sudoers file
+  impact: Low - Best practice for management
+  false_positive_risk: None
+  id: RHSUDO-002
+  title: Use sudoers.d directory for custom sudo rules
+  description: Place custom sudo rules in /etc/sudoers.d/ directory rather than modifying
+    the main sudoers file for better organization and easier management.
+  severity: Low
+- rule_id: RHFAPOLICYD-001
+  rule_name: Deploy fapolicyd for application control
+  rule_description: Install and enable fapolicyd to control which applications can
+    be executed, preventing users from running untrusted or unauthorized code.
+  category: Application Control
+  subcategory: Execution Control
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify fapolicyd is installed and running
+    check_command: rpm -q fapolicyd && systemctl is-active fapolicyd
+    expected_value: fapolicyd package installed and service active
+  remediation:
+    remediation_step: '1. Install fapolicyd: dnf install fapolicyd
+
+      2. Enable and start the service: systemctl enable --now fapolicyd
+
+      3. Verify status: systemctl status fapolicyd
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May block execution of untrusted applications
+    estimated_time: 15 minutes
+  tags:
+  - application-control
+  - fapolicyd
+  - execution-prevention
+  rationale: fapolicyd prevents execution of unauthorized applications, reducing attack
+    surface
+  impact: Medium - Significant security improvement
+  false_positive_risk: Medium - May block legitimate custom applications
+  id: RHFAPOLICYD-001
+  title: Deploy fapolicyd for application control
+  description: Install and enable fapolicyd to control which applications can be executed,
+    preventing users from running untrusted or unauthorized code.
+  severity: Medium
+- rule_id: RHFAPOLICYD-002
+  rule_name: Configure fapolicyd trust sources
+  rule_description: Configure fapolicyd trust sources to properly identify trusted
+    applications from RPM database, file lists, and custom sources.
+  category: Application Control
+  subcategory: Execution Control
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify fapolicyd trust configuration
+    check_command: grep -E '^trust' /etc/fapolicyd/fapolicyd.conf
+    expected_value: Trust sources should be properly configured
+  remediation:
+    remediation_step: 'Configure trust sources in /etc/fapolicyd/fapolicyd.conf:
+
+      trust = rpmdb,file
+
+
+      For custom trusted files, add paths to /etc/fapolicyd/fapolicyd.trust
+
+      or use /etc/fapolicyd/trust.d/ directory.
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May affect application execution
+    estimated_time: 20 minutes
+  tags:
+  - application-control
+  - fapolicyd
+  - trust-configuration
+  rationale: Proper trust configuration ensures legitimate applications can run while
+    blocking unauthorized ones
+  impact: Medium - Critical for proper operation
+  false_positive_risk: Medium
+  id: RHFAPOLICYD-002
+  title: Configure fapolicyd trust sources
+  description: Configure fapolicyd trust sources to properly identify trusted applications
+    from RPM database, file lists, and custom sources.
+  severity: Medium
+- rule_id: RHFAPOLICYD-003
+  rule_name: Enable fapolicyd integrity checking
+  rule_description: Enable integrity checking in fapolicyd to verify that trusted
+    files have not been modified since being added to the trust database.
+  category: Application Control
+  subcategory: Execution Control
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify fapolicyd integrity checking is enabled
+    check_command: grep -E '^integrity' /etc/fapolicyd/fapolicyd.conf
+    expected_value: integrity = sha256 (or higher)
+  remediation:
+    remediation_step: 'Edit /etc/fapolicyd/fapolicyd.conf:
+
+      integrity = sha256
+
+
+      Options: none, size, sha256, ima (for IMA integration)
+
+      Restart service: systemctl restart fapolicyd
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Slight performance impact during file access
+    estimated_time: 10 minutes
+  tags:
+  - application-control
+  - fapolicyd
+  - integrity
+  rationale: Integrity checking ensures trusted files haven't been tampered with
+  impact: Medium - Enhanced security
+  false_positive_risk: Low
+  id: RHFAPOLICYD-003
+  title: Enable fapolicyd integrity checking
+  description: Enable integrity checking in fapolicyd to verify that trusted files
+    have not been modified since being added to the trust database.
+  severity: Medium
+- rule_id: RHUSBGUARD-001
+  rule_name: Install and configure USBGuard
+  rule_description: Install USBGuard to protect against intrusive USB devices by enforcing
+    policies that control which USB devices can connect to the system.
+  category: Device Control
+  subcategory: USB Protection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify USBGuard is installed and running
+    check_command: rpm -q usbguard && systemctl is-active usbguard
+    expected_value: usbguard package installed and service active
+  remediation:
+    remediation_step: '1. Install USBGuard: dnf install usbguard
+
+      2. Generate initial policy: usbguard generate-policy > /etc/usbguard/rules.conf
+
+      3. Set proper permissions: chmod 600 /etc/usbguard/rules.conf
+
+      4. Enable and start: systemctl enable --now usbguard
+
+      5. Review and customize rules as needed
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May block unrecognized USB devices
+    estimated_time: 20 minutes
+  tags:
+  - device-control
+  - usbguard
+  - physical-security
+  rationale: USBGuard prevents unauthorized USB devices from accessing the system,
+    protecting against data exfiltration and malware introduction
+  impact: Medium - Important for physical security
+  false_positive_risk: Medium - May block legitimate devices
+  id: RHUSBGUARD-001
+  title: Install and configure USBGuard
+  description: Install USBGuard to protect against intrusive USB devices by enforcing
+    policies that control which USB devices can connect to the system.
+  severity: Medium
+- rule_id: RHUSBGUARD-002
+  rule_name: Create USB device allowlist policy
+  rule_description: Create and maintain an allowlist of authorized USB devices in
+    USBGuard to ensure only approved devices can connect.
+  category: Device Control
+  subcategory: USB Protection
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify USBGuard rules file has authorized devices
+    check_command: cat /etc/usbguard/rules.conf | grep -v '^#' | head -5
+    expected_value: Rules should contain authorized device entries
+  remediation:
+    remediation_step: 'To authorize a USB device:
+
+      1. List devices: usbguard list-devices
+
+      2. Allow a device permanently: usbguard allow-device -p <ID>
+
+      3. Or edit rules.conf directly with device rules
+
+
+      Rule format: allow id <vid>:<pid> [serial "<serial>"] [name "<name>"] [hash
+      "<hash>"]
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Unauthorized devices will be blocked
+    estimated_time: 15 minutes
+  tags:
+  - device-control
+  - usbguard
+  - allowlist
+  rationale: An allowlist ensures only known, authorized USB devices can connect
+  impact: Medium - Critical for USB security
+  false_positive_risk: Medium
+  id: RHUSBGUARD-002
+  title: Create USB device allowlist policy
+  description: Create and maintain an allowlist of authorized USB devices in USBGuard
+    to ensure only approved devices can connect.
+  severity: Medium
+- rule_id: RHUSBGUARD-003
+  rule_name: Configure USBGuard audit logging
+  rule_description: Configure USBGuard to log authorization events to the Linux Audit
+    system for security monitoring and forensics.
+  category: Device Control
+  subcategory: USB Protection
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify USBGuard audit logging is enabled
+    check_command: grep -E 'AuditBackend' /etc/usbguard/usbguard-daemon.conf
+    expected_value: AuditBackend = FileAudit or LinuxAudit
+  remediation:
+    remediation_step: 'Edit /etc/usbguard/usbguard-daemon.conf:
+
+      AuditBackend = LinuxAudit
+
+
+      Restart service: systemctl restart usbguard
+
+
+      View audit logs: ausearch -ts recent -m USBGUARD
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal logging overhead
+    estimated_time: 10 minutes
+  tags:
+  - device-control
+  - usbguard
+  - auditing
+  - logging
+  rationale: Audit logging provides visibility into USB device authorization events
+    for security monitoring
+  impact: Low - Important for monitoring
+  false_positive_risk: None
+  id: RHUSBGUARD-003
+  title: Configure USBGuard audit logging
+  description: Configure USBGuard to log authorization events to the Linux Audit system
+    for security monitoring and forensics.
+  severity: Low
+- rule_id: RHKEYLIME-001
+  rule_name: Consider Keylime for system integrity attestation
+  rule_description: Deploy Keylime for remote system attestation using TPM to verify
+    system integrity through measured boot and runtime monitoring.
+  category: Integrity Checking
+  subcategory: System Attestation
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify Keylime components if deployed
+    check_command: rpm -q keylime 2>/dev/null || echo "Keylime not installed"
+    expected_value: Keylime installed (optional, for enhanced security)
+  remediation:
+    remediation_step: 'Keylime requires TPM 2.0 hardware. To deploy:
+
+      1. Install: dnf install keylime
+
+      2. Configure verifier, registrar, and tenant in /etc/keylime/
+
+      3. Deploy verifier: systemctl enable --now keylime_verifier
+
+      4. Deploy registrar: systemctl enable --now keylime_registrar
+
+      5. Deploy agent on monitored systems: systemctl enable --now keylime_agent
+
+      6. Configure runtime monitoring with allowlists
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires TPM 2.0 hardware
+    estimated_time: 60 minutes
+  tags:
+  - integrity
+  - keylime
+  - tpm
+  - attestation
+  rationale: Keylime provides hardware-based remote attestation for verifying system
+    integrity
+  impact: Low - Enhanced security for critical systems
+  false_positive_risk: Medium - Configuration complexity
+  id: RHKEYLIME-001
+  title: Consider Keylime for system integrity attestation
+  description: Deploy Keylime for remote system attestation using TPM to verify system
+    integrity through measured boot and runtime monitoring.
+  severity: Low
+- rule_id: RHNBDE-001
+  rule_name: Deploy Tang server for NBDE
+  rule_description: Deploy a Tang server for Network-Bound Disk Encryption to enable
+    automated unlocking of LUKS-encrypted volumes in networked environments.
+  category: Disk Encryption
+  subcategory: NBDE
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify Tang server status if deployed
+    check_command: systemctl is-active tangd 2>/dev/null || echo "Tang not deployed"
+    expected_value: Tang server active (if NBDE is used)
+  remediation:
+    remediation_step: 'Deploy Tang server:
+
+      1. Install: dnf install tang
+
+      2. Enable: systemctl enable --now tangd.socket
+
+      3. Show keys for client configuration: tang-show-keys
+
+      4. For SELinux enforcing mode, ensure proper context
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires network accessibility for clients
+    estimated_time: 15 minutes
+  tags:
+  - encryption
+  - nbde
+  - tang
+  - disk-encryption
+  rationale: Tang server enables automated disk decryption when network is available
+  impact: Low - Optional for environments using NBDE
+  false_positive_risk: None
+  id: RHNBDE-001
+  title: Deploy Tang server for NBDE
+  description: Deploy a Tang server for Network-Bound Disk Encryption to enable automated
+    unlocking of LUKS-encrypted volumes in networked environments.
+  severity: Low
+- rule_id: RHNBDE-002
+  rule_name: Configure Clevis client for NBDE
+  rule_description: Configure Clevis client to bind LUKS-encrypted volumes to Tang
+    servers for automated unlocking.
+  category: Disk Encryption
+  subcategory: NBDE
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify Clevis binding if NBDE is used
+    check_command: clevis luks list -d /dev/<device> 2>/dev/null || echo "No NBDE
+      binding"
+    expected_value: Clevis binding configured (if NBDE is used)
+  remediation:
+    remediation_step: 'Bind LUKS volume to Tang server:
+
+      1. Install: dnf install clevis clevis-luks
+
+      2. Bind: clevis luks bind -d /dev/<device> tang ''{"url":"http://tang.server"}''
+
+      3. Verify: clevis luks list -d /dev/<device>
+
+      4. Test: clevis luks unlock -d /dev/<device>
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Encrypted volumes will auto-unlock when Tang is reachable
+    estimated_time: 20 minutes
+  tags:
+  - encryption
+  - nbde
+  - clevis
+  - disk-encryption
+  rationale: Clevis enables automated disk decryption when network-bound conditions
+    are met
+  impact: Low - Simplifies encrypted volume management
+  false_positive_risk: None
+  id: RHNBDE-002
+  title: Configure Clevis client for NBDE
+  description: Configure Clevis client to bind LUKS-encrypted volumes to Tang servers
+    for automated unlocking.
+  severity: Low
+- rule_id: OLSEC-1
+  rule_name: Configure SSH for smart card authentication
+  rule_description: Configure OpenSSH to use keys stored on smart cards or hardware
+    security modules (HSMs) through PKCS#11 for enhanced authentication security.
+  category: Authentication
+  subcategory: Smart Card
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Verify SSH PKCS#11 configuration
+    check_command: grep -r PKCS11Provider /etc/ssh/ssh_config /etc/ssh/sshd_config
+      2>/dev/null
+    expected_value: PKCS11Provider configured if smart cards are used
+  remediation:
+    remediation_step: 'Configure SSH client (~/.ssh/config):
+
+      PKCS11Provider /usr/lib64/opensc-pkcs11.so
+
+
+      For SSH server, configure authorized_keys with certificate:
+
+      ssh-keygen -D /usr/lib64/opensc-pkcs11.so >> ~/.ssh/authorized_keys
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Changes authentication method
+    estimated_time: 20 minutes
+  tags:
+  - authentication
+  - pkcs11
+  - smart-card
+  - ssh
+  rationale: Smart card authentication provides hardware-backed key storage for enhanced
+    security
+  impact: Low - Enhanced authentication security
+  false_positive_risk: None
+  id: OLSEC-1
+  title: Configure SSH for smart card authentication
+  description: Configure OpenSSH to use keys stored on smart cards or hardware security
+    modules (HSMs) through PKCS#11 for enhanced authentication security.
+  severity: Low
+- rule_id: RHSCAP-001
+  rule_name: Install OpenSCAP for compliance scanning
+  rule_description: Install OpenSCAP tools to scan systems for security configuration
+    compliance against SCAP Security Guide profiles.
+  category: Compliance
+  subcategory: Scanning
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify OpenSCAP is installed
+    check_command: rpm -q openscap-scanner scap-security-guide
+    expected_value: openscap-scanner and scap-security-guide packages installed
+  remediation:
+    remediation_step: 'Install OpenSCAP tools:
+
+      dnf install openscap-scanner scap-security-guide
+
+
+      List available profiles:
+
+      oscap info /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml
+
+      '
+    rollback_supported: true
+    reboot_required: false
+    service_impact: None - scanning only
+    estimated_time: 10 minutes
+  tags:
+  - compliance
+  - openscap
+  - scanning
+  rationale: OpenSCAP enables automated compliance scanning against security baselines
+  impact: Medium - Important for compliance monitoring
+  false_positive_risk: Low
+  id: RHSCAP-001
+  title: Install OpenSCAP for compliance scanning
+  description: Install OpenSCAP tools to scan systems for security configuration compliance
+    against SCAP Security Guide profiles.
+  severity: Medium
+- rule_id: RHSCAP-002
+  rule_name: Perform regular compliance scans
+  rule_description: Schedule regular OpenSCAP compliance scans against appropriate
+    security profiles (CIS, STIG, etc.) to maintain security posture.
+  category: Compliance
+  subcategory: Scanning
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: process
+    detection_step: Verify compliance scanning is scheduled
+    check_command: grep -r oscap /etc/cron* 2>/dev/null || systemctl list-timers |
+      grep -i oscap
+    expected_value: Regular scanning should be configured
+  remediation:
+    remediation_step: "Run a compliance scan:\noscap xccdf eval --profile xccdf_org.ssgproject.content_profile_cis\
+      \ \\\n  --results /var/tmp/scan-results.xml \\\n  --report /var/tmp/scan-report.html\
+      \ \\\n  /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml\n\nSchedule regular\
+      \ scans via cron or systemd timers.\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Minimal during scanning
+    estimated_time: 30 minutes
+  tags:
+  - compliance
+  - openscap
+  - scanning
+  - automation
+  rationale: Regular scanning ensures ongoing compliance with security policies
+  impact: Medium - Critical for compliance
+  false_positive_risk: Medium - May require tuning
+  id: RHSCAP-002
+  title: Perform regular compliance scans
+  description: Schedule regular OpenSCAP compliance scans against appropriate security
+    profiles (CIS, STIG, etc.) to maintain security posture.
+  severity: Medium
+- rule_id: RHSCAP-003
+  rule_name: Apply SCAP remediation for non-compliant rules
+  rule_description: Use OpenSCAP to automatically remediate non-compliant configuration
+    items where automated remediation is available.
+  category: Compliance
+  subcategory: Remediation
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: process
+    detection_step: Review scan results for remediation opportunities
+    check_command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_cis
+      --check-engine-results /var/tmp/scan-results.xml 2>/dev/null | head -20
+    expected_value: Review non-compliant items for remediation
+  remediation:
+    remediation_step: "Generate remediation script:\noscap xccdf generate fix --profile\
+      \ xccdf_org.ssgproject.content_profile_cis \\\n  --output /var/tmp/remediation.sh\
+      \ \\\n  /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml\n\nReview script before\
+      \ applying:\nless /var/tmp/remediation.sh\n\nApply remediation:\nbash /var/tmp/remediation.sh\n"
+    rollback_supported: false
+    reboot_required: true
+    service_impact: May change system configuration significantly
+    estimated_time: 60 minutes
+  tags:
+  - compliance
+  - openscap
+  - remediation
+  rationale: Automated remediation speeds up compliance efforts
+  impact: Medium - Significant configuration changes
+  false_positive_risk: Medium - Review changes before applying
+  id: RHSCAP-003
+  title: Apply SCAP remediation for non-compliant rules
+  description: Use OpenSCAP to automatically remediate non-compliant configuration
+    items where automated remediation is available.
+  severity: Medium
+- rule_id: RHSELINUX-001
+  rule_name: Ensure SELinux is enabled and enforcing
+  rule_description: Ensure SELinux is running in enforcing mode to provide mandatory
+    access control security.
+  category: Access Control
+  subcategory: SELinux
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: Verify SELinux mode
+    check_command: getenforce
+    expected_value: Enforcing
+  remediation:
+    remediation_step: "Enable SELinux enforcing mode:\n1. Edit /etc/selinux/config:\n\
+      \   SELINUX=enforcing\n2. Set immediately: setenforce 1\n3. Reboot if changing\
+      \ from disabled\n"
+    rollback_supported: true
+    reboot_required: true
+    service_impact: May affect applications requiring SELinux policy updates
+    estimated_time: 30 minutes
+  tags:
+  - access-control
+  - selinux
+  - mandatory-access-control
+  rationale: SELinux enforcing mode provides strong mandatory access control
+  impact: High - Critical security control
+  false_positive_risk: Medium - May block legitimate operations
+  id: RHSELINUX-001
+  title: Ensure SELinux is enabled and enforcing
+  description: Ensure SELinux is running in enforcing mode to provide mandatory access
+    control security.
+  severity: High
+- rule_id: RHPOLKIT-001
+  rule_name: Configure polkit for smart card access control
+  rule_description: Configure polkit rules to control which users and groups can access
+    smart card devices through PC/SC.
+  category: Access Control
+  subcategory: Smart Card
+  testing_status: untested
+  assessment:
+    severity: Low
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: Review polkit rules for smart card access
+    check_command: ls /etc/polkit-1/rules.d/ /usr/share/polkit-1/rules.d/ 2>/dev/null
+      | grep -i pcsc
+    expected_value: Custom polkit rules configured if needed
+  remediation:
+    remediation_step: "Create polkit rule in /etc/polkit-1/rules.d/49-pcsc.rules:\n\
+      polkit.addRule(function(action, subject) {\n    if (action.id == \"org.debian.pcsc-lite.access_card\"\
+      \ &&\n        subject.isInGroup(\"wheel\")) {\n        return polkit.Result.YES;\n\
+      \    }\n});\n"
+    rollback_supported: true
+    reboot_required: false
+    service_impact: May restrict smart card access
+    estimated_time: 15 minutes
+  tags:
+  - access-control
+  - polkit
+  - smart-card
+  rationale: Controlling smart card access prevents unauthorized use of security tokens
+  impact: Low - Access control for smart cards
+  false_positive_risk: Low
+  id: RHPOLKIT-001
+  title: Configure polkit for smart card access control
+  description: Configure polkit rules to control which users and groups can access
+    smart card devices through PC/SC.
+  severity: Low
