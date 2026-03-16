@@ -1,0 +1,787 @@
+schema_version: 1.0.0
+metadata:
+  name: Lighttpd Security Hardening Rules
+  version: '1.0.0'
+  description: Security hardening rules for Lighttpd web server based on official
+    Lighttpd documentation and best practices
+  platform: Lighttpd
+  benchmark: Lighttpd Official Documentation
+  author: Compliance Rules Team
+  source: https://www.lighttpd.net/
+  created: '2026-03-16T00:00:00Z'
+  modified: '2026-03-16T00:00:00Z'
+  compatible_platforms:
+  - Lighttpd 1.4.x
+  references:
+  - type: Lighttpd Documentation
+    reference: https://redmine.lighttpd.net/projects/lighttpd/wiki
+  - type: Lighttpd SSL
+    reference: https://redmine.lighttpd.net/projects/lighttpd/wiki/Docs_SSL
+compliance_info:
+  framework: NIST
+  version: '1.0.0'
+  profile: security-hardening
+  source:
+    framework: lighttpd
+    benchmark: Lighttpd Official Documentation
+    version: latest
+    profile: security-hardening
+    notes: Rules derived from official Lighttpd documentation and best practices.
+      No dedicated CIS or STIG exists for Lighttpd.
+rules:
+- rule_id: LIGHTTPD-TLS-001
+  legacy_ids: []
+  rule_name: Configure TLS 1.2 or higher minimum version
+  rule_description: |
+    Configure Lighttpd to use TLS 1.2 or higher for all encrypted connections. TLS 1.0 and 1.1 contain known vulnerabilities and are deprecated.
+  category: Cryptography
+  subcategory: TLS Configuration
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check Lighttpd TLS configuration:
+      
+      grep -E "MinProtocol|ssl.openssl.ssl-conf-cmd" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. MinProtocol is set to TLSv1.2 or TLSv1.3
+      2. Deprecated protocols are disabled
+      
+      Expected: MinProtocol => TLSv1.2 or higher
+    check_command: 'grep -E "MinProtocol|ssl-conf-cmd" /etc/lighttpd/lighttpd.conf
+      || echo "TLS version not explicitly configured"'
+    expected_value: 'MinProtocol => TLSv1.2 or higher'
+  remediation:
+    remediation_step: |
+      Configure TLS 1.2+ minimum in lighttpd.conf:
+      
+      server.modules += ("mod_openssl")
+      ssl.openssl.ssl-conf-cmd = (
+          "MinProtocol" => "TLSv1.2",
+          "Options" => "-ServerPreference",
+          "CipherString" => "EECDH+AESGCM:CHACHA20:!PSK:!DHE"
+      )
+      
+      $SERVER["socket"] == ":443" {
+          ssl.engine = "enable"
+          ssl.pemfile = "/path/to/fullchain.pem"
+          ssl.privkey = "/path/to/privkey.pem"
+      }
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Lighttpd restart
+    estimated_time: 30 seconds
+  context:
+    rationale: TLS 1.0 and 1.1 have known vulnerabilities (POODLE, BEAST) and are
+      deprecated by RFC 8996.
+    impact: Clients not supporting TLS 1.2+ will be unable to connect
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - tls
+  - ssl
+  - encryption
+
+- rule_id: LIGHTTPD-TLS-002
+  legacy_ids: []
+  rule_name: Configure strong cipher suites
+  rule_description: |
+    Configure Lighttpd to use strong cipher suites with Perfect Forward Secrecy.
+  category: Cryptography
+  subcategory: Cipher Suites
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check cipher configuration:
+      
+      grep -E "CipherString|ssl.cipher-list" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. Only AEAD ciphers (AES-GCM, CHACHA20-POLY1305) with ECDHE are configured
+      2. Weak ciphers are excluded
+      
+      Expected: Strong cipher suites only
+    check_command: 'grep -E "CipherString|cipher" /etc/lighttpd/lighttpd.conf || echo
+      "Ciphers using defaults"'
+    expected_value: Strong cipher suites configured
+  remediation:
+    remediation_step: |
+      Configure strong ciphers in lighttpd.conf:
+      
+      ssl.openssl.ssl-conf-cmd = (
+          "MinProtocol" => "TLSv1.2",
+          "Options" => "-ServerPreference",
+          "CipherString" => "EECDH+AESGCM:CHACHA20:!PSK:!DHE"
+      )
+      
+      For TLS 1.3 only:
+      
+      ssl.openssl.ssl-conf-cmd = (
+          "MinProtocol" => "TLSv1.3",
+          "Options" => "-ServerPreference"
+      )
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Lighttpd restart
+    estimated_time: 30 seconds
+  context:
+    rationale: Strong cipher suites with ECDHE provide Perfect Forward Secrecy.
+    impact: Some older clients may not support modern ciphers
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - tls
+  - ciphers
+  - encryption
+
+- rule_id: LIGHTTPD-USER-001
+  legacy_ids: []
+  rule_name: Run Lighttpd as non-root user
+  rule_description: |
+    Configure Lighttpd to run as an unprivileged user and group for security isolation.
+  category: Access Control
+  subcategory: Process Isolation
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check user and group configuration:
+      
+      grep -E "server.username|server.groupname" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. server.username is set to non-root user (e.g., www-data)
+      2. server.groupname is set to non-root group
+      
+      If running as root, this is a finding.
+    check_command: 'grep -E "server.username|server.groupname" /etc/lighttpd/lighttpd.conf
+      || echo "User/group not configured"'
+    expected_value: Non-root user and group configured
+  remediation:
+    remediation_step: |
+      Configure user in lighttpd.conf:
+      
+      server.username = "www-data"
+      server.groupname = "www-data"
+      
+      Ensure the user exists:
+      useradd -r -s /usr/sbin/nologin www-data
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Requires Lighttpd restart
+    estimated_time: 30 seconds
+  context:
+    rationale: Running as non-root limits the impact of potential security vulnerabilities.
+    impact: May affect file permissions
+    false_positive_risk: None
+  tags:
+  - lighttpd
+  - user
+  - isolation
+  - security
+
+- rule_id: LIGHTTPD-HEADER-001
+  legacy_ids: []
+  rule_name: Configure security headers
+  rule_description: |
+    Configure security-related HTTP headers to protect against common web vulnerabilities.
+  category: Application Security
+  subcategory: Security Headers
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check security headers configuration:
+      
+      grep -E "setenv.set-response-header|Strict-Transport|X-Frame-Options" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. HSTS header is set
+      2. X-Frame-Options is configured
+      3. X-Content-Type-Options is set
+      
+      If security headers are not configured, this is a finding.
+    check_command: 'grep -E "setenv|Strict-Transport|X-Frame-Options|X-Content-Type"
+      /etc/lighttpd/lighttpd.conf || echo "Security headers not configured"'
+    expected_value: Security headers configured
+  remediation:
+    remediation_step: |
+      Configure security headers in lighttpd.conf:
+      
+      server.modules += ("mod_setenv")
+      setenv.set-response-header = (
+          "strict-transport-security" => "max-age=31536000; includeSubDomains",
+          "x-frame-options" => "SAMEORIGIN",
+          "x-content-type-options" => "nosniff",
+          "x-xss-protection" => "0",
+          "permissions-policy" => "interest-cohort=()",
+          "content-security-policy" => "default-src https:"
+      )
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Response headers will include security policies
+    estimated_time: 30 seconds
+  context:
+    rationale: Security headers protect against XSS, clickjacking, and other common
+      web vulnerabilities.
+    impact: May affect application behavior if headers conflict
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - headers
+  - security
+  - application-security
+
+- rule_id: LIGHTTPD-TOKENS-001
+  legacy_ids: []
+  rule_name: Hide server version
+  rule_description: |
+    Configure Lighttpd to hide its version in server headers and error pages.
+  category: Configuration
+  subcategory: Information Disclosure
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check server tag configuration:
+      
+      grep -E "server.tag" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. server.tag is set to hide version information
+      2. Custom value or "lighttpd" without version
+      
+      If server version is exposed, this is a finding.
+    check_command: 'grep -E "server.tag" /etc/lighttpd/lighttpd.conf || echo "Server
+      tag using defaults"'
+    expected_value: 'server.tag set to hide version'
+  remediation:
+    remediation_step: |
+      Configure server tag in lighttpd.conf:
+      
+      server.tag = "lighttpd"
+      
+      Or use a custom/anonymous value:
+      
+      server.tag = "WebServer"
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Server header will not show version
+    estimated_time: 30 seconds
+  context:
+    rationale: Hiding server version makes reconnaissance more difficult for attackers.
+    impact: None
+    false_positive_risk: None
+  tags:
+  - lighttpd
+  - server-tokens
+  - information-disclosure
+  - security
+
+- rule_id: LIGHTTPD-DIR-001
+  legacy_ids: []
+  rule_name: Disable directory listing
+  rule_description: |
+    Disable directory listing to prevent unauthorized file discovery.
+  category: Configuration
+  subcategory: Directory Listing
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check directory listing configuration:
+      
+      grep -E "dir-listing.activate" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. dir-listing.activate is set to "disable" or not present
+      2. Directory listing is not enabled globally
+      
+      If directory listing is enabled, this is a finding.
+    check_command: 'grep -E "dir-listing.activate" /etc/lighttpd/lighttpd.conf || echo
+      "Directory listing disabled (default)"'
+    expected_value: 'dir-listing.activate = "disable"'
+  remediation:
+    remediation_step: |
+      Disable directory listing in lighttpd.conf:
+      
+      dir-listing.activate = "disable"
+      
+      If required for specific directories, harden configuration:
+      
+      $HTTP["url"] =~ "^/files/" {
+          dir-listing.activate = "enable"
+          dir-listing.hide-dotfiles = "enable"
+          dir-listing.exclude = (".*", "*.bak", "*.conf", "*.log")
+      }
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Directory contents will not be listed
+    estimated_time: 30 seconds
+  context:
+    rationale: Directory listing can expose sensitive files and directory structure.
+    impact: Users cannot browse directories without index files
+    false_positive_risk: None
+  tags:
+  - lighttpd
+  - directory-listing
+  - information-disclosure
+  - security
+
+- rule_id: LIGHTTPD-ACCESS-001
+  legacy_ids: []
+  rule_name: Configure access control
+  rule_description: |
+    Configure access control to deny access to sensitive files and directories.
+  category: Access Control
+  subcategory: File Access
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check access control configuration:
+      
+      grep -E "url.access-deny|url.access-allow" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. Sensitive file extensions are denied
+      2. Access to configuration directories is blocked
+      
+      If access control is not configured, this is a finding.
+    check_command: 'grep -E "url.access-deny|url.access-allow" /etc/lighttpd/lighttpd.conf
+      || echo "Access control not configured"'
+    expected_value: Access control configured
+  remediation:
+    remediation_step: |
+      Configure access control in lighttpd.conf:
+      
+      server.modules += ("mod_access")
+      url.access-deny = ("~", ".inc", ".bak", ".config", ".htaccess", ".htpasswd", ".env")
+      
+      Deny access to specific directories:
+      
+      $HTTP["url"] =~ "^/(config|logs|private|admin)/" {
+          url.access-deny = ("")
+      }
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Sensitive files cannot be accessed
+    estimated_time: 30 seconds
+  context:
+    rationale: Access control prevents unauthorized access to sensitive files and
+      directories.
+    impact: May affect applications that rely on those files
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - access-control
+  - file-access
+  - security
+
+- rule_id: LIGHTTPD-LOG-001
+  legacy_ids: []
+  rule_name: Configure access logging
+  rule_description: |
+    Configure comprehensive access logging for security monitoring and incident response.
+  category: Logging and Auditing
+  subcategory: Access Logs
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check logging configuration:
+      
+      grep -E "accesslog.filename|server.errorlog" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. Access logging is enabled
+      2. Error logging is configured
+      3. Log format includes relevant fields
+      
+      If logging is not configured, this is a finding.
+    check_command: 'grep -E "accesslog|errorlog" /etc/lighttpd/lighttpd.conf || echo
+      "Logging not configured"'
+    expected_value: Access and error logging configured
+  remediation:
+    remediation_step: |
+      Configure logging in lighttpd.conf:
+      
+      server.modules += ("mod_accesslog")
+      accesslog.filename = "/var/log/lighttpd/access.log"
+      accesslog.format = "%h %V %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\""
+      
+      server.errorlog = "/var/log/lighttpd/error.log"
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Additional log storage required
+    estimated_time: 30 seconds
+  context:
+    rationale: Access logging enables security monitoring, incident response, and
+      troubleshooting.
+    impact: Additional disk space for log storage
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - logging
+  - monitoring
+  - auditing
+
+- rule_id: LIGHTTPD-PARSE-001
+  legacy_ids: []
+  rule_name: Enable strict HTTP request parsing
+  rule_description: |
+    Enable strict HTTP request parsing to reject malformed requests.
+  category: Application Security
+  subcategory: Request Validation
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check HTTP parsing options:
+      
+      grep -E "server.http-parseopts" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. header-strict is enabled
+      2. host-strict is enabled
+      3. host-normalize is enabled
+      
+      If strict parsing is not configured, this is a finding.
+    check_command: 'grep -E "http-parseopts" /etc/lighttpd/lighttpd.conf || echo "HTTP
+      parsing using defaults"'
+    expected_value: Strict HTTP parsing enabled
+  remediation:
+    remediation_step: |
+      Configure strict HTTP parsing in lighttpd.conf:
+      
+      server.http-parseopts = (
+          "header-strict" => "enable",
+          "host-strict" => "enable",
+          "host-normalize" => "enable"
+      )
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Malformed requests will be rejected
+    estimated_time: 30 seconds
+  context:
+    rationale: Strict HTTP parsing prevents protocol-based attacks.
+    impact: Some edge-case HTTP requests may be rejected
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - http
+  - validation
+  - security
+
+- rule_id: LIGHTTPD-CHROOT-001
+  legacy_ids: []
+  rule_name: Configure chroot isolation
+  rule_description: |
+    Configure chroot to isolate Lighttpd from the rest of the filesystem.
+  category: Access Control
+  subcategory: Chroot
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Partial
+    audit_type: config
+    detection_step: |
+      Check chroot configuration:
+      
+      grep -E "server.chroot" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. server.chroot is configured
+      2. Required files are available in chroot
+      
+      If chroot is not configured, consider enabling it.
+    check_command: 'grep -E "server.chroot" /etc/lighttpd/lighttpd.conf || echo "Chroot
+      not configured"'
+    expected_value: Chroot configured (optional but recommended)
+  remediation:
+    remediation_step: |
+      Configure chroot in lighttpd.conf:
+      
+      server.chroot = "/var/www"
+      server.username = "www-data"
+      server.groupname = "www-data"
+      
+      Ensure required files are in chroot:
+      mkdir -p /var/www/{etc,logs,tmp}
+      cp /etc/resolv.conf /var/www/etc/
+      cp /etc/hosts /var/www/etc/
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: File system access limited to chroot
+    estimated_time: 5 minutes
+  context:
+    rationale: Chroot limits the impact of potential security vulnerabilities by restricting
+      file system access.
+    impact: Must configure all required files in chroot
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - chroot
+  - isolation
+  - security
+
+- rule_id: LIGHTTPD-REDIRECT-001
+  legacy_ids: []
+  rule_name: Configure HTTP to HTTPS redirect
+  rule_description: |
+    Configure automatic HTTP to HTTPS redirect to ensure encrypted connections.
+  category: Network Security
+  subcategory: Redirects
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check redirect configuration:
+      
+      grep -E "url.redirect|mod_redirect" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. HTTP requests are redirected to HTTPS
+      2. Permanent redirect is configured
+      
+      If HTTP to HTTPS redirect is not configured, this is a finding.
+    check_command: 'grep -E "url.redirect|mod_redirect" /etc/lighttpd/lighttpd.conf
+      || echo "Redirect not configured"'
+    expected_value: HTTP to HTTPS redirect configured
+  remediation:
+    remediation_step: |
+      Configure HTTP to HTTPS redirect in lighttpd.conf:
+      
+      server.modules += ("mod_redirect")
+      
+      $HTTP["scheme"] == "http" {
+          url.redirect = ("" => "https://${url.authority}${url.path}${qsa}")
+      }
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: All HTTP traffic redirected to HTTPS
+    estimated_time: 30 seconds
+  context:
+    rationale: Redirecting HTTP to HTTPS ensures all traffic is encrypted.
+    impact: HTTP requests will be redirected
+    false_positive_risk: None
+  tags:
+  - lighttpd
+  - https
+  - redirect
+  - encryption
+
+- rule_id: LIGHTTPD-CONN-001
+  legacy_ids: []
+  rule_name: Configure connection limits
+  rule_description: |
+    Configure connection limits and timeouts to prevent resource exhaustion.
+  category: Network Security
+  subcategory: Connection Limits
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check connection configuration:
+      
+      grep -E "max-connections|max-keep-alive|kbytes-per-second" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. server.max-connections is configured
+      2. Keep-alive limits are set
+      3. Bandwidth limits are configured if needed
+      
+      If connection limits are not configured, this is a finding.
+    check_command: 'grep -E "max-connections|max-keep-alive|kbytes" /etc/lighttpd/lighttpd.conf
+      || echo "Connection limits not configured"'
+    expected_value: Connection limits configured
+  remediation:
+    remediation_step: |
+      Configure connection limits in lighttpd.conf:
+      
+      server.max-connections = 1024
+      server.max-keep-alive-idle = 5
+      server.max-keep-alive-requests = 100
+      
+      server.max-request-size = 256
+      server.max-request-field-size = 8192
+      
+      connection.kbytes-per-second = 128
+      server.kbytes-per-second = 1024
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Excessive connections will be limited
+    estimated_time: 30 seconds
+  context:
+    rationale: Connection limits prevent resource exhaustion from connection floods.
+    impact: May affect high-traffic applications
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - connection-limits
+  - dos-protection
+  - network
+
+- rule_id: LIGHTTPD-SYMLINK-001
+  legacy_ids: []
+  rule_name: Disable symbolic links
+  rule_description: |
+    Disable following symbolic links to prevent directory traversal attacks.
+  category: Access Control
+  subcategory: File Access
+  testing_status: untested
+  assessment:
+    severity: Medium
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check symlink configuration:
+      
+      grep -E "server.follow-symlink" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. server.follow-symlink is set to "disable"
+      
+      If symlink following is enabled, this is a finding.
+    check_command: 'grep -E "follow-symlink" /etc/lighttpd/lighttpd.conf || echo "Symlinks
+      enabled (default)"'
+    expected_value: 'server.follow-symlink = "disable"'
+  remediation:
+    remediation_step: |
+      Disable symlink following in lighttpd.conf:
+      
+      server.follow-symlink = "disable"
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Symbolic links will not be followed
+    estimated_time: 30 seconds
+  context:
+    rationale: Disabling symlinks prevents directory traversal attacks via symlink
+      exploitation.
+    impact: May affect applications that rely on symlinks
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - symlinks
+  - directory-traversal
+  - security
+
+- rule_id: LIGHTTPD-MTLS-001
+  legacy_ids: []
+  rule_name: Configure mutual TLS (mTLS)
+  rule_description: |
+    Configure mutual TLS authentication to verify client certificates.
+  category: Authentication
+  subcategory: Mutual TLS
+  testing_status: untested
+  assessment:
+    severity: High
+    is_auto: true
+    automation_level: Full
+    audit_type: config
+    detection_step: |
+      Check mTLS configuration:
+      
+      grep -E "verifyclient|ca-file" /etc/lighttpd/lighttpd.conf
+      
+      Verify:
+      1. ssl.verifyclient.activate is enabled
+      2. ssl.verifyclient.enforce is enabled
+      3. CA file is specified
+      
+      If mTLS is required but not configured, this is a finding.
+    check_command: 'grep -E "verifyclient|ca-file" /etc/lighttpd/lighttpd.conf || echo
+      "mTLS not configured"'
+    expected_value: mTLS configured if required
+  remediation:
+    remediation_step: |
+      Configure mTLS in lighttpd.conf:
+      
+      $SERVER["socket"] == ":443" {
+          ssl.engine = "enable"
+          ssl.pemfile = "/path/to/server.pem"
+          ssl.privkey = "/path/to/server.key"
+          
+          ssl.verifyclient.activate = "enable"
+          ssl.verifyclient.enforce = "enable"
+          ssl.verifyclient.depth = 2
+          ssl.verifyclient.ca-file = "/path/to/ca-bundle.crt"
+      }
+      
+      Restart Lighttpd: systemctl restart lighttpd
+    rollback_supported: true
+    reboot_required: false
+    service_impact: Clients without valid certificates cannot connect
+    estimated_time: 30 seconds
+  context:
+    rationale: mTLS provides strong authentication by requiring client certificates.
+    impact: All clients must have valid certificates
+    false_positive_risk: Low
+  tags:
+  - lighttpd
+  - mtls
+  - authentication
+  - certificates
