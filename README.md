@@ -223,6 +223,24 @@ pip install pyyaml jsonschema
 
 ### Quick Examples
 
+#### Run Compliance Scanner (Pure Bash)
+
+The repository includes a pure Bash compliance runner that can parse and execute YAML rulesets directly on the target machine without external dependencies (like Python or yq).
+
+```bash
+# Basic run
+./scripts/compliance_runner.sh rules/redhat/rhel-10/redhat-rhel-10-cis-level1-v1.0.1-server.yaml
+
+# Run specific rule
+./scripts/compliance_runner.sh rules/...yaml --rule CIS-1.1.1.1
+
+# Auto-remediate failed rules
+./scripts/compliance_runner.sh rules/...yaml --auto-remediate
+
+# Dry run (see what would be executed)
+./scripts/compliance_runner.sh rules/...yaml --dry-run
+```
+
 #### Load a Compliance File
 
 ```python

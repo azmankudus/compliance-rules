@@ -35,6 +35,10 @@ compliance-rules/
 │   │   └── docker-latest/
 │   └── podman/               # Podman platform
 │       └── podman-latest/
+├── scripts/                  # Utility scripts
+│   ├── download-stig-json.sh # Script to download STIG JSON
+│   ├── download-cis-json.sh  # Script to download CIS JSON
+│   └── compliance_runner.sh  # Pure Bash compliance execution runner
 └── .agent/                   # Agent configuration
 ```
 compliance-rules/
